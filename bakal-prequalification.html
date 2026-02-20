@@ -243,23 +243,46 @@ body::before {
 }
 
 /* Radio-style options */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.checkbox-group::-webkit-scrollbar {
+  width: 4px;
+}
+.checkbox-group::-webkit-scrollbar-track {
+  background: transparent;
+}
+.checkbox-group::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
 .radio-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.radio-option {
+.radio-option,
+.checkbox-option {
   position: relative;
 }
 
-.radio-option input {
+.radio-option input,
+.checkbox-option input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.radio-option label {
+.radio-option label,
+.checkbox-option label {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -275,12 +298,14 @@ body::before {
   margin-bottom: 0;
 }
 
-.radio-option label:hover {
+.radio-option label:hover,
+.checkbox-option label:hover {
   border-color: var(--border-light);
   background: rgba(26, 27, 42, 0.8);
 }
 
-.radio-option input:checked + label {
+.radio-option input:checked + label,
+.checkbox-option input:checked + label {
   border-color: var(--accent);
   background: var(--accent-glow);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -300,6 +325,34 @@ body::before {
   border-color: var(--accent);
   background: var(--accent);
   box-shadow: inset 0 0 0 3px var(--bg-card);
+}
+
+.check-box {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-light);
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-option input:checked + label .check-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.checkbox-option input:checked + label .check-box::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-top: -2px;
 }
 
 /* ═══ BUTTONS ═══ */
@@ -514,12 +567,100 @@ body::before {
       <div class="step" data-step="2">
         <div class="step-number">Question 2/5</div>
         <h2>Votre cible</h2>
-        <p class="hint">À qui vendez-vous ? Soyez le plus précis possible.</p>
-        <div class="field">
-          <label for="cible">Secteur, taille d'entreprise, fonction du décideur</label>
-          <textarea id="cible" name="cible" placeholder="Ex : Directeurs RH de PME industrielles (50-200 salariés) en Île-de-France" required></textarea>
-          <div class="error-msg">Merci de décrire votre cible</div>
+        <p class="hint">À qui vendez-vous ? Vous pouvez sélectionner plusieurs secteurs.</p>
+
+        <!-- Secteur (multi-select checkboxes) -->
+        <div class="field" id="field-secteur">
+          <label>Secteur d'activité de vos clients</label>
+          <div class="checkbox-group">
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect1" name="secteur" value="Services aux entreprises / Conseil">
+              <label for="sect1"><span class="check-box"></span>Services aux entreprises / Conseil</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect2" name="secteur" value="Formation / Éducation">
+              <label for="sect2"><span class="check-box"></span>Formation / Éducation</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect3" name="secteur" value="Comptabilité / Finance">
+              <label for="sect3"><span class="check-box"></span>Comptabilité / Finance</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect4" name="secteur" value="Juridique / Avocats">
+              <label for="sect4"><span class="check-box"></span>Juridique / Avocats</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect5" name="secteur" value="Immobilier">
+              <label for="sect5"><span class="check-box"></span>Immobilier</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect6" name="secteur" value="IT / Informatique / SaaS">
+              <label for="sect6"><span class="check-box"></span>IT / Informatique / SaaS</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect7" name="secteur" value="Marketing / Communication / Agence">
+              <label for="sect7"><span class="check-box"></span>Marketing / Communication / Agence</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect8" name="secteur" value="Santé / Médical">
+              <label for="sect8"><span class="check-box"></span>Santé / Médical</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect9" name="secteur" value="BTP / Construction">
+              <label for="sect9"><span class="check-box"></span>BTP / Construction</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect10" name="secteur" value="Industrie / Fabrication">
+              <label for="sect10"><span class="check-box"></span>Industrie / Fabrication</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect11" name="secteur" value="Commerce / Distribution">
+              <label for="sect11"><span class="check-box"></span>Commerce / Distribution</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect12" name="secteur" value="Transport / Logistique">
+              <label for="sect12"><span class="check-box"></span>Transport / Logistique</label>
+            </div>
+            <div class="checkbox-option">
+              <input type="checkbox" id="sect13" name="secteur" value="Autre">
+              <label for="sect13"><span class="check-box"></span>Autre</label>
+            </div>
+          </div>
+          <div class="error-msg">Merci de sélectionner au moins un secteur</div>
         </div>
+
+        <!-- Taille entreprise (select) -->
+        <div class="field">
+          <label for="taille">Taille d'entreprise ciblée</label>
+          <select id="taille" name="taille" required>
+            <option value="" disabled selected>Choisissez…</option>
+            <option value="Indépendant / Solo">Indépendant / Solo</option>
+            <option value="TPE (1-10 salariés)">TPE (1-10 salariés)</option>
+            <option value="PME (11-50 salariés)">PME (11-50 salariés)</option>
+            <option value="ETI (51-250 salariés)">ETI (51-250 salariés)</option>
+            <option value="Grande entreprise (250+)">Grande entreprise (250+)</option>
+            <option value="Toutes tailles">Toutes tailles</option>
+          </select>
+          <div class="error-msg">Merci de sélectionner une taille</div>
+        </div>
+
+        <!-- Fonction décideur (select) -->
+        <div class="field">
+          <label for="decideur">Fonction du décideur visé</label>
+          <select id="decideur" name="decideur" required>
+            <option value="" disabled selected>Choisissez…</option>
+            <option value="Dirigeant / Gérant / CEO">Dirigeant / Gérant / CEO</option>
+            <option value="Directeur commercial">Directeur commercial</option>
+            <option value="Directeur RH">Directeur RH</option>
+            <option value="Directeur financier / DAF">Directeur financier / DAF</option>
+            <option value="Directeur marketing">Directeur marketing</option>
+            <option value="Directeur technique / CTO">Directeur technique / CTO</option>
+            <option value="Responsable achats">Responsable achats</option>
+            <option value="Autre">Autre</option>
+          </select>
+          <div class="error-msg">Merci de sélectionner une fonction</div>
+        </div>
+
         <div class="buttons">
           <button type="button" class="btn-back" onclick="prevStep()">Retour</button>
           <button type="button" class="btn-next" onclick="nextStep()">
@@ -691,13 +832,34 @@ function validateStep(step) {
   }
 
   if (step === 2) {
-    const cible = document.getElementById('cible');
-    const field = cible.closest('.field');
-    if (!cible.value.trim()) {
-      field.classList.add('error');
+    // Validate secteur (at least one checkbox)
+    const secteurs = document.querySelectorAll('input[name="secteur"]:checked');
+    const fieldSecteur = document.getElementById('field-secteur');
+    if (secteurs.length === 0) {
+      fieldSecteur.classList.add('error');
       valid = false;
     } else {
-      field.classList.remove('error');
+      fieldSecteur.classList.remove('error');
+    }
+
+    // Validate taille
+    const taille = document.getElementById('taille');
+    const fieldTaille = taille.closest('.field');
+    if (!taille.value) {
+      fieldTaille.classList.add('error');
+      valid = false;
+    } else {
+      fieldTaille.classList.remove('error');
+    }
+
+    // Validate decideur
+    const decideur = document.getElementById('decideur');
+    const fieldDecideur = decideur.closest('.field');
+    if (!decideur.value) {
+      fieldDecideur.classList.add('error');
+      valid = false;
+    } else {
+      fieldDecideur.classList.remove('error');
     }
   }
 
@@ -773,6 +935,18 @@ document.querySelectorAll('input[type="radio"]').forEach(el => {
   });
 });
 
+document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+  el.addEventListener('change', () => {
+    document.getElementById('field-secteur')?.classList.remove('error');
+  });
+});
+
+document.querySelectorAll('select').forEach(el => {
+  el.addEventListener('change', () => {
+    el.closest('.field')?.classList.remove('error');
+  });
+});
+
 // Submit
 document.getElementById('prequalForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -786,7 +960,9 @@ document.getElementById('prequalForm').addEventListener('submit', async function
 
   const data = {
     activite: document.getElementById('activite').value.trim(),
-    cible: document.getElementById('cible').value.trim(),
+    secteurs: Array.from(document.querySelectorAll('input[name="secteur"]:checked')).map(el => el.value),
+    taille: document.getElementById('taille').value,
+    decideur: document.getElementById('decideur').value,
     frein: document.querySelector('input[name="frein"]:checked')?.value || '',
     budget: document.querySelector('input[name="budget"]:checked')?.value || '',
     prenom: document.getElementById('prenom').value.trim(),
