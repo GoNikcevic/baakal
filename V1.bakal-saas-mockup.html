@@ -1414,7 +1414,6 @@ function toggleCreator() {
 function toggleInspiration() {
   const toggle = document.getElementById('inspiToggle');
   const panel = document.getElementById('inspiPanel');
-  const footer = document.getElementById('creatorFooter');
   toggle.classList.toggle('on');
   panel.classList.toggle('show');
 }
@@ -1426,8 +1425,10 @@ function showSection(name) {
   document.querySelectorAll('.tab').forEach((t, i) => {
     t.classList.toggle('active', ['overview', 'reports', 'campaigns', 'refinement'][i] === name);
   });
+  if (name === 'campaigns') backToCampaignsList();
 }
 </script>
+<script src="campaigns-detail.js"></script>
 
 </body>
 </html>
