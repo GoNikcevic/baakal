@@ -63,15 +63,22 @@
 ## 📁 Project File Structure
 
 ```
-/docs/
-  bakal-prompt-system.md      # Complete prompt architecture for copy generation
-  bakal-refinement-system.md  # Auto-optimization loop (analysis → regeneration)
-  
 /landing/
-  bakal-landing-page.html       # Dark theme (English)
-  bakal-landing-page-light.html # Light theme (English + French versions exist)
+  bakal-landing-page.html           # Landing page — dark theme
+  bakal-landing-page-light.html     # Landing page — light theme
+  bakal-prequalification.html       # Eligibility / prequalification form
 
-/CLAUDE.md                    # This file
+/app/
+  bakal-saas-mockup.html            # SaaS dashboard mockup
+  campaigns-detail.js               # Campaign detail views module
+  copy-editor.js                    # Copy & sequences editor module
+
+/docs/
+  bakal-prompt-system.md            # Complete prompt architecture for copy generation
+  bakal-refinement-system.md        # Auto-optimization loop (analysis → regeneration)
+
+/CLAUDE.md                          # This file
+/README.md                          # Project overview
 ```
 
 ---
@@ -295,7 +302,7 @@ When generating copy for Bakal clients:
 → Use Regeneration Prompt with diagnostic + originals
 
 # 4. Update landing page
-→ Edit bakal-landing-page.html (dark) or bakal-landing-page-light.html
+→ Edit landing/bakal-landing-page.html (dark) or landing/bakal-landing-page-light.html
 
 # 5. Extend Notion structure
 → Follow schema patterns from refinement-system.md
