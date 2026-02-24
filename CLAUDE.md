@@ -73,6 +73,12 @@
   campaigns-detail.js               # Campaign detail views module
   copy-editor.js                    # Copy & sequences editor module
 
+/workflows/
+  01-stats-collection.json          # N8N — Daily stats from Lemlist → Notion → Claude analysis
+  02-regeneration-deployment.json   # N8N — Claude regeneration → Lemlist A/B deployment
+  03-memory-consolidation.json      # N8N — Monthly cross-campaign pattern library
+  README.md                         # Setup guide and configuration checklist
+
 /docs/
   bakal-prompt-system.md            # Complete prompt architecture for copy generation
   bakal-refinement-system.md        # Auto-optimization loop (analysis → regeneration)
