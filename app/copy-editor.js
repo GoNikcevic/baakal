@@ -230,8 +230,8 @@ function renderEditorMain() {
         <div class="ai-bar-title">${c.aiBar.title}</div>
         <div class="ai-bar-text">${c.aiBar.text}</div>
       </div>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;">Appliquer tout</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;">Ignorer</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="applyAllSuggestions()">Appliquer tout</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="dismissAllSuggestions()">Ignorer</button>
     </div>`;
 
   // Touchpoints
@@ -263,8 +263,8 @@ function renderEditorMain() {
           <div class="tp-ai-suggestion-label">${tp.suggestion.label}</div>
           <div class="tp-ai-suggestion-text">${tp.suggestion.text}</div>
           <div style="display:flex;gap:6px;margin-top:8px;">
-            <button class="tp-action ai" style="font-size:11px;">✅ Appliquer</button>
-            <button class="tp-action" style="font-size:11px;">❌ Ignorer</button>
+            <button class="tp-action ai" style="font-size:11px;" onclick="applySuggestion('${tp.id}')">✅ Appliquer</button>
+            <button class="tp-action" style="font-size:11px;" onclick="dismissSuggestion('${tp.id}')">❌ Ignorer</button>
           </div>
         </div>`;
     }
@@ -280,9 +280,9 @@ function renderEditorMain() {
             </div>
           </div>
           <div class="tp-actions">
-            <button class="tp-action ai">🔄 Régénérer</button>
-            <button class="tp-action">📋 Dupliquer</button>
-            <button class="tp-action">🗑️</button>
+            <button class="tp-action ai" onclick="regenerateTouchpoint('${tp.id}')">🔄 Régénérer</button>
+            <button class="tp-action" onclick="duplicateTouchpoint('${tp.id}')">📋 Dupliquer</button>
+            <button class="tp-action" onclick="deleteTouchpoint('${tp.id}')">🗑️</button>
           </div>
         </div>
         <div class="tp-body">
@@ -308,8 +308,8 @@ function renderEditorMain() {
     <div class="editor-bottom-bar">
       <div class="editor-bottom-info">${statusText}</div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">↩️ Annuler les modifications</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;">💾 Sauvegarder les séquences</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="cancelEditorChanges()">↩️ Annuler les modifications</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="saveEditorChanges()">💾 Sauvegarder les séquences</button>
       </div>
     </div>`;
 
@@ -320,8 +320,8 @@ function renderEditorMain() {
         <div class="editor-header-params">${paramsHtml}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">⚙️ Paramètres</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;">✨ Tout régénérer</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">⚙️ Paramètres</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">✨ Tout régénérer</button>
       </div>
     </div>
     ${aiBarHtml}
@@ -351,4 +351,239 @@ function selectEditorCampaign(key) {
 function initCopyEditor() {
   renderEditorSidebar();
   renderEditorMain();
+}
+
+/* ═══ Touchpoint Actions ═══ */
+function regenerateTouchpoint(tpId) {
+  const card = document.querySelector(`[data-tp="${tpId}"]`);
+  if (!card) return;
+
+  const body = card.querySelector('.tp-editable[data-field="body"]');
+  const originalHtml = body.innerHTML;
+
+  // Show loading state
+  body.style.opacity = '0.4';
+  card.classList.add('editing');
+
+  const dots = document.createElement('div');
+  dots.className = 'tp-regen-status';
+  dots.style.cssText = 'font-size:12px;color:var(--accent-light);padding:8px 0;';
+  dots.textContent = '🤖 Régénération en cours...';
+  body.parentElement.insertBefore(dots, body);
+
+  // Simulate regeneration delay
+  setTimeout(() => {
+    body.style.opacity = '1';
+    dots.textContent = '✅ Régénéré — vérifiez le résultat avant de sauvegarder';
+    dots.style.color = 'var(--success)';
+    setTimeout(() => dots.remove(), 3000);
+  }, 1500);
+}
+
+function duplicateTouchpoint(tpId) {
+  const c = editorCampaigns[activeEditorCampaign];
+  const tpIndex = c.touchpoints.findIndex(t => t.id === tpId);
+  if (tpIndex === -1) return;
+
+  const original = c.touchpoints[tpIndex];
+  const copy = JSON.parse(JSON.stringify(original));
+  copy.id = tpId + '-copy';
+  copy.label = original.label + ' (copie)';
+  copy.suggestion = null;
+
+  // Insert after original
+  c.touchpoints.splice(tpIndex + 1, 0, copy);
+  renderEditorMain();
+
+  // Flash the new card
+  const newCard = document.querySelector(`[data-tp="${copy.id}"]`);
+  if (newCard) {
+    newCard.style.transition = 'box-shadow 0.3s';
+    newCard.style.boxShadow = '0 0 0 2px var(--accent)';
+    newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => { newCard.style.boxShadow = ''; }, 1500);
+  }
+}
+
+function deleteTouchpoint(tpId) {
+  const c = editorCampaigns[activeEditorCampaign];
+  const card = document.querySelector(`[data-tp="${tpId}"]`);
+  if (!card) return;
+
+  // Animate out
+  card.style.transition = 'opacity 0.3s, transform 0.3s, max-height 0.3s';
+  card.style.opacity = '0';
+  card.style.transform = 'translateX(-20px)';
+
+  setTimeout(() => {
+    card.style.maxHeight = '0';
+    card.style.overflow = 'hidden';
+    card.style.marginBottom = '0';
+    card.style.padding = '0';
+  }, 200);
+
+  setTimeout(() => {
+    c.touchpoints = c.touchpoints.filter(t => t.id !== tpId);
+    renderEditorMain();
+  }, 500);
+}
+
+/* ═══ AI Suggestions ═══ */
+function applySuggestion(tpId) {
+  const card = document.querySelector(`[data-tp="${tpId}"]`);
+  const suggestion = card?.querySelector('.tp-ai-suggestion');
+  if (!suggestion) return;
+
+  // Flash the body field to indicate the change
+  const body = card.querySelector('.tp-editable[data-field="body"]');
+  if (body) {
+    body.style.transition = 'box-shadow 0.3s';
+    body.style.boxShadow = '0 0 0 2px var(--success)';
+    setTimeout(() => { body.style.boxShadow = ''; }, 1000);
+  }
+
+  // Replace suggestion with applied note
+  suggestion.innerHTML = `
+    <div style="font-size:11px;color:var(--success);font-weight:600;">✅ Suggestion appliquée — vérifiez le résultat</div>
+  `;
+  setTimeout(() => {
+    suggestion.style.transition = 'opacity 0.3s';
+    suggestion.style.opacity = '0';
+    setTimeout(() => suggestion.remove(), 300);
+  }, 2000);
+}
+
+function dismissSuggestion(tpId) {
+  const card = document.querySelector(`[data-tp="${tpId}"]`);
+  const suggestion = card?.querySelector('.tp-ai-suggestion');
+  if (!suggestion) return;
+
+  suggestion.style.transition = 'opacity 0.3s, max-height 0.3s';
+  suggestion.style.opacity = '0';
+  setTimeout(() => {
+    suggestion.style.maxHeight = '0';
+    suggestion.style.overflow = 'hidden';
+    suggestion.style.padding = '0';
+    suggestion.style.margin = '0';
+    setTimeout(() => suggestion.remove(), 300);
+  }, 200);
+}
+
+function applyAllSuggestions() {
+  const cards = document.querySelectorAll('.touchpoint-card');
+  cards.forEach(card => {
+    const tpId = card.dataset.tp;
+    if (card.querySelector('.tp-ai-suggestion')) {
+      applySuggestion(tpId);
+    }
+  });
+
+  // Update AI bar
+  const aiBar = document.querySelector('.ai-bar');
+  if (aiBar) {
+    aiBar.querySelector('.ai-bar-title').textContent = 'Toutes les suggestions appliquées';
+    aiBar.querySelector('.ai-bar-text').textContent = 'Vérifiez les modifications et sauvegardez quand vous êtes satisfait.';
+    aiBar.style.borderColor = 'var(--success)';
+    aiBar.querySelectorAll('button').forEach(b => b.remove());
+  }
+}
+
+function dismissAllSuggestions() {
+  const cards = document.querySelectorAll('.touchpoint-card');
+  cards.forEach(card => {
+    const tpId = card.dataset.tp;
+    if (card.querySelector('.tp-ai-suggestion')) {
+      dismissSuggestion(tpId);
+    }
+  });
+
+  // Remove AI bar
+  const aiBar = document.querySelector('.ai-bar');
+  if (aiBar) {
+    aiBar.style.transition = 'opacity 0.3s';
+    aiBar.style.opacity = '0';
+    setTimeout(() => aiBar.remove(), 300);
+  }
+}
+
+/* ═══ Save / Cancel ═══ */
+function saveEditorChanges() {
+  const bottomBar = document.querySelector('.editor-bottom-bar');
+  const info = bottomBar.querySelector('.editor-bottom-info');
+  const now = new Date();
+  const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  info.innerHTML = `<span style="color:var(--success);font-weight:600;">✅ Séquences sauvegardées</span> · ${time}`;
+
+  // Flash all cards green briefly
+  document.querySelectorAll('.touchpoint-card').forEach(card => {
+    card.style.transition = 'border-color 0.3s';
+    card.style.borderColor = 'var(--success)';
+    setTimeout(() => { card.style.borderColor = ''; }, 1000);
+  });
+
+  // Reset info after delay
+  setTimeout(() => {
+    info.textContent = `Dernière sauvegarde : aujourd'hui à ${time}`;
+  }, 3000);
+}
+
+function cancelEditorChanges() {
+  // Re-render from data (resets all edits)
+  renderEditorMain();
+}
+
+/* ═══ Header Actions ═══ */
+function showCampaignParams() {
+  const c = editorCampaigns[activeEditorCampaign];
+  const header = document.querySelector('.editor-header');
+
+  // Check if params panel already open
+  let existing = document.getElementById('params-panel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'params-panel';
+  panel.style.cssText = 'background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;';
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600;">Paramètres de la campagne</div>
+      <button class="tp-action" style="font-size:11px;" onclick="this.closest('#params-panel').remove()">Fermer</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      ${c.params.map(p => `
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${p.l}</div>
+          <div style="font-size:13px;font-weight:500;">${p.v}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  header.after(panel);
+}
+
+function regenerateAll() {
+  // Show loading on all cards
+  document.querySelectorAll('.touchpoint-card').forEach(card => {
+    card.style.opacity = '0.5';
+  });
+
+  const aiBar = document.querySelector('.ai-bar');
+  if (aiBar) {
+    aiBar.querySelector('.ai-bar-title').textContent = '🔄 Régénération en cours...';
+    aiBar.querySelector('.ai-bar-text').textContent = 'Claude régénère tous les touchpoints de cette campagne.';
+    aiBar.querySelectorAll('button').forEach(b => b.style.display = 'none');
+  }
+
+  // Simulate completion
+  setTimeout(() => {
+    document.querySelectorAll('.touchpoint-card').forEach(card => {
+      card.style.opacity = '1';
+    });
+    if (aiBar) {
+      aiBar.querySelector('.ai-bar-title').textContent = '✅ Régénération terminée';
+      aiBar.querySelector('.ai-bar-text').textContent = 'Vérifiez les nouvelles versions et sauvegardez.';
+      aiBar.style.borderColor = 'var(--success)';
+    }
+  }, 2000);
 }

@@ -1476,9 +1476,9 @@ body {
             <strong>Prochaine itération proposée :</strong> Variante C — garder la longueur ultra-courte de B (meilleure ouverture) mais revenir sur l'angle douleur client de A avec un CTA question ouverte. Hypothèse : combiner les forces des deux variantes.
           </div>
           <div style="display:flex;gap:8px;margin-top:14px;">
-            <button class="btn btn-success" style="font-size:12px;padding:8px 14px;">✅ Lancer Variante C</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">✏️ Modifier la proposition</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">⏸ Pause le test</button>
+            <button class="btn btn-success" style="font-size:12px;padding:8px 14px;" onclick="launchVariantC(this)">✅ Lancer Variante C</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="modifyProposition(this)">✏️ Modifier la proposition</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="pauseTest(this)">⏸ Pause le test</button>
           </div>
         </div>
       </div>
@@ -1660,9 +1660,9 @@ body {
           </div>
 
           <div class="reco-card-actions">
-            <button class="reco-btn accept">✅ Appliquer</button>
-            <button class="reco-btn modify">✏️ Modifier avant d'appliquer</button>
-            <button class="reco-btn dismiss">Ignorer</button>
+            <button class="reco-btn accept" onclick="applyReco(this)">✅ Appliquer</button>
+            <button class="reco-btn modify" onclick="modifyReco(this)">✏️ Modifier avant d'appliquer</button>
+            <button class="reco-btn dismiss" onclick="dismissReco(this)">Ignorer</button>
           </div>
         </div>
       </div>
@@ -1710,9 +1710,9 @@ body {
           </div>
 
           <div class="reco-card-actions">
-            <button class="reco-btn accept">✅ Appliquer</button>
-            <button class="reco-btn modify">✏️ Modifier avant d'appliquer</button>
-            <button class="reco-btn dismiss">Ignorer</button>
+            <button class="reco-btn accept" onclick="applyReco(this)">✅ Appliquer</button>
+            <button class="reco-btn modify" onclick="modifyReco(this)">✏️ Modifier avant d'appliquer</button>
+            <button class="reco-btn dismiss" onclick="dismissReco(this)">Ignorer</button>
           </div>
         </div>
       </div>
@@ -1761,9 +1761,9 @@ body {
           </div>
 
           <div class="reco-card-actions">
-            <button class="reco-btn accept">✅ Appliquer</button>
-            <button class="reco-btn modify">✏️ Modifier avant d'appliquer</button>
-            <button class="reco-btn dismiss">Ignorer</button>
+            <button class="reco-btn accept" onclick="applyReco(this)">✅ Appliquer</button>
+            <button class="reco-btn modify" onclick="modifyReco(this)">✏️ Modifier avant d'appliquer</button>
+            <button class="reco-btn dismiss" onclick="dismissReco(this)">Ignorer</button>
           </div>
         </div>
       </div>
@@ -1811,9 +1811,9 @@ body {
           </div>
 
           <div class="reco-card-actions">
-            <button class="reco-btn accept">✅ Appliquer</button>
-            <button class="reco-btn modify">✏️ Modifier</button>
-            <button class="reco-btn dismiss">Ignorer</button>
+            <button class="reco-btn accept" onclick="applyReco(this)">✅ Appliquer</button>
+            <button class="reco-btn modify" onclick="modifyReco(this)">✏️ Modifier</button>
+            <button class="reco-btn dismiss" onclick="dismissReco(this)">Ignorer</button>
           </div>
         </div>
       </div>
@@ -2039,6 +2039,7 @@ body {
 <script src="nav.js"></script>
 <script src="campaigns-detail.js"></script>
 <script src="copy-editor.js"></script>
+<script src="recos.js"></script>
 <script src="app.js"></script>
 
 </body>
