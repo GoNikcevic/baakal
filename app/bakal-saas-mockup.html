@@ -757,6 +757,179 @@ body {
 }
 .editor-bottom-info { font-size: 12px; color: var(--text-muted); }
 
+/* ═══════════ VARIABLE MANAGER ═══════════ */
+.var-panel {
+  border-top: 1px solid var(--border);
+  margin-top: 16px; padding-top: 16px;
+}
+.var-panel-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+.var-panel-toggle:hover { background: var(--bg-card); }
+.var-panel-toggle-left {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+}
+.var-panel-toggle .chevron {
+  font-size: 10px; color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.var-panel-toggle.open .chevron { transform: rotate(90deg); }
+.var-panel-count {
+  font-size: 10px; font-weight: 600; color: var(--accent-light);
+  background: var(--accent-glow); padding: 2px 7px; border-radius: 8px;
+}
+
+.var-panel-body {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.var-panel-body.open { max-height: 600px; overflow-y: auto; }
+
+.var-group { margin-top: 12px; }
+.var-group-label {
+  font-size: 10px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 0 12px; margin-bottom: 6px;
+}
+.var-list { display: flex; flex-direction: column; gap: 2px; }
+
+.var-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 6px;
+  cursor: pointer; transition: all 0.15s;
+  position: relative;
+}
+.var-item:hover { background: var(--bg-card); }
+.var-item-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  color: var(--accent-light); background: rgba(108,92,231,0.12);
+  padding: 2px 8px; border-radius: 4px;
+  white-space: nowrap;
+}
+.var-item-label {
+  font-size: 11px; color: var(--text-secondary);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.var-item-sync {
+  width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; flex-shrink: 0;
+}
+.var-item-sync.synced { background: var(--success-bg); color: var(--success); }
+.var-item-sync.custom { background: var(--warning-bg); color: var(--warning); }
+.var-item-sync.local { background: var(--bg-elevated); color: var(--text-muted); }
+
+.var-item-tooltip {
+  display: none; position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+  margin-left: 8px; padding: 6px 10px; border-radius: 6px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+  z-index: 200; box-shadow: var(--shadow);
+}
+.var-item:hover .var-item-tooltip { display: block; }
+
+.var-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 8px 12px; margin-top: 10px;
+  background: transparent; border: 1px dashed var(--border);
+  border-radius: 6px; color: var(--text-muted); font-size: 12px;
+  font-family: 'Outfit', sans-serif; cursor: pointer; transition: all 0.2s;
+}
+.var-add-btn:hover {
+  border-color: var(--accent); color: var(--accent-light);
+  background: var(--accent-glow);
+}
+
+/* Variable insert toolbar (appears above touchpoint body when editing) */
+.var-insert-bar {
+  display: none; flex-wrap: wrap; gap: 4px;
+  padding: 8px 0; margin-bottom: 4px;
+}
+.touchpoint-card.editing .var-insert-bar { display: flex; }
+.var-insert-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  color: var(--accent-light); background: rgba(108,92,231,0.1);
+  padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(108,92,231,0.2);
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.var-insert-chip:hover {
+  background: rgba(108,92,231,0.25); border-color: var(--accent);
+}
+
+/* Custom variable modal */
+.var-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.var-modal-overlay.show { display: flex; }
+.var-modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px;
+  width: 480px; max-width: 90vw; box-shadow: var(--shadow);
+}
+.var-modal-title {
+  font-size: 18px; font-weight: 700; margin-bottom: 4px;
+}
+.var-modal-subtitle {
+  font-size: 13px; color: var(--text-muted); margin-bottom: 24px;
+}
+.var-modal-field { margin-bottom: 16px; }
+.var-modal-field label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--text-secondary); margin-bottom: 6px;
+}
+.var-modal-field input,
+.var-modal-field select {
+  width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 14px;
+  font-family: 'Outfit', sans-serif; transition: border-color 0.2s;
+}
+.var-modal-field input:focus,
+.var-modal-field select:focus {
+  outline: none; border-color: var(--accent);
+}
+.var-modal-field input::placeholder { color: var(--text-muted); }
+.var-modal-field .field-hint {
+  font-size: 11px; color: var(--text-muted); margin-top: 4px;
+}
+.var-modal-preview {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+}
+.var-modal-preview-label {
+  font-size: 11px; color: var(--text-muted); white-space: nowrap;
+}
+.var-modal-preview-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  color: var(--accent-light); background: rgba(108,92,231,0.15);
+  padding: 3px 10px; border-radius: 4px;
+}
+.var-modal-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 8px; border-top: 1px solid var(--border);
+}
+
+.var-item-actions {
+  display: none; gap: 4px;
+}
+.var-item:hover .var-item-actions { display: flex; }
+.var-item-action-btn {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 10px; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+  transition: all 0.15s;
+}
+.var-item-action-btn:hover { color: var(--danger); background: var(--danger-bg); }
+
 /* ═══════════ RECOMMANDATIONS IA ═══════════ */
 .reco-page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1561,8 +1734,77 @@ body {
           <div class="eci-icon" style="background:var(--bg-elevated);">💎</div>
           <div><div class="eci-name" style="font-size:13px;">Golden nuggets</div><div class="eci-meta">5 apprentissages</div></div>
         </div>
+
+        <!-- Variable Manager Panel -->
+        <div class="var-panel" id="var-panel">
+          <div class="var-panel-toggle" id="var-panel-toggle" onclick="toggleVarPanel()">
+            <div class="var-panel-toggle-left">
+              <span>🔗</span>
+              <span>Variables</span>
+              <span class="var-panel-count" id="var-panel-count">15</span>
+            </div>
+            <span class="chevron">▶</span>
+          </div>
+          <div class="var-panel-body" id="var-panel-body"></div>
+        </div>
       </div>
       <div class="editor-main" id="editor-main-content"></div>
+    </div>
+  </div>
+
+  <!-- Custom Variable Modal -->
+  <div class="var-modal-overlay" id="var-modal-overlay" onclick="if(event.target===this)closeVarModal()">
+    <div class="var-modal">
+      <div class="var-modal-title">Nouvelle variable</div>
+      <div class="var-modal-subtitle">Créez une variable personnalisée à utiliser dans vos séquences et synchroniser avec Lemlist.</div>
+
+      <div class="var-modal-field">
+        <label>Nom de la variable</label>
+        <input type="text" id="var-modal-name" placeholder="ex: revenuAnnuel, dernierPost, nbEmployes..." oninput="updateVarPreview()">
+        <div class="field-hint">Utilisez le camelCase, sans espaces ni caractères spéciaux.</div>
+      </div>
+
+      <div class="var-modal-field">
+        <label>Description</label>
+        <input type="text" id="var-modal-desc" placeholder="ex: Chiffre d'affaires annuel estimé du prospect">
+      </div>
+
+      <div class="var-modal-field">
+        <label>Valeur par défaut (optionnel)</label>
+        <input type="text" id="var-modal-default" placeholder="ex: votre entreprise">
+        <div class="field-hint">Utilisée quand la donnée n'est pas disponible pour un prospect.</div>
+      </div>
+
+      <div class="var-modal-field">
+        <label>Catégorie</label>
+        <select id="var-modal-category">
+          <option value="prospect">Prospect</option>
+          <option value="company">Entreprise</option>
+          <option value="enrichment">Enrichissement</option>
+          <option value="custom">Personnalisé</option>
+        </select>
+      </div>
+
+      <div class="var-modal-field">
+        <label>Synchronisation Lemlist</label>
+        <select id="var-modal-sync">
+          <option value="push">Push vers Lemlist (créer le champ)</option>
+          <option value="pull">Pull depuis Lemlist (champ existant)</option>
+          <option value="bidirectional">Bidirectionnel</option>
+          <option value="local">Local uniquement (pas de sync)</option>
+        </select>
+        <div class="field-hint">Définit comment la variable est synchronisée avec vos outils externes.</div>
+      </div>
+
+      <div class="var-modal-preview" id="var-modal-preview">
+        <span class="var-modal-preview-label">Prévisualisation :</span>
+        <span class="var-modal-preview-tag" id="var-modal-preview-tag">{{maVariable}}</span>
+      </div>
+
+      <div class="var-modal-actions">
+        <button class="btn btn-ghost" style="font-size:13px;padding:8px 18px;" onclick="closeVarModal()">Annuler</button>
+        <button class="btn btn-primary" style="font-size:13px;padding:8px 18px;" onclick="createCustomVariable()">Créer la variable</button>
+      </div>
     </div>
   </div>
 
@@ -2039,6 +2281,7 @@ body {
 <script src="nav.js"></script>
 <script src="campaigns-detail.js"></script>
 <script src="copy-editor.js"></script>
+<script src="variables.js"></script>
 <script src="recos.js"></script>
 <script src="app.js"></script>
 
