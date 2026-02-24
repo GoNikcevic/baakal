@@ -1892,11 +1892,11 @@ body {
       <div class="form-grid">
         <div class="form-group full">
           <label class="form-label">Nom de la campagne</label>
-          <input class="form-input" placeholder="Ex: DRH PME Lyon — Mars 2026">
+          <input class="form-input" id="creator-name" placeholder="Ex: DRH PME Lyon — Mars 2026">
         </div>
         <div class="form-group">
           <label class="form-label">Cible — Secteur</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-sector">
             <option>Formation & Éducation</option>
             <option>Comptabilité & Finance</option>
             <option>Juridique & Avocats</option>
@@ -1909,7 +1909,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Cible — Poste décideur</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-position">
             <option>Dirigeant / Gérant / CEO</option>
             <option>DG / Directeur Général</option>
             <option>DAF / Directeur Financier</option>
@@ -1920,7 +1920,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Taille entreprise</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-size">
             <option>1-10 salariés</option>
             <option>11-50 salariés</option>
             <option>51-200 salariés</option>
@@ -1929,7 +1929,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Zone géographique</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-zone">
             <option>Île-de-France</option>
             <option>Lyon & Rhône-Alpes</option>
             <option>Marseille & PACA</option>
@@ -1938,7 +1938,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Ton</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-tone">
             <option>Pro décontracté</option>
             <option>Formel & Corporate</option>
             <option>Direct & punchy</option>
@@ -1946,7 +1946,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Canal</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-channel">
             <option>Email + LinkedIn</option>
             <option>Email uniquement</option>
             <option>LinkedIn uniquement</option>
@@ -1954,7 +1954,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Angle d'approche</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-angle">
             <option>Douleur client</option>
             <option>Preuve sociale</option>
             <option>Offre directe</option>
@@ -1964,7 +1964,7 @@ body {
         </div>
         <div class="form-group">
           <label class="form-label">Volume</label>
-          <select class="form-select">
+          <select class="form-select" id="creator-volume">
             <option>Standard (~100/semaine)</option>
             <option>Modéré (~50/semaine)</option>
             <option>Agressif (~200/semaine)</option>
@@ -2021,9 +2021,9 @@ body {
               <strong>Pourquoi cette campagne :</strong> Votre meilleur taux de conversion (9.2%) vient du segment DAF/Comptabilité. En ciblant les dirigeants (au lieu des DAF), vous touchez le décideur final — vos données montrent +11.3% de taux de réponse sur ce poste. L'angle "douleur client" surperforme de 3.2pts dans ce secteur. Le canal hybride combine le reach email (62% d'ouverture) et la conversion LinkedIn (33% de ratio réponse→RDV).
             </div>
             <div class="inspi-actions">
-              <button class="btn btn-success" style="font-size:13px;">✅ Lancer cette campagne</button>
+              <button class="btn btn-success" style="font-size:13px;" onclick="applyInspirationSuggestion()">✅ Lancer cette campagne</button>
               <button class="btn btn-ghost" style="font-size:13px;">🔄 Autre suggestion</button>
-              <button class="btn btn-ghost" style="font-size:13px;">✏️ Modifier les paramètres</button>
+              <button class="btn btn-ghost" style="font-size:13px;" onclick="closeInspirationToEdit()">✏️ Modifier les paramètres</button>
             </div>
           </div>
         </div>
@@ -2031,78 +2031,12 @@ body {
     </div>
     <div class="creator-footer" id="creatorFooter">
       <button class="btn btn-ghost" onclick="toggleCreator()">Annuler</button>
-      <button class="btn btn-primary">🚀 Créer la campagne</button>
+      <button class="btn btn-primary" onclick="createCampaign()">🚀 Créer la campagne</button>
     </div>
   </div>
 </div>
 
-<script>
-/* ═══ Reco filter toggles ═══ */
-document.querySelectorAll('.reco-filter').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.reco-filter').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-  });
-});
-
-function toggleCreator() {
-  document.getElementById('creatorModal').classList.toggle('show');
-}
-
-function toggleInspiration() {
-  const toggle = document.getElementById('inspiToggle');
-  const panel = document.getElementById('inspiPanel');
-  toggle.classList.toggle('on');
-  panel.classList.toggle('show');
-}
-
-function showSection(name) {
-  ['overview', 'reports', 'campaigns', 'refinement'].forEach(s => {
-    document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
-  });
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['overview', 'reports', 'campaigns', 'refinement'][i] === name);
-  });
-  if (name === 'campaigns') backToCampaignsList();
-}
-
-/* ═══ Page-level navigation ═══ */
-function showPage(page) {
-  const dashEls = ['section-overview','section-reports','section-campaigns','section-refinement'];
-  const dashHeader = document.querySelector('.main > .page-header');
-  const dashTabs = document.querySelector('.main > .tabs');
-  const copyPage = document.getElementById('page-copyeditor');
-  const recosPage = document.getElementById('page-recos');
-
-  // Hide all pages first
-  copyPage.style.display = 'none';
-  recosPage.style.display = 'none';
-
-  if (page === 'copyeditor') {
-    dashHeader.style.display = 'none';
-    dashTabs.style.display = 'none';
-    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    copyPage.style.display = 'block';
-    if (typeof initCopyEditor === 'function') initCopyEditor();
-  } else if (page === 'recos') {
-    dashHeader.style.display = 'none';
-    dashTabs.style.display = 'none';
-    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    recosPage.style.display = 'block';
-  } else {
-    dashHeader.style.display = 'flex';
-    dashTabs.style.display = 'flex';
-    showSection('overview');
-  }
-
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.classList.remove('active');
-    if (page === 'copyeditor' && item.textContent.includes('Copy')) item.classList.add('active');
-    if (page === 'dashboard' && item.textContent.includes('Dashboard')) item.classList.add('active');
-    if (page === 'recos' && item.textContent.includes('Recommandations')) item.classList.add('active');
-  });
-}
-</script>
+<script src="nav.js"></script>
 <script src="campaigns-detail.js"></script>
 <script src="copy-editor.js"></script>
 <script src="app.js"></script>
