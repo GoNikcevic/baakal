@@ -35,6 +35,7 @@ function showSection(name) {
     t.classList.toggle('active', ['overview', 'reports', 'campaigns', 'refinement'][i] === name);
   });
   if (name === 'campaigns') backToCampaignsList();
+  if (name === 'refinement' && typeof initVarGenerator === 'function') initVarGenerator();
 }
 
 /* ═══ Page-level navigation ═══ */

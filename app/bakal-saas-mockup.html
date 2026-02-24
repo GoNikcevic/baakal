@@ -485,6 +485,207 @@ body {
 .learning-card .label { font-size: 11px; font-weight: 600; color: var(--purple); margin-bottom: 4px; }
 .learning-card .text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
+/* ═══════════ VARIABLE GENERATOR ═══════════ */
+.vargen-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 24px;
+  overflow: hidden;
+}
+.vargen-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.04));
+}
+.vargen-header-left { display: flex; align-items: center; gap: 14px; }
+.vargen-header-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.vargen-header-title { font-size: 16px; font-weight: 700; }
+.vargen-header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.vargen-context {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 16px 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.vargen-context-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.vargen-context-tag {
+  padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  background: var(--bg-elevated); color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.vargen-context-tag.highlight {
+  background: var(--accent-glow); color: var(--accent-light);
+  border-color: rgba(108,92,231,0.3);
+}
+
+.vargen-body { padding: 24px; }
+
+.vargen-explanation {
+  background: var(--bg-elevated); border-radius: var(--radius);
+  padding: 18px 20px; margin-bottom: 24px;
+  border-left: 3px solid var(--accent);
+}
+.vargen-explanation-title {
+  font-size: 13px; font-weight: 600; color: var(--accent-light);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.vargen-explanation-text {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+}
+
+.vargen-chain {
+  display: flex; flex-direction: column; gap: 0;
+  margin-bottom: 24px;
+}
+.vargen-chain-label {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.vargen-var {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  transition: all 0.2s; position: relative;
+}
+.vargen-var:hover { border-color: var(--accent); }
+.vargen-var + .vargen-connector {
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px 0;
+}
+.vargen-connector-arrow {
+  width: 2px; height: 24px; background: var(--border);
+  position: relative;
+}
+.vargen-connector-arrow::after {
+  content: '▼'; position: absolute; bottom: -6px; left: 50%;
+  transform: translateX(-50%); font-size: 8px; color: var(--accent-light);
+}
+.vargen-var.derived {
+  border-color: var(--accent); background: rgba(108,92,231,0.05);
+  box-shadow: 0 0 20px rgba(108,92,231,0.08);
+}
+
+.vargen-var-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.vargen-var-name {
+  display: flex; align-items: center; gap: 10px;
+}
+.vargen-var-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 600;
+  color: var(--accent-light); background: rgba(108,92,231,0.15);
+  padding: 4px 12px; border-radius: 6px;
+}
+.vargen-var-type {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 3px 8px; border-radius: 4px;
+}
+.vargen-var-type.base { background: var(--blue-bg); color: var(--blue); }
+.vargen-var-type.derived { background: var(--accent-glow); color: var(--accent-light); }
+.vargen-var-type.enrichment { background: var(--warning-bg); color: var(--warning); }
+
+.vargen-var-actions { display: flex; gap: 6px; }
+
+.vargen-var-desc {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+  margin-bottom: 10px;
+}
+.vargen-var-source {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+}
+.vargen-var-source-icon {
+  width: 16px; height: 16px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; background: var(--bg-card);
+}
+
+/* Formula editor for derived variables */
+.vargen-formula {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  margin-top: 12px;
+}
+.vargen-formula-label {
+  font-size: 10px; font-weight: 700; color: var(--accent-light);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.vargen-formula-inputs {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.vargen-formula-input-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--blue); background: var(--blue-bg);
+  padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(51,154,240,0.2);
+}
+.vargen-formula-operator {
+  font-size: 14px; color: var(--text-muted); font-weight: 600;
+}
+.vargen-formula-prompt {
+  width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-primary); font-size: 13px; line-height: 1.5;
+  font-family: 'Outfit', sans-serif; resize: vertical; min-height: 60px;
+  transition: border-color 0.2s;
+}
+.vargen-formula-prompt:focus { outline: none; border-color: var(--accent); }
+
+/* AI Preview */
+.vargen-preview {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); margin-top: 12px; overflow: hidden;
+}
+.vargen-preview-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.vargen-preview-title {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.vargen-preview-body { padding: 14px 16px; }
+.vargen-preview-example {
+  display: flex; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.vargen-preview-example:last-child { border-bottom: none; }
+.vargen-preview-prospect {
+  font-weight: 600; color: var(--text-primary);
+  min-width: 120px; flex-shrink: 0;
+}
+.vargen-preview-value {
+  color: var(--text-secondary); line-height: 1.5;
+}
+.vargen-preview-value em {
+  color: var(--accent-light); font-style: normal;
+  background: rgba(108,92,231,0.1); padding: 1px 4px; border-radius: 3px;
+}
+
+/* Bottom actions */
+.vargen-actions {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 20px; border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.vargen-actions-info {
+  font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+
 /* ═══════════ CAMPAIGNS DETAIL ═══════════ */
 .campaigns-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -1657,6 +1858,30 @@ body {
       </div>
     </div>
 
+    <!-- ═══ Variable Generator ═══ -->
+    <div class="vargen-card" id="vargen-card">
+      <div class="vargen-header">
+        <div class="vargen-header-left">
+          <div class="vargen-header-icon">🧬</div>
+          <div>
+            <div class="vargen-header-title">Générateur de variables</div>
+            <div class="vargen-header-subtitle">Variables stratégiques suggérées par l'IA en fonction de votre industrie et vos campagnes</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="regenerateVarSuggestions()">🔄 Régénérer</button>
+          <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="acceptAllVarSuggestions()">✅ Tout accepter</button>
+        </div>
+      </div>
+
+      <!-- Context bar: which campaign / industry drives these suggestions -->
+      <div class="vargen-context" id="vargen-context"></div>
+
+      <div class="vargen-body" id="vargen-body">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
     <!-- Learning Memory -->
     <div class="refine-timeline">
       <div class="refine-timeline-title">🧠 Mémoire d'apprentissage — FormaPro Consulting</div>
@@ -2282,6 +2507,7 @@ body {
 <script src="campaigns-detail.js"></script>
 <script src="copy-editor.js"></script>
 <script src="variables.js"></script>
+<script src="vargen.js"></script>
 <script src="recos.js"></script>
 <script src="app.js"></script>
 
