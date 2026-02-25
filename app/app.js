@@ -16,6 +16,7 @@ document.getElementById('creatorModal')?.addEventListener('click', (e) => {
 
 // ═══════════ INIT ═══════════
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof initFromData === 'function') initFromData();
   showSection('overview');
   document.querySelector('.nav-item')?.classList.add('active');
 });

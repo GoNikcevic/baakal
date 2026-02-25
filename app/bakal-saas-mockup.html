@@ -1350,40 +1350,9 @@ body {
     <div class="tab" onclick="showSection('refinement')">🧬 Refinement A/B</div>
   </div>
 
-  <!-- ═══════════ KPIs ═══════════ -->
+  <!-- ═══════════ OVERVIEW (populated by campaigns-data.js) ═══════════ -->
   <div id="section-overview">
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">📤 Contacts atteints</div>
-        <div class="kpi-value">247</div>
-        <div class="kpi-trend up">▲ 12% vs S-1</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">📬 Taux d'ouverture</div>
-        <div class="kpi-value">62%</div>
-        <div class="kpi-trend up">▲ 4pts</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">💬 Taux de réponse</div>
-        <div class="kpi-value">8.1%</div>
-        <div class="kpi-trend up">▲ 1.3pts</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">🔥 Prospects intéressés</div>
-        <div class="kpi-value">5</div>
-        <div class="kpi-trend up">▲ 2 cette semaine</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">📅 RDV qualifiés</div>
-        <div class="kpi-value">3</div>
-        <div class="kpi-trend up">▲ Objectif atteint</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">🚫 Stops</div>
-        <div class="kpi-value">1.2%</div>
-        <div class="kpi-trend up">✓ Sous le seuil</div>
-      </div>
-    </div>
+    <div class="kpi-grid"></div>
 
     <!-- Main Grid -->
     <div class="section-grid">
@@ -1391,7 +1360,7 @@ body {
       <div class="card">
         <div class="card-header">
           <div class="card-title">🎯 Campagnes actives</div>
-          <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px;">Voir tout →</button>
+          <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px;" onclick="showSection('campaigns')">Voir tout →</button>
         </div>
         <div class="card-body" style="padding: 0;">
           <table class="campaign-table">
@@ -1405,53 +1374,7 @@ body {
                 <th>RDV</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div style="font-weight:600;">DAF Île-de-France</div>
-                  <div style="font-size:12px;color:var(--text-muted);">Comptabilité · 11-50 sal. · Douleur client</div>
-                </td>
-                <td><span style="color:var(--blue)">✉️ Email</span></td>
-                <td><span class="status-badge status-active"><span class="pulse-dot" style="width:6px;height:6px;"></span> Active</span></td>
-                <td>
-                  <div style="font-weight:600;">68%</div>
-                  <div class="perf-bar"><div class="perf-fill perf-good" style="width:68%"></div></div>
-                </td>
-                <td>
-                  <div style="font-weight:600;">9.2%</div>
-                  <div class="perf-bar"><div class="perf-fill perf-good" style="width:92%"></div></div>
-                </td>
-                <td><span style="font-weight:700;color:var(--success)">2</span></td>
-              </tr>
-              <tr>
-                <td>
-                  <div style="font-weight:600;">Dirigeants Formation</div>
-                  <div style="font-size:12px;color:var(--text-muted);">Formation · 1-10 sal. · Preuve sociale</div>
-                </td>
-                <td><span style="color:var(--purple)">💼 LinkedIn</span></td>
-                <td><span class="status-badge status-active"><span class="pulse-dot" style="width:6px;height:6px;"></span> Active</span></td>
-                <td>
-                  <div style="font-weight:600;">—</div>
-                  <div style="font-size:11px;color:var(--text-muted)">N/A LinkedIn</div>
-                </td>
-                <td>
-                  <div style="font-weight:600;">6.8%</div>
-                  <div class="perf-bar"><div class="perf-fill perf-ok" style="width:68%"></div></div>
-                </td>
-                <td><span style="font-weight:700;color:var(--success)">1</span></td>
-              </tr>
-              <tr>
-                <td>
-                  <div style="font-weight:600;">DRH PME Lyon</div>
-                  <div style="font-size:12px;color:var(--text-muted);">Conseil · 51-200 sal. · Offre directe</div>
-                </td>
-                <td><span style="color:var(--danger)">📧+💼 Multi</span></td>
-                <td><span class="status-badge status-prep">⏳ En préparation</span></td>
-                <td><div style="color:var(--text-muted)">—</div></td>
-                <td><div style="color:var(--text-muted)">—</div></td>
-                <td><div style="color:var(--text-muted)">—</div></td>
-              </tr>
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -1463,36 +1386,7 @@ body {
         </div>
         <div class="card-body">
           <div class="chart-container">
-            <div class="chart-bars">
-              <div class="chart-bar-group">
-                <div class="chart-bar-wrapper">
-                  <div class="chart-bar email" style="height:40%"></div>
-                  <div class="chart-bar linkedin" style="height:25%"></div>
-                </div>
-                <div class="chart-bar-label">S1</div>
-              </div>
-              <div class="chart-bar-group">
-                <div class="chart-bar-wrapper">
-                  <div class="chart-bar email" style="height:52%"></div>
-                  <div class="chart-bar linkedin" style="height:38%"></div>
-                </div>
-                <div class="chart-bar-label">S2</div>
-              </div>
-              <div class="chart-bar-group">
-                <div class="chart-bar-wrapper">
-                  <div class="chart-bar email" style="height:58%"></div>
-                  <div class="chart-bar linkedin" style="height:45%"></div>
-                </div>
-                <div class="chart-bar-label">S3</div>
-              </div>
-              <div class="chart-bar-group">
-                <div class="chart-bar-wrapper">
-                  <div class="chart-bar email" style="height:78%"></div>
-                  <div class="chart-bar linkedin" style="height:55%"></div>
-                </div>
-                <div class="chart-bar-label">S4</div>
-              </div>
-            </div>
+            <div class="chart-bars"></div>
           </div>
           <div class="chart-legend">
             <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--blue)"></div> Email</div>
@@ -1508,38 +1402,7 @@ body {
           <span class="badge" style="background:var(--danger-bg);color:var(--danger);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;">3 nouvelles</span>
         </div>
         <div class="card-body" style="padding:16px 24px;">
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-elevated);border-radius:8px;">
-              <div>
-                <div style="font-weight:600;font-size:14px;">Sophie Martin</div>
-                <div style="font-size:12px;color:var(--text-muted);">DAF · Nexia Conseil · 35 sal.</div>
-              </div>
-              <div style="text-align:right;">
-                <span class="status-badge" style="background:rgba(0,214,143,0.1);color:var(--success);">Call planifié</span>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Demain 14h</div>
-              </div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-elevated);border-radius:8px;">
-              <div>
-                <div style="font-weight:600;font-size:14px;">Thomas Durand</div>
-                <div style="font-size:12px;color:var(--text-muted);">CEO · FormaPlus · 8 sal.</div>
-              </div>
-              <div style="text-align:right;">
-                <span class="status-badge" style="background:var(--warning-bg);color:var(--warning);">Intéressé</span>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Relance vendredi</div>
-              </div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--bg-elevated);border-radius:8px;">
-              <div>
-                <div style="font-weight:600;font-size:14px;">Marc Lefèvre</div>
-                <div style="font-size:12px;color:var(--text-muted);">DG · Audit Express · 22 sal.</div>
-              </div>
-              <div style="text-align:right;">
-                <span class="status-badge" style="background:var(--warning-bg);color:var(--warning);">Intéressé</span>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Attente réponse</div>
-              </div>
-            </div>
-          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;"></div>
         </div>
       </div>
 
@@ -1549,152 +1412,23 @@ body {
           <div class="card-title">💡 Recommandations Claude</div>
         </div>
         <div class="card-body">
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="background:var(--bg-elevated);border-radius:8px;padding:14px;border-left:3px solid var(--success);">
-              <div style="font-size:12px;font-weight:600;color:var(--success);margin-bottom:4px;">✅ Appliquer — Impact fort</div>
-              <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">L'angle "douleur client" surperforme (+3.2pts de réponse vs preuve sociale). Recommandation : basculer la campagne LinkedIn sur cet angle.</div>
-            </div>
-            <div style="background:var(--bg-elevated);border-radius:8px;padding:14px;border-left:3px solid var(--warning);">
-              <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:4px;">💡 Tester — Opportunité</div>
-              <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Le segment "Dirigeant / 1-10 sal." a un taux de réponse de 11.3%. Lancer une campagne dédiée sur cette cible.</div>
-            </div>
-            <div style="background:var(--bg-elevated);border-radius:8px;padding:14px;border-left:3px solid var(--blue);">
-              <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:4px;">📊 Insight</div>
-              <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Les emails envoyés le mardi matin (9h-10h) ont 15% d'ouvertures en plus. Ajuster le planning d'envoi.</div>
-            </div>
-          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ REPORTS SECTION ═══════════ -->
-  <div id="section-reports" style="display:none;">
-    <div class="report-card">
-      <div class="report-header">
-        <div>
-          <div class="report-week">Semaine 4 — Rapport consolidé</div>
-          <div class="report-date">10 — 16 février 2026</div>
-        </div>
-        <span class="report-score score-excellent">🚀 Excellent</span>
-      </div>
-      <div class="report-metrics">
-        <div class="report-metric">
-          <div class="report-metric-value">247</div>
-          <div class="report-metric-label">Contacts</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value" style="color:var(--success)">62%</div>
-          <div class="report-metric-label">Ouvertures</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value" style="color:var(--blue)">8.1%</div>
-          <div class="report-metric-label">Réponses</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value" style="color:var(--warning)">5</div>
-          <div class="report-metric-label">Intéressés</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value" style="color:var(--accent-light)">3</div>
-          <div class="report-metric-label">RDV</div>
-        </div>
-      </div>
-      <div class="report-synthesis">
-        <div class="report-synthesis-label">🤖 Synthèse IA — Analyse multi-campagnes</div>
-        <div class="report-synthesis-text">
-          <strong>Performance globale en hausse.</strong> La campagne "DAF Île-de-France" est votre meilleure performeuse cette semaine avec 9.2% de taux de réponse (+2.1pts vs S3). L'angle "douleur client" continue de surperformer sur le segment comptabilité. La campagne LinkedIn "Dirigeants Formation" progresse mais reste sous les objectifs de réponse (6.8% vs 8% cible).<br><br>
-          <strong>Canaux :</strong> L'email reste le canal le plus efficace (62% d'ouverture). LinkedIn montre un potentiel de conversion supérieur (ratio réponse→RDV de 33% vs 22% par email).<br><br>
-          <strong>Prochaine action recommandée :</strong> Lancer une campagne hybride Email+LinkedIn sur le segment "Dirigeants PME 11-50" qui combine le reach email et la conversion LinkedIn.
-        </div>
-      </div>
-    </div>
+  <!-- ═══════════ REPORTS (populated by campaigns-data.js) ═══════════ -->
+  <div id="section-reports" style="display:none;"></div>
 
-    <div class="report-card">
-      <div class="report-header">
-        <div>
-          <div class="report-week">Semaine 3</div>
-          <div class="report-date">3 — 9 février 2026</div>
-        </div>
-        <span class="report-score score-good">🟢 Performant</span>
-      </div>
-      <div class="report-metrics">
-        <div class="report-metric">
-          <div class="report-metric-value">220</div>
-          <div class="report-metric-label">Contacts</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">58%</div>
-          <div class="report-metric-label">Ouvertures</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">6.8%</div>
-          <div class="report-metric-label">Réponses</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">3</div>
-          <div class="report-metric-label">Intéressés</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">2</div>
-          <div class="report-metric-label">RDV</div>
-        </div>
-      </div>
-      <div class="report-synthesis">
-        <div class="report-synthesis-label">🤖 Synthèse IA</div>
-        <div class="report-synthesis-text">
-          Bonne progression du taux d'ouverture grâce à l'optimisation des objets d'email (A/B test gagné : "Question rapide sur [secteur]" +8pts vs ancien objet). Le segment comptabilité confirme son potentiel. Recommandation appliquée S2 (changement d'angle) porte ses fruits.
-        </div>
-      </div>
-    </div>
-
-    <div class="report-card">
-      <div class="report-header">
-        <div>
-          <div class="report-week">Semaine 2</div>
-          <div class="report-date">27 jan. — 2 fév. 2026</div>
-        </div>
-        <span class="report-score score-ok">🟡 Correct</span>
-      </div>
-      <div class="report-metrics">
-        <div class="report-metric">
-          <div class="report-metric-value">185</div>
-          <div class="report-metric-label">Contacts</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">51%</div>
-          <div class="report-metric-label">Ouvertures</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">5.2%</div>
-          <div class="report-metric-label">Réponses</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">2</div>
-          <div class="report-metric-label">Intéressés</div>
-        </div>
-        <div class="report-metric">
-          <div class="report-metric-value">1</div>
-          <div class="report-metric-label">RDV</div>
-        </div>
-      </div>
-      <div class="report-synthesis">
-        <div class="report-synthesis-label">🤖 Synthèse IA</div>
-        <div class="report-synthesis-text">
-          Démarrage solide. Les taux sont dans la moyenne du marché B2B. L'angle "preuve sociale" fonctionne moins bien que prévu sur le segment Formation. Recommandation : tester l'angle "douleur client" sur la prochaine séquence.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════ CAMPAIGNS DETAIL ═══════════ -->
+  <!-- ═══════════ CAMPAIGNS (populated by campaigns-data.js) ═══════════ -->
   <div id="section-campaigns" style="display:none;">
 
     <!-- Campaign List View -->
     <div id="campaigns-list-view">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <div>
-          <div style="font-size:16px;font-weight:600;">3 campagnes</div>
+          <div style="font-size:16px;font-weight:600;">0 campagnes</div>
           <div style="font-size:13px;color:var(--text-muted);">Cliquez sur une campagne pour voir le détail</div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -1702,40 +1436,8 @@ body {
           <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">↕ Trier par perf.</button>
         </div>
       </div>
-      <div class="campaigns-list">
-        <div class="campaign-row" onclick="showCampaignDetail('daf-idf')">
-          <div><div class="campaign-row-name">DAF Île-de-France</div><div class="campaign-row-meta">Comptabilité · 11-50 sal. · Douleur client · Lancée 27 jan.</div></div>
-          <div class="campaign-row-channel"><span style="color:var(--blue)">✉️ Email</span></div>
-          <div class="campaign-row-stat"><span class="status-badge status-active"><span class="pulse-dot" style="width:6px;height:6px;"></span> Active</span></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--success)">68%</div><div class="campaign-row-stat-label">Ouverture</div></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--blue)">9.2%</div><div class="campaign-row-stat-label">Réponse</div></div>
-          <div class="campaign-row-arrow">→</div>
-        </div>
-        <div class="campaign-row" onclick="showCampaignDetail('dirigeants-formation')">
-          <div><div class="campaign-row-name">Dirigeants Formation</div><div class="campaign-row-meta">Formation · 1-10 sal. · Preuve sociale · Lancée 3 fév.</div></div>
-          <div class="campaign-row-channel"><span style="color:var(--purple)">💼 LinkedIn</span></div>
-          <div class="campaign-row-stat"><span class="status-badge status-active"><span class="pulse-dot" style="width:6px;height:6px;"></span> Active</span></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--text-muted)">—</div><div class="campaign-row-stat-label">N/A LinkedIn</div></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--warning)">6.8%</div><div class="campaign-row-stat-label">Réponse</div></div>
-          <div class="campaign-row-arrow">→</div>
-        </div>
-        <div class="campaign-row" onclick="showCampaignDetail('drh-lyon')">
-          <div><div class="campaign-row-name">DRH PME Lyon</div><div class="campaign-row-meta">Conseil · 51-200 sal. · Offre directe · Créée 18 fév.</div></div>
-          <div class="campaign-row-channel"><span style="color:var(--orange)">📧+💼 Multi</span></div>
-          <div class="campaign-row-stat"><span class="status-badge status-prep">⏳ Préparation</span></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--text-muted)">—</div><div class="campaign-row-stat-label">—</div></div>
-          <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:var(--text-muted)">—</div><div class="campaign-row-stat-label">—</div></div>
-          <div class="campaign-row-arrow">→</div>
-        </div>
-      </div>
+      <div class="campaigns-list"></div>
     </div>
-
-    <!-- DAF IDF Detail -->
-    <div id="detail-daf-idf" class="campaign-detail" style="display:none;"></div>
-    <!-- Dirigeants Formation Detail -->
-    <div id="detail-dirigeants-formation" class="campaign-detail" style="display:none;"></div>
-    <!-- DRH Lyon Detail -->
-    <div id="detail-drh-lyon" class="campaign-detail" style="display:none;"></div>
 
   </div>
 
@@ -2503,6 +2205,7 @@ body {
   </div>
 </div>
 
+<script src="campaigns-data.js"></script>
 <script src="nav.js"></script>
 <script src="campaigns-detail.js"></script>
 <script src="copy-editor.js"></script>
