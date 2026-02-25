@@ -237,9 +237,8 @@ function createCampaign() {
       }
     };
 
-    // Re-render affected sections
-    renderCampaignsList();
-    document.querySelector('.campaign-table tbody').innerHTML = renderCampaignsTable();
+    // Re-render all sections (handles empty→populated transition)
+    initFromData();
   }
 
   // Show success state in footer

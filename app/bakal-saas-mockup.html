@@ -1277,6 +1277,127 @@ body {
 .reco-insight-item-confidence.high { color: var(--success); }
 .reco-insight-item-confidence.medium { color: var(--warning); }
 
+/* ═══════════ EMPTY STATES / ONBOARDING ═══════════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 60px 40px;
+}
+.empty-state-icon {
+  font-size: 48px; margin-bottom: 20px;
+  width: 80px; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-glow); border-radius: 20px;
+}
+.empty-state-title {
+  font-size: 20px; font-weight: 700; margin-bottom: 8px;
+  color: var(--text-primary);
+}
+.empty-state-desc {
+  font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+  max-width: 440px; margin-bottom: 24px;
+}
+.empty-state .btn { font-size: 15px; padding: 12px 28px; }
+
+/* Welcome banner (top of overview for new users) */
+.welcome-banner {
+  background: linear-gradient(135deg, rgba(108,92,231,0.12), rgba(162,155,254,0.08));
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); padding: 36px 40px;
+  margin-bottom: 28px; position: relative; overflow: hidden;
+}
+.welcome-banner::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(108,92,231,0.15), transparent 70%);
+  border-radius: 50%;
+}
+.welcome-title {
+  font-size: 24px; font-weight: 800; margin-bottom: 6px;
+  background: linear-gradient(135deg, var(--text-primary), var(--accent-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.welcome-subtitle {
+  font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6;
+}
+
+/* Onboarding steps */
+.onboarding-steps {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.onboarding-step {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  position: relative; transition: all 0.2s;
+}
+.onboarding-step:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.onboarding-step.step-done { opacity: 0.5; }
+.onboarding-step.step-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.onboarding-step-number {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg-elevated); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.onboarding-step.step-active .onboarding-step-number {
+  background: var(--accent); border-color: var(--accent); color: white;
+}
+.onboarding-step.step-done .onboarding-step-number {
+  background: var(--success); border-color: var(--success); color: white;
+}
+.onboarding-step-title {
+  font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);
+}
+.onboarding-step-desc {
+  font-size: 12px; color: var(--text-muted); line-height: 1.5;
+}
+.onboarding-step .btn {
+  margin-top: 12px; font-size: 12px; padding: 6px 14px;
+}
+
+/* Empty card variant */
+.card-empty .card-body {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 40px 24px; text-align: center;
+  min-height: 200px;
+}
+.card-empty .empty-icon { font-size: 32px; margin-bottom: 12px; }
+.card-empty .empty-text {
+  font-size: 13px; color: var(--text-muted); line-height: 1.5; max-width: 280px;
+}
+
+/* Demo toggle switch */
+.demo-toggle {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+  z-index: 999; font-size: 12px; color: var(--text-secondary);
+  box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s;
+}
+.demo-toggle:hover { border-color: var(--accent); }
+.demo-toggle-switch {
+  width: 36px; height: 20px; border-radius: 10px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  position: relative; transition: all 0.2s;
+}
+.demo-toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text-muted); transition: all 0.2s;
+}
+.demo-toggle.active .demo-toggle-switch {
+  background: var(--accent); border-color: var(--accent);
+}
+.demo-toggle.active .demo-toggle-switch::after {
+  transform: translateX(16px); background: white;
+}
+
+@media (max-width: 900px) {
+  .onboarding-steps { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ═══════════ RESPONSIVE ═══════════ */
 @media (max-width: 1200px) {
   .kpi-grid { grid-template-columns: repeat(3, 1fr); }
@@ -2203,6 +2324,12 @@ body {
       <button class="btn btn-primary" onclick="createCampaign()">🚀 Créer la campagne</button>
     </div>
   </div>
+</div>
+
+<!-- Demo / New-user mode toggle -->
+<div class="demo-toggle active" id="demoToggle" onclick="toggleDemoMode()">
+  <div class="demo-toggle-switch"></div>
+  <span id="demoToggleLabel">Données démo</span>
 </div>
 
 <script src="campaigns-data.js"></script>

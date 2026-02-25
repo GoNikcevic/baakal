@@ -16,6 +16,8 @@ document.getElementById('creatorModal')?.addEventListener('click', (e) => {
 
 // ═══════════ INIT ═══════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Load demo data by default (toggle switch starts in "active/demo" state)
+  if (typeof loadDemoData === 'function') loadDemoData();
   if (typeof initFromData === 'function') initFromData();
   showSection('overview');
   document.querySelector('.nav-item')?.classList.add('active');
