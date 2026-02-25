@@ -15,10 +15,15 @@ document.getElementById('creatorModal')?.addEventListener('click', (e) => {
 });
 
 // ═══════════ INIT ═══════════
-document.addEventListener('DOMContentLoaded', () => {
-  // Load demo data by default (toggle switch starts in "active/demo" state)
-  if (typeof loadDemoData === 'function') loadDemoData();
-  if (typeof initFromData === 'function') initFromData();
+document.addEventListener('DOMContentLoaded', async () => {
+  // Try backend first, fall back to demo data
+  if (typeof initData === 'function') {
+    await initData();
+  } else {
+    // Fallback if api-client.js not loaded
+    if (typeof loadDemoData === 'function') loadDemoData();
+    if (typeof initFromData === 'function') initFromData();
+  }
   showSection('overview');
   document.querySelector('.nav-item')?.classList.add('active');
 });

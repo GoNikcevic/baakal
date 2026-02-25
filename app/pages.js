@@ -115,38 +115,56 @@ function saveSettings() {
   }, 2000);
 }
 
-function testApiConnections() {
+async function testApiConnections() {
   const keys = [
-    { id: 'settings-lemlist-key', statusId: 'status-lemlist', name: 'Lemlist' },
-    { id: 'settings-notion-token', statusId: 'status-notion', name: 'Notion' },
-    { id: 'settings-claude-key', statusId: 'status-claude', name: 'Claude' },
+    { id: 'settings-lemlist-key', statusId: 'status-lemlist', name: 'Lemlist', backendKey: 'lemlist' },
+    { id: 'settings-notion-token', statusId: 'status-notion', name: 'Notion', backendKey: 'notion' },
+    { id: 'settings-claude-key', statusId: 'status-claude', name: 'Claude', backendKey: 'claude' },
   ];
+
+  // Try to get backend health status first
+  let backendServices = null;
+  if (typeof BakalAPI !== 'undefined') {
+    try {
+      const health = await BakalAPI.testConnections();
+      if (health) backendServices = health.services;
+    } catch { /* backend not available */ }
+  }
 
   keys.forEach(k => {
     const input = document.getElementById(k.id);
     const status = document.getElementById(k.statusId);
     const value = input?.value?.trim();
 
-    if (!value) {
-      status.textContent = 'Non connecté';
-      status.className = 'input-status';
-      return;
-    }
-
-    // Simulate connection test
+    // Show testing state
     status.textContent = 'Test...';
     status.className = 'input-status';
     status.style.color = 'var(--accent-light)';
 
     setTimeout(() => {
-      // For now, just check the key format
+      // If backend reported service status, use it
+      if (backendServices && backendServices[k.backendKey]) {
+        status.textContent = 'Connecté (backend)';
+        status.className = 'input-status connected';
+        status.style.color = '';
+        return;
+      }
+
+      if (!value) {
+        status.textContent = backendServices ? 'Non configuré sur le serveur' : 'Non connecté';
+        status.className = 'input-status';
+        status.style.color = '';
+        return;
+      }
+
+      // Fallback: local format validation
       let valid = false;
       if (k.name === 'Lemlist') valid = value.length > 10;
       if (k.name === 'Notion') valid = value.startsWith('ntn_') || value.startsWith('secret_');
       if (k.name === 'Claude') valid = value.startsWith('sk-ant-');
 
       if (valid) {
-        status.textContent = 'Connecté';
+        status.textContent = 'Format OK';
         status.className = 'input-status connected';
         status.style.color = '';
       } else {
@@ -154,7 +172,7 @@ function testApiConnections() {
         status.className = 'input-status error';
         status.style.color = '';
       }
-    }, 800 + Math.random() * 700);
+    }, 600);
   });
 }
 

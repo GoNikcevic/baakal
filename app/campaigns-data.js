@@ -178,8 +178,9 @@ const BAKAL = {
   chartData: []
 };
 
-/* Track current mode */
+/* Track current mode: 'demo' | 'empty' | 'live' */
 let _demoMode = true;
+let _backendAvailable = false;
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -214,6 +215,60 @@ function clearData() {
   BAKAL.chartData = [];
 }
 
+/* ═══ Backend Data Loading ═══ */
+
+async function loadFromBackend() {
+  if (typeof BakalAPI === 'undefined') return false;
+
+  try {
+    const health = await BakalAPI.checkHealth();
+    if (!health) return false;
+
+    _backendAvailable = true;
+
+    // Fetch campaigns (primary data)
+    const campaigns = await BakalAPI.fetchAllCampaigns();
+
+    // Fetch dashboard KPIs
+    let kpis = {};
+    try {
+      kpis = await BakalAPI.fetchDashboard();
+    } catch { /* dashboard endpoint may fail if no data */ }
+
+    // If backend has data, use it
+    if (Object.keys(campaigns).length > 0) {
+      BAKAL.campaigns = campaigns;
+      BAKAL.globalKpis = kpis;
+      // Opportunities, recommendations, reports, chartData
+      // not yet served by backend — keep empty or use demo as supplement
+      BAKAL.opportunities = [];
+      BAKAL.recommendations = [];
+      BAKAL.reports = [];
+      BAKAL.chartData = [];
+      return true;
+    }
+
+    // Backend reachable but empty — return false so demo/empty toggle still works
+    return false;
+  } catch (err) {
+    console.warn('Backend not available, using local data:', err.message);
+    return false;
+  }
+}
+
+/** Fetch full detail for a single campaign from backend and update BAKAL */
+async function refreshCampaignFromBackend(campaignId) {
+  if (!_backendAvailable || typeof BakalAPI === 'undefined') return;
+  try {
+    const detail = await BakalAPI.fetchCampaignDetail(campaignId);
+    if (detail) {
+      BAKAL.campaigns[detail.id] = detail;
+    }
+  } catch (err) {
+    console.warn('Failed to refresh campaign:', err.message);
+  }
+}
+
 function toggleDemoMode() {
   _demoMode = !_demoMode;
   const toggle = document.getElementById('demoToggle');
@@ -233,6 +288,30 @@ function toggleDemoMode() {
 
   // Re-navigate to current section
   showSection('overview');
+}
+
+/** Initialize data: try backend first, fall back to demo */
+async function initData() {
+  const hasBackendData = await loadFromBackend();
+
+  if (hasBackendData) {
+    // Backend had real campaigns — use them
+    _demoMode = false;
+    const toggle = document.getElementById('demoToggle');
+    const label = document.getElementById('demoToggleLabel');
+    if (toggle) toggle.classList.remove('active');
+    if (label) label.textContent = 'Données live';
+    console.log('Loaded data from backend');
+  } else {
+    // No backend data — load demo data as default
+    loadDemoData();
+    console.log(_backendAvailable
+      ? 'Backend reachable but empty — using demo data'
+      : 'Backend not available — using demo data'
+    );
+  }
+
+  initFromData();
 }
 
 

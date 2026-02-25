@@ -207,7 +207,7 @@ function closeInspirationToEdit() {
   document.getElementById('creator-name').focus();
 }
 
-function createCampaign() {
+async function createCampaign() {
   const values = getCreatorFormValues();
 
   // Validate name
@@ -237,13 +237,25 @@ function createCampaign() {
   };
   const ch = channelMap[values.channel] || channelMap['Email + LinkedIn'];
 
+  // Persist to backend if available
+  let backendId = null;
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      const created = await BakalAPI.createCampaign(values);
+      backendId = created.id;
+    } catch (err) {
+      console.warn('Backend create failed:', err.message);
+    }
+  }
+
   // Add campaign to BAKAL data layer
   if (typeof BAKAL !== 'undefined') {
     const today = new Date();
     const dateStr = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-    BAKAL.campaigns[id] = {
-      id: id,
+    BAKAL.campaigns[backendId || id] = {
+      _backendId: backendId,
+      id: backendId ? String(backendId) : id,
       name: values.name,
       client: 'FormaPro Consulting',
       status: 'prep',

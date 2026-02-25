@@ -529,11 +529,33 @@ function dismissAllSuggestions() {
 }
 
 /* ═══ Save / Cancel ═══ */
-function saveEditorChanges() {
+async function saveEditorChanges() {
   const bottomBar = document.querySelector('.editor-bottom-bar');
   const info = bottomBar.querySelector('.editor-bottom-info');
   const now = new Date();
   const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const c = editorCampaigns[activeEditorCampaign];
+
+  // Collect edited content from DOM
+  c.touchpoints.forEach(tp => {
+    const card = document.querySelector(`[data-tp="${tp.id}"]`);
+    if (!card) return;
+    const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+    const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+    if (subjectEl) tp.subject = subjectEl.innerHTML;
+    if (bodyEl) tp.body = bodyEl.innerHTML.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '');
+  });
+
+  // Persist to backend if available
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    const campaign = BAKAL.campaigns[activeEditorCampaign];
+    const backendId = campaign?._backendId || activeEditorCampaign;
+    try {
+      await BakalAPI.saveSequence(backendId, c.touchpoints);
+    } catch (err) {
+      console.warn('Backend save failed:', err.message);
+    }
+  }
 
   info.innerHTML = `<span style="color:var(--success);font-weight:600;">✅ Séquences sauvegardées</span> · ${time}`;
 
