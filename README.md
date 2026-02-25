@@ -29,6 +29,4 @@ bakal/
 | Business Hub | Notion |
 | Landing Page | Static HTML |
 
-## Business Model
 
-Agency-style done-for-you prospecting service at 350/month + 250 setup fee.
