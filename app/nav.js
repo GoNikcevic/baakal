@@ -176,6 +176,72 @@ function createCampaign() {
     return;
   }
 
+  // Generate a slug ID from the campaign name
+  const id = values.name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  // Map channel value to data format
+  const channelMap = {
+    'Email uniquement': { channel: 'email', label: '✉️ Email', color: 'var(--blue)' },
+    'LinkedIn uniquement': { channel: 'linkedin', label: '💼 LinkedIn', color: 'var(--purple)' },
+    'Email + LinkedIn': { channel: 'multi', label: '📧+💼 Multi', color: 'var(--orange)' }
+  };
+  const ch = channelMap[values.channel] || channelMap['Email + LinkedIn'];
+
+  // Add campaign to BAKAL data layer
+  if (typeof BAKAL !== 'undefined') {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+
+    BAKAL.campaigns[id] = {
+      id: id,
+      name: values.name,
+      client: 'FormaPro Consulting',
+      status: 'prep',
+      channel: ch.channel,
+      channelLabel: ch.label,
+      channelColor: ch.color,
+      sector: values.sector,
+      sectorShort: values.sector.split(' ')[0],
+      position: values.position,
+      size: values.size,
+      angle: values.angle,
+      zone: values.zone,
+      tone: values.tone,
+      formality: 'Vous',
+      length: 'Standard',
+      cta: 'Question ouverte',
+      volume: { sent: 0, planned: values.volume === 'Agressif (~200/semaine)' ? 200 : values.volume === 'Modéré (~50/semaine)' ? 50 : 100 },
+      iteration: 0,
+      startDate: dateStr,
+      lemlistRef: null,
+      nextAction: null,
+      kpis: { contacts: 0, openRate: null, replyRate: null, interested: null, meetings: null },
+      sequence: [],
+      diagnostics: [],
+      prepChecklist: [
+        { icon: '⬜', title: 'Paramètres de campagne configurés', desc: 'Cible, canal, angle, ton — tout est défini', status: 'Fait', statusColor: 'success', done: true },
+        { icon: '⬜', title: 'Séquences à générer par Claude', desc: 'En attente de génération IA', status: 'À faire', statusColor: 'text-muted', done: false },
+        { icon: '⬜', title: 'Liste de prospects à importer', desc: 'Import Lemlist en attente', status: 'À faire', statusColor: 'text-muted', done: false },
+        { icon: '⬜', title: 'Validation par le client', desc: 'Après génération des séquences', status: 'À faire', statusColor: 'text-muted', done: false },
+        { icon: '⬜', title: 'Déploiement sur Lemlist', desc: 'Automatique après validation', status: 'À faire', statusColor: 'text-muted', done: false }
+      ],
+      history: [],
+      info: {
+        createdDate: today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+        period: dateStr,
+        copyDesc: values.tone + ' · Vous · ' + values.angle + ' · FR',
+        channelsDesc: values.channel,
+        launchEstimate: 'Non planifié'
+      }
+    };
+
+    // Re-render affected sections
+    renderCampaignsList();
+    document.querySelector('.campaign-table tbody').innerHTML = renderCampaignsTable();
+  }
+
   // Show success state in footer
   const footer = document.getElementById('creatorFooter');
   footer.innerHTML = `
