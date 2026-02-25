@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const claude = require('../api/claude');
-const notionApi = require('../api/notion');
+const db = require('../db');
+const notionSync = require('../api/notion-sync');
 
 const router = Router();
 
@@ -8,24 +9,25 @@ const router = Router();
 router.post('/analyze', async (req, res, next) => {
   try {
     const { campaignId } = req.body;
+    const campaign = db.campaigns.get(campaignId);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
-    // Fetch campaign data from Notion
-    const page = await notionApi.getClient().pages.retrieve({ page_id: campaignId });
-    const campaign = notionApi.parseResultat(page);
+    const sequence = db.touchpoints.listByCampaign(campaignId);
+    const result = await claude.analyzeCampaign({ ...campaign, sequence });
 
-    // Call Claude for analysis
-    const result = await claude.analyzeCampaign(campaign);
-
-    // Save diagnostic to Notion
+    // Save diagnostic to local DB
     const priorities = extractPriorities(result.diagnostic);
-    await notionApi.createDiagnostic({
-      campaignName: campaign.name,
+    const diag = db.diagnostics.create(campaignId, {
       diagnostic: result.diagnostic,
-      priorites: priorities,
-      nbMessagesOptimiser: priorities.length,
+      priorities,
+      nbToOptimize: priorities.length,
     });
 
+    // Background sync to Notion
+    notionSync.syncDiagnostic(diag.id, campaignId).catch(console.error);
+
     res.json({
+      id: diag.id,
       diagnostic: result.diagnostic,
       priorities,
       usage: result.usage,
@@ -40,11 +42,9 @@ router.post('/regenerate', async (req, res, next) => {
   try {
     const { campaignId, diagnostic, originalMessages, clientParams } = req.body;
 
-    // Fetch cross-campaign memory
-    const memoryResult = await notionApi.queryMemory({});
-    const memory = memoryResult.results.map(notionApi.parseMemoryPattern);
+    // Fetch cross-campaign memory from local DB
+    const memory = db.memoryPatterns.list({});
 
-    // Call Claude for regeneration
     const result = await claude.regenerateSequence({
       diagnostic,
       originalMessages,
@@ -52,22 +52,20 @@ router.post('/regenerate', async (req, res, next) => {
       clientParams,
     });
 
-    // Record version in Notion if we have a campaign
+    // Record version if we have a campaign
     if (campaignId) {
-      const page = await notionApi.getClient().pages.retrieve({ page_id: campaignId });
-      const campaign = notionApi.parseResultat(page);
+      const existing = db.versions.listByCampaign(campaignId);
+      const nextVersion = (existing[0]?.version || 0) + 1;
 
-      // Get current version count
-      const versions = await notionApi.queryVersions(campaign.name);
-      const nextVersion = (versions.results.length || 0) + 1;
-
-      await notionApi.createVersion({
-        campaignName: campaign.name,
+      const version = db.versions.create(campaignId, {
         version: nextVersion,
-        messagesModifies: result.parsed?.messages?.map((m) => m.step) || [],
+        messagesModified: result.parsed?.messages?.map((m) => m.step) || [],
         hypotheses: result.parsed?.summary || '',
-        resultat: 'En cours',
+        result: 'testing',
       });
+
+      // Background sync to Notion
+      notionSync.syncVersion(version.id, campaignId).catch(console.error);
     }
 
     res.json({
@@ -83,41 +81,36 @@ router.post('/regenerate', async (req, res, next) => {
 // POST /api/ai/consolidate-memory — Monthly memory consolidation
 router.post('/consolidate-memory', async (req, res, next) => {
   try {
-    // Fetch all recent diagnostics
-    const allCampaigns = await notionApi.queryResultats({});
-    const diagnostics = [];
-
-    for (const page of allCampaigns.results) {
-      const campaign = notionApi.parseResultat(page);
-      const diags = await notionApi.queryDiagnostics(campaign.name);
-      diagnostics.push(
-        ...diags.results.map((d) => ({
-          ...notionApi.parseDiagnostic(d),
-          campaign,
-        }))
+    // Gather all diagnostics across campaigns
+    const campaigns = db.campaigns.list({});
+    const allDiagnostics = [];
+    for (const campaign of campaigns) {
+      const diags = db.diagnostics.listByCampaign(campaign.id);
+      allDiagnostics.push(
+        ...diags.map((d) => ({ ...d, campaign: campaign.name, sector: campaign.sector }))
       );
     }
 
-    // Fetch existing memory
-    const existingMemory = await notionApi.queryMemory({});
-    const memoryPatterns = existingMemory.results.map(notionApi.parseMemoryPattern);
+    const existingMemory = db.memoryPatterns.list({});
 
-    // Call Claude for consolidation
-    const result = await claude.consolidateMemory(diagnostics, memoryPatterns);
+    const result = await claude.consolidateMemory(allDiagnostics, existingMemory);
 
-    // Save new patterns to Notion
+    // Save new patterns
     const saved = [];
     if (result.parsed?.patterns) {
       for (const pattern of result.parsed.patterns) {
-        const page = await notionApi.createMemoryPattern({
+        const created = db.memoryPatterns.create({
           pattern: pattern.pattern,
-          categorie: pattern.categorie,
-          donnees: pattern.donnees,
-          confiance: pattern.confiance,
-          secteurs: pattern.secteurs || [],
-          cibles: pattern.cibles || [],
+          category: pattern.categorie,
+          data: pattern.donnees,
+          confidence: pattern.confiance,
+          sectors: pattern.secteurs || [],
+          targets: pattern.cibles || [],
         });
-        saved.push(page.id);
+        saved.push(created.id);
+
+        // Background sync to Notion
+        notionSync.syncMemoryPattern(created.id).catch(console.error);
       }
     }
 
@@ -139,7 +132,6 @@ function extractPriorities(diagnostic) {
   for (const line of lines) {
     const lower = line.toLowerCase();
     if (lower.includes('priorité') || lower.includes('optimiser') || lower.includes('améliorer')) {
-      // Extract step references like E1, E2, L1, L2
       const steps = line.match(/[EL]\d/g);
       if (steps) priorities.push(...steps);
     }
