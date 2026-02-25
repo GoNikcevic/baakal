@@ -434,9 +434,31 @@ function applySuggestion(tpId) {
   const suggestion = card?.querySelector('.tp-ai-suggestion');
   if (!suggestion) return;
 
-  // Flash the body field to indicate the change
   const body = card.querySelector('.tp-editable[data-field="body"]');
-  if (body) {
+  const c = editorCampaigns[activeEditorCampaign];
+  const tp = c.touchpoints.find(t => t.id === tpId);
+
+  if (body && tp && tp.suggestion) {
+    // Extract the proposed text from the suggestion (after "Proposition :")
+    const suggestionText = tp.suggestion.text;
+    const proposalMatch = suggestionText.match(/Proposition\s*:\s*"([^"]+)"/i) ||
+                          suggestionText.match(/Proposition\s*:\s*(.+?)(?:\s*→|$)/i);
+
+    if (proposalMatch) {
+      // Replace the last sentence/CTA in the body with the proposed text
+      const proposal = highlightVars(proposalMatch[1].trim());
+      const currentHtml = body.innerHTML;
+      // Replace last sentence (after last line break or period)
+      const lines = currentHtml.split(/<br\s*\/?>/);
+      if (lines.length > 1) {
+        lines[lines.length - 1] = proposal;
+        body.innerHTML = lines.join('<br>');
+      } else {
+        body.innerHTML += '<br>' + proposal;
+      }
+    }
+
+    // Flash the body field green
     body.style.transition = 'box-shadow 0.3s';
     body.style.boxShadow = '0 0 0 2px var(--success)';
     setTimeout(() => { body.style.boxShadow = ''; }, 1000);

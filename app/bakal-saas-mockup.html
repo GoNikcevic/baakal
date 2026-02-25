@@ -285,6 +285,54 @@ body {
 .chart-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .chart-legend-dot { width: 8px; height: 8px; border-radius: 2px; }
 
+/* ═══════════ SETTINGS & PROFIL PAGES ═══════════ */
+.settings-grid { display: flex; flex-direction: column; gap: 24px; }
+.form-stack { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.form-textarea {
+  width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-primary); font-family: 'Outfit', sans-serif; font-size: 14px;
+  resize: vertical; line-height: 1.5;
+}
+.form-textarea:focus { border-color: var(--accent); outline: none; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.input-with-status { position: relative; display: flex; align-items: center; }
+.input-with-status .form-input { flex: 1; padding-right: 120px; }
+.input-status {
+  position: absolute; right: 12px; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); padding: 2px 8px; border-radius: 4px;
+  background: var(--bg-card);
+}
+.input-status.connected { color: var(--success); background: var(--success-bg); }
+.input-status.error { color: var(--danger); background: var(--danger-bg); }
+.form-input.mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: -0.5px; }
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-of-type { border-bottom: none; }
+.toggle-info { flex: 1; }
+.toggle-title { font-size: 14px; font-weight: 500; }
+.toggle-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.toggle-switch {
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  position: relative; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--text-muted); transition: all 0.2s;
+}
+.toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+.toggle-switch.on::after { left: 22px; background: white; }
+
 /* ═══════════ CAMPAIGN CREATOR ═══════════ */
 .creator-overlay {
   display: none; position: fixed; inset: 0;
@@ -1421,21 +1469,21 @@ body {
     <div class="nav-section">
       <div class="nav-label">Général</div>
       <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Dashboard <span class="badge">Live</span></div>
-      <div class="nav-item"><span class="icon">🎯</span> Campagnes</div>
-      <div class="nav-item"><span class="icon">🔥</span> Opportunités <span class="badge">3</span></div>
-      <div class="nav-item"><span class="icon">📋</span> Rapports</div>
+      <div class="nav-item" onclick="showPage('dashboard','campaigns')"><span class="icon">🎯</span> Campagnes</div>
+      <div class="nav-item" onclick="showPage('dashboard','overview')"><span class="icon">🔥</span> Opportunités <span class="badge">3</span></div>
+      <div class="nav-item" onclick="showPage('dashboard','reports')"><span class="icon">📋</span> Rapports</div>
     </div>
     <div class="nav-section">
       <div class="nav-label">Configuration</div>
-      <div class="nav-item"><span class="icon">🏢</span> Profil Entreprise</div>
+      <div class="nav-item" onclick="showPage('profil')"><span class="icon">🏢</span> Profil Entreprise</div>
       <div class="nav-item" onclick="showPage('copyeditor')"><span class="icon">✍️</span> Copy & Séquences</div>
-      <div class="nav-item"><span class="icon">⚙️</span> Paramètres</div>
+      <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span> Paramètres</div>
     </div>
     <div class="nav-section">
       <div class="nav-label">IA</div>
-      <div class="nav-item"><span class="icon">🧬</span> Refinement A/B <span class="badge" style="background:var(--success);color:#0a0b0f;">New</span></div>
+      <div class="nav-item" onclick="showPage('dashboard','refinement')"><span class="icon">🧬</span> Refinement A/B <span class="badge" style="background:var(--success);color:#0a0b0f;">New</span></div>
       <div class="nav-item" onclick="showPage('recos')"><span class="icon">💡</span> Recommandations IA <span class="badge" style="background:var(--danger);color:white;">3</span></div>
-      <div class="nav-item"><span class="icon">🤖</span> Historique Claude</div>
+      <div class="nav-item" onclick="showPage('dashboard','refinement')"><span class="icon">🤖</span> Historique Claude</div>
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -1458,7 +1506,7 @@ body {
       <div class="page-subtitle"><span class="pulse-dot"></span>&nbsp;&nbsp;2 campagnes actives · Semaine du 17 fév. 2026</div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-ghost">📥 Exporter le rapport</button>
+      <button class="btn btn-ghost" onclick="exportDashboardReport()">📥 Exporter le rapport</button>
       <button class="btn btn-primary" onclick="toggleCreator()">✨ Nouvelle campagne</button>
     </div>
   </div>
@@ -1553,8 +1601,8 @@ body {
           <div style="font-size:13px;color:var(--text-muted);">Cliquez sur une campagne pour voir le détail</div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">🔍 Filtrer</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">↕ Trier par perf.</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="filterCampaignsList()">🔍 Filtrer</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="sortCampaignsList()">↕ Trier par perf.</button>
         </div>
       </div>
       <div class="campaigns-list"></div>
@@ -1764,8 +1812,8 @@ body {
         <div class="page-subtitle">Éditeur de messages — 3 campagnes · 12 touchpoints</div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-ghost">📥 Exporter tout</button>
-        <button class="btn btn-primary">✨ Générer une séquence</button>
+        <button class="btn btn-ghost" onclick="exportAllSequences()">📥 Exporter tout</button>
+        <button class="btn btn-primary" onclick="generateNewSequence()">✨ Générer une séquence</button>
       </div>
     </div>
     <div class="editor-layout">
@@ -1864,8 +1912,8 @@ body {
         <div class="reco-page-subtitle">Claude analyse vos campagnes et propose des optimisations · Mis à jour il y a 2h</div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-ghost">📋 Historique</button>
-        <button class="btn btn-primary">🔄 Relancer l'analyse</button>
+        <button class="btn btn-ghost" onclick="showPage('dashboard','refinement')">📋 Historique</button>
+        <button class="btn btn-primary" onclick="rerunAnalysis()">🔄 Relancer l'analyse</button>
       </div>
     </div>
 
@@ -2169,6 +2217,334 @@ body {
     </div>
   </div>
 
+  <!-- ═══════════ PROFIL ENTREPRISE PAGE ═══════════ -->
+  <div id="page-profil" style="display:none;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Profil Entreprise</div>
+        <div class="page-subtitle">Informations utilisées par Claude pour personnaliser vos séquences</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveProfile()">💾 Enregistrer</button>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+      <!-- Company Info -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🏢 Informations société</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nom de l'entreprise</label>
+                <input class="form-input" id="profil-company" placeholder="Ex: FormaPro Consulting" value="FormaPro Consulting">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Secteur d'activité</label>
+                <input class="form-input" id="profil-sector" placeholder="Ex: Formation professionnelle" value="Formation & Consulting RH">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Site web</label>
+                <input class="form-input" id="profil-website" placeholder="https://votresite.com" value="https://formapro-consulting.fr">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Taille de l'équipe</label>
+                <select class="form-select" id="profil-team-size">
+                  <option>1-5 personnes</option>
+                  <option selected>6-20 personnes</option>
+                  <option>21-50 personnes</option>
+                  <option>51-200 personnes</option>
+                  <option>200+ personnes</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Description courte</label>
+              <textarea class="form-textarea" id="profil-description" rows="2" placeholder="En 1-2 phrases, que fait votre entreprise ?">Cabinet de conseil en formation et transformation RH. Nous accompagnons les PME dans l'optimisation de leurs processus de recrutement et de développement des compétences.</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Value Proposition -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">💎 Proposition de valeur</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">Proposition de valeur principale</label>
+              <textarea class="form-textarea" id="profil-value-prop" rows="2" placeholder="Quel est le bénéfice #1 que vous apportez à vos clients ?">Réduction de 40% du temps de recrutement grâce à une méthode structurée d'approche directe et d'évaluation des candidats.</textarea>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Preuves sociales / Résultats clients</label>
+              <textarea class="form-textarea" id="profil-social-proof" rows="3" placeholder="Chiffres clés, témoignages, études de cas...">- 35 PME accompagnées depuis 2020
+- 40% de réduction moyenne du temps de recrutement
+- 92% de clients satisfaits (NPS > 60)
+- Cas Nexia Conseil : 2 jours/mois récupérés sur le reporting</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pain Points -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🎯 Douleurs clients ciblées</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">Pain points principaux de vos prospects</label>
+              <textarea class="form-textarea" id="profil-pain-points" rows="4" placeholder="Listez les problèmes que rencontrent vos prospects (un par ligne)">- Temps de recrutement trop long (3-6 mois par poste)
+- Coût élevé des erreurs de recrutement (15-45K€ par échec)
+- Manque de candidatures qualifiées
+- Processus RH non structurés / manuels
+- Difficulté à attirer les talents dans les PME vs grands groupes</textarea>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Objections fréquentes</label>
+              <textarea class="form-textarea" id="profil-objections" rows="3" placeholder="Quelles objections entendez-vous le plus souvent ?">- "On gère déjà nos recrutements en interne"
+- "Pas le budget pour un accompagnement externe"
+- "On a déjà un cabinet de recrutement"
+- "Ce n'est pas le bon moment"</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target Personas -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">👤 Personas cibles</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Décideur principal</label>
+                <input class="form-input" id="profil-persona-primary" placeholder="Ex: DRH, DAF, CEO" value="DRH / Directeur RH">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Décideur secondaire</label>
+                <input class="form-input" id="profil-persona-secondary" placeholder="Ex: DG, Directeur Ops" value="DG / Dirigeant">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Secteurs prioritaires</label>
+                <input class="form-input" id="profil-target-sectors" placeholder="Ex: IT, Finance, Formation" value="Formation, Conseil RH, Comptabilité & Finance">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Taille entreprise cible</label>
+                <input class="form-input" id="profil-target-size" placeholder="Ex: 11-200 salariés" value="11-200 salariés">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Zones géographiques</label>
+              <input class="form-input" id="profil-target-zones" placeholder="Ex: Île-de-France, Lyon, France entière" value="Île-de-France, Lyon & Rhône-Alpes">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy Preferences -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">✍️ Préférences de copy</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Ton par défaut</label>
+                <select class="form-select" id="profil-default-tone">
+                  <option selected>Pro décontracté</option>
+                  <option>Formel & Corporate</option>
+                  <option>Direct & punchy</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Formalité</label>
+                <select class="form-select" id="profil-default-formality">
+                  <option selected>Vous</option>
+                  <option>Tu</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Mots/phrases à éviter</label>
+              <input class="form-input" id="profil-avoid-words" placeholder="Ex: gratuit, IA, automatisé" value="gratuit, IA, automatisé, robot, spam, offre exclusive">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Expressions signatures / vocabulaire maison</label>
+              <textarea class="form-textarea" id="profil-signature-phrases" rows="2" placeholder="Phrases ou expressions que vous utilisez souvent...">méthode structurée, approche directe, conseil à valeur ajoutée, transformation RH</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PARAMÈTRES PAGE ═══════════ -->
+  <div id="page-settings" style="display:none;">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Paramètres</div>
+        <div class="page-subtitle">Configuration des intégrations et préférences</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer</button>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+      <!-- API Keys -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔑 Clés API</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">Lemlist API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-lemlist-key" type="password" placeholder="Copiez depuis Lemlist → Settings → Integrations → API">
+                <span class="input-status" id="status-lemlist">Non connecté</span>
+              </div>
+              <div class="form-hint">Trouvez-la dans Lemlist → Settings → Integrations → API</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Notion Integration Token</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-notion-token" type="password" placeholder="Copiez depuis notion.so/my-integrations">
+                <span class="input-status" id="status-notion">Non connecté</span>
+              </div>
+              <div class="form-hint">Créez une intégration sur <strong>notion.so/my-integrations</strong>, puis partagez vos pages</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Anthropic API Key (Claude)</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-claude-key" type="password" placeholder="sk-ant-...">
+                <span class="input-status" id="status-claude">Non connecté</span>
+              </div>
+              <div class="form-hint">Disponible sur <strong>console.anthropic.com/settings/keys</strong></div>
+            </div>
+            <button class="btn btn-ghost" style="align-self:flex-start;" onclick="testApiConnections()">🔄 Tester les connexions</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lemlist Config -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📧 Configuration Lemlist</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Limite d'envois / jour</label>
+                <select class="form-select" id="settings-lemlist-daily-limit">
+                  <option>25 emails/jour</option>
+                  <option selected>50 emails/jour</option>
+                  <option>100 emails/jour</option>
+                  <option>Pas de limite</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Plage horaire d'envoi</label>
+                <select class="form-select" id="settings-lemlist-send-window">
+                  <option selected>8h — 18h (bureau)</option>
+                  <option>9h — 12h (matin uniquement)</option>
+                  <option>7h — 20h (étendu)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Jours d'envoi</label>
+                <select class="form-select" id="settings-lemlist-send-days">
+                  <option selected>Lundi — Vendredi</option>
+                  <option>Lundi — Samedi</option>
+                  <option>Tous les jours</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Délai entre connexions LinkedIn</label>
+                <select class="form-select" id="settings-linkedin-delay">
+                  <option>10 min</option>
+                  <option selected>30 min</option>
+                  <option>1 heure</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🔔 Notifications</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">Rapport hebdomadaire</div>
+                <div class="toggle-desc">Recevoir un résumé par email chaque lundi</div>
+              </div>
+              <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">Alertes performance</div>
+                <div class="toggle-desc">Notification quand un taux passe sous les seuils</div>
+              </div>
+              <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">Nouvelles recommandations IA</div>
+                <div class="toggle-desc">Alerte quand Claude détecte une opportunité d'optimisation</div>
+              </div>
+              <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">Réponses prospects</div>
+                <div class="toggle-desc">Notification instantanée pour chaque réponse reçue</div>
+              </div>
+              <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="form-group full" style="margin-top:8px;">
+              <label class="form-label">Email de notification</label>
+              <input class="form-input" id="settings-notif-email" placeholder="votre@email.com" value="goran@formapro-consulting.fr">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claude Model -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🤖 Configuration Claude</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Modèle par défaut</label>
+                <select class="form-select" id="settings-claude-model">
+                  <option>claude-haiku-4-5 (rapide, économique)</option>
+                  <option selected>claude-sonnet-4-6 (équilibré)</option>
+                  <option>claude-opus-4-6 (meilleure qualité)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mode de validation</label>
+                <select class="form-select" id="settings-claude-validation">
+                  <option selected>Semi-automatique (valider avant déploiement)</option>
+                  <option>Automatique (déployer directement)</option>
+                  <option>Manuel (suggestions uniquement)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ═══════════ CAMPAIGN CREATOR MODAL ═══════════ -->
@@ -2312,7 +2688,7 @@ body {
             </div>
             <div class="inspi-actions">
               <button class="btn btn-success" style="font-size:13px;" onclick="applyInspirationSuggestion()">✅ Lancer cette campagne</button>
-              <button class="btn btn-ghost" style="font-size:13px;">🔄 Autre suggestion</button>
+              <button class="btn btn-ghost" style="font-size:13px;" onclick="rotateInspiration()">🔄 Autre suggestion</button>
               <button class="btn btn-ghost" style="font-size:13px;" onclick="closeInspirationToEdit()">✏️ Modifier les paramètres</button>
             </div>
           </div>
@@ -2339,6 +2715,7 @@ body {
 <script src="variables.js"></script>
 <script src="vargen.js"></script>
 <script src="recos.js"></script>
+<script src="pages.js"></script>
 <script src="app.js"></script>
 
 </body>

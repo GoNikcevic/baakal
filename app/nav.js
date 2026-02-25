@@ -7,6 +7,33 @@ document.querySelectorAll('.reco-filter').forEach(btn => {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.reco-filter').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
+
+    const filterText = this.textContent.replace(/\d+/g, '').trim();
+    const cards = document.querySelectorAll('.reco-card');
+
+    cards.forEach(card => {
+      const badge = card.querySelector('.reco-priority-badge');
+      const campaign = card.querySelector('.reco-card-campaign')?.textContent || '';
+      const badgeText = badge?.textContent.trim() || '';
+      let show = true;
+
+      if (filterText === 'Toutes') {
+        show = true;
+      } else if (filterText === 'Critiques') {
+        show = card.classList.contains('priority-critical');
+      } else if (filterText === 'Importantes') {
+        show = card.classList.contains('priority-important');
+      } else if (filterText === 'Suggestions') {
+        show = card.classList.contains('priority-suggestion');
+      } else if (filterText === 'Appliquées') {
+        show = card.classList.contains('priority-applied') || badgeText === 'Appliquée';
+      } else {
+        // Campaign name filter
+        show = campaign.includes(filterText);
+      }
+
+      card.style.display = show ? 'block' : 'none';
+    });
   });
 });
 
@@ -39,38 +66,59 @@ function showSection(name) {
 }
 
 /* ═══ Page-level navigation ═══ */
-function showPage(page) {
+function showPage(page, section) {
   const dashEls = ['section-overview','section-reports','section-campaigns','section-refinement'];
   const dashHeader = document.querySelector('.main > .page-header');
   const dashTabs = document.querySelector('.main > .tabs');
-  const copyPage = document.getElementById('page-copyeditor');
-  const recosPage = document.getElementById('page-recos');
+  const allPages = ['page-copyeditor','page-recos','page-profil','page-settings'];
 
-  copyPage.style.display = 'none';
-  recosPage.style.display = 'none';
+  // Hide all standalone pages
+  allPages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
   if (page === 'copyeditor') {
     dashHeader.style.display = 'none';
     dashTabs.style.display = 'none';
     dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    copyPage.style.display = 'block';
+    document.getElementById('page-copyeditor').style.display = 'block';
     if (typeof initCopyEditor === 'function') initCopyEditor();
   } else if (page === 'recos') {
     dashHeader.style.display = 'none';
     dashTabs.style.display = 'none';
     dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    recosPage.style.display = 'block';
+    document.getElementById('page-recos').style.display = 'block';
+  } else if (page === 'profil') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-profil').style.display = 'block';
+  } else if (page === 'settings') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-settings').style.display = 'block';
   } else {
+    // Dashboard — show header + tabs + section
     dashHeader.style.display = 'flex';
     dashTabs.style.display = 'flex';
-    showSection('overview');
+    showSection(section || 'overview');
   }
 
+  // Update active nav item
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
-    if (page === 'copyeditor' && item.textContent.includes('Copy')) item.classList.add('active');
-    if (page === 'dashboard' && item.textContent.includes('Dashboard')) item.classList.add('active');
-    if (page === 'recos' && item.textContent.includes('Recommandations')) item.classList.add('active');
+    const text = item.textContent;
+    if (page === 'copyeditor' && text.includes('Copy')) item.classList.add('active');
+    if (page === 'dashboard' && text.includes('Dashboard')) item.classList.add('active');
+    if (page === 'recos' && text.includes('Recommandations')) item.classList.add('active');
+    if (page === 'profil' && text.includes('Profil')) item.classList.add('active');
+    if (page === 'settings' && text.includes('Paramètres')) item.classList.add('active');
+    // Section shortcuts from sidebar
+    if (page === 'dashboard' && section === 'campaigns' && text.includes('Campagnes') && !text.includes('Dashboard')) item.classList.add('active');
+    if (page === 'dashboard' && section === 'reports' && text.includes('Rapports')) item.classList.add('active');
+    if (page === 'dashboard' && section === 'refinement' && text.includes('Refinement')) item.classList.add('active');
   });
 }
 
