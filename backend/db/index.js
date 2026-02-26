@@ -141,6 +141,12 @@ function migrate(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key             TEXT PRIMARY KEY,
+      value           TEXT NOT NULL,
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
   `);
 }
 
@@ -500,6 +506,32 @@ const chatMessages = {
   },
 };
 
+// =============================================
+// Settings (key-value store for encrypted API keys)
+// =============================================
+
+const settings = {
+  get(key) {
+    return getDb().prepare('SELECT * FROM settings WHERE key = ?').get(key);
+  },
+
+  getAll() {
+    return getDb().prepare('SELECT * FROM settings').all();
+  },
+
+  set(key, value) {
+    getDb().prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).run(key, value);
+  },
+
+  delete(key) {
+    return getDb().prepare('DELETE FROM settings WHERE key = ?').run(key);
+  },
+};
+
 module.exports = {
   getDb,
   campaigns,
@@ -510,4 +542,5 @@ module.exports = {
   dashboardKpis,
   chatThreads,
   chatMessages,
+  settings,
 };

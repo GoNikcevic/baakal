@@ -7,6 +7,7 @@ const campaignsRouter = require('./routes/campaigns');
 const dashboardRouter = require('./routes/dashboard');
 const aiRouter = require('./routes/ai');
 const chatRouter = require('./routes/chat');
+const settingsRouter = require('./routes/settings');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/campaigns', campaignsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/settings', settingsRouter);
 
 // Error handling
 app.use(errorHandler);

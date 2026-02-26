@@ -281,6 +281,24 @@ const BakalAPI = (() => {
       return request('/health');
     },
 
+    /** Get masked API key status */
+    async getKeys() {
+      return request('/settings/keys');
+    },
+
+    /** Save API keys (encrypted on backend) */
+    async saveKeys(keys) {
+      return request('/settings/keys', {
+        method: 'POST',
+        body: JSON.stringify({ keys }),
+      });
+    },
+
+    /** Test API key connectivity */
+    async testKeys() {
+      return request('/settings/keys/test', { method: 'POST' });
+    },
+
     /* Expose internal helpers for external use */
     request,
     campaignToBackend,

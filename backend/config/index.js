@@ -25,6 +25,40 @@ const config = {
   },
 };
 
+/**
+ * Reload API keys from the database (encrypted storage).
+ * DB keys take priority over .env values.
+ * Called after keys are saved via the settings API.
+ */
+function reloadKeys() {
+  try {
+    const db = require('../db');
+    const { decrypt } = require('./crypto');
+
+    const keyMap = {
+      lemlist_api_key: (val) => { config.lemlist.apiKey = val; },
+      notion_token: (val) => { config.notion.token = val; },
+      anthropic_api_key: (val) => { config.claude.apiKey = val; },
+    };
+
+    for (const [dbKey, setter] of Object.entries(keyMap)) {
+      const row = db.settings.get(dbKey);
+      if (row) {
+        try {
+          setter(decrypt(row.value));
+        } catch {
+          // Decryption failed — keep existing .env value
+        }
+      }
+    }
+  } catch {
+    // DB not ready yet — use .env values
+  }
+}
+
+// Load DB keys on startup (after a short delay to let DB initialize)
+setTimeout(reloadKeys, 0);
+
 function validateConfig(keys) {
   const missing = keys.filter((k) => {
     const value = k.split('.').reduce((obj, part) => obj?.[part], config);
@@ -33,10 +67,11 @@ function validateConfig(keys) {
   if (missing.length > 0) {
     console.warn(
       `⚠️  Missing config keys: ${missing.join(', ')}\n` +
-      '   Copy .env.example → .env and fill in your values.'
+      '   Copy .env.example → .env and fill in your values.\n' +
+      '   Or configure them in the Settings page of the app.'
     );
   }
   return missing.length === 0;
 }
 
-module.exports = { config, validateConfig };
+module.exports = { config, validateConfig, reloadKeys };

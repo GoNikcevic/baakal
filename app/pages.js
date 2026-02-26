@@ -88,11 +88,19 @@ function loadProfile() {
 }
 
 /* ═══ Settings Page — Save ═══ */
-function saveSettings() {
-  const data = {
-    lemlistKey: document.getElementById('settings-lemlist-key')?.value,
-    notionToken: document.getElementById('settings-notion-token')?.value,
-    claudeKey: document.getElementById('settings-claude-key')?.value,
+async function saveSettings() {
+  const btn = document.querySelector('#page-settings .btn-primary');
+  const original = btn.innerHTML;
+
+  // Collect API keys from inputs
+  const apiKeys = {
+    lemlistKey: document.getElementById('settings-lemlist-key')?.value?.trim(),
+    notionToken: document.getElementById('settings-notion-token')?.value?.trim(),
+    claudeKey: document.getElementById('settings-claude-key')?.value?.trim(),
+  };
+
+  // Collect non-sensitive settings (these stay in localStorage)
+  const prefs = {
     lemlistDailyLimit: document.getElementById('settings-lemlist-daily-limit')?.value,
     lemlistSendWindow: document.getElementById('settings-lemlist-send-window')?.value,
     lemlistSendDays: document.getElementById('settings-lemlist-send-days')?.value,
@@ -101,79 +109,183 @@ function saveSettings() {
     claudeValidation: document.getElementById('settings-claude-validation')?.value,
     notifEmail: document.getElementById('settings-notif-email')?.value,
   };
+  localStorage.setItem('bakal_settings_prefs', JSON.stringify(prefs));
 
-  // Store in localStorage (sensitive — backend will manage securely later)
-  localStorage.setItem('bakal_settings', JSON.stringify(data));
-
-  const btn = document.querySelector('#page-settings .btn-primary');
-  const original = btn.innerHTML;
-  btn.innerHTML = '✅ Enregistré';
-  btn.style.background = 'var(--success)';
-  setTimeout(() => {
-    btn.innerHTML = original;
-    btn.style.background = '';
-  }, 2000);
-}
-
-async function testApiConnections() {
-  const keys = [
-    { id: 'settings-lemlist-key', statusId: 'status-lemlist', name: 'Lemlist', backendKey: 'lemlist' },
-    { id: 'settings-notion-token', statusId: 'status-notion', name: 'Notion', backendKey: 'notion' },
-    { id: 'settings-claude-key', statusId: 'status-claude', name: 'Claude', backendKey: 'claude' },
-  ];
-
-  // Try to get backend health status first
-  let backendServices = null;
-  if (typeof BakalAPI !== 'undefined') {
-    try {
-      const health = await BakalAPI.testConnections();
-      if (health) backendServices = health.services;
-    } catch { /* backend not available */ }
+  // Send API keys to backend (encrypted storage) — only non-empty values
+  const keysToSave = {};
+  let hasKeys = false;
+  for (const [field, value] of Object.entries(apiKeys)) {
+    if (value) {
+      keysToSave[field] = value;
+      hasKeys = true;
+    }
   }
 
-  keys.forEach(k => {
-    const input = document.getElementById(k.id);
-    const status = document.getElementById(k.statusId);
-    const value = input?.value?.trim();
-
-    // Show testing state
-    status.textContent = 'Test...';
-    status.className = 'input-status';
-    status.style.color = 'var(--text-secondary)';
-
-    setTimeout(() => {
-      // If backend reported service status, use it
-      if (backendServices && backendServices[k.backendKey]) {
-        status.textContent = 'Connecté (backend)';
-        status.className = 'input-status connected';
-        status.style.color = '';
+  if (hasKeys && typeof BakalAPI !== 'undefined') {
+    try {
+      btn.innerHTML = '🔐 Chiffrement...';
+      const result = await BakalAPI.saveKeys(keysToSave);
+      if (result.errors && result.errors.length > 0) {
+        btn.innerHTML = '⚠️ ' + result.errors[0];
+        btn.style.background = 'var(--warning, #e6a700)';
+        setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; }, 3000);
         return;
       }
+      // Clear plaintext from inputs — show masked version instead
+      await loadSettingsKeys();
+    } catch (err) {
+      btn.innerHTML = '❌ Erreur serveur';
+      btn.style.background = 'var(--error, #e53935)';
+      setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; }, 3000);
+      return;
+    }
+  }
 
-      if (!value) {
-        status.textContent = backendServices ? 'Non configuré sur le serveur' : 'Non connecté';
-        status.className = 'input-status';
-        status.style.color = '';
-        return;
-      }
+  btn.innerHTML = '✅ Enregistré';
+  btn.style.background = 'var(--success)';
+  setTimeout(() => { btn.innerHTML = original; btn.style.background = ''; }, 2000);
+}
 
-      // Fallback: local format validation
-      let valid = false;
-      if (k.name === 'Lemlist') valid = value.length > 10;
-      if (k.name === 'Notion') valid = value.startsWith('ntn_') || value.startsWith('secret_');
-      if (k.name === 'Claude') valid = value.startsWith('sk-ant-');
+/* ═══ Settings Page — Load saved keys from backend ═══ */
+async function loadSettingsKeys() {
+  if (typeof BakalAPI === 'undefined') return;
+  try {
+    const { keys } = await BakalAPI.getKeys();
+    const fieldMap = {
+      lemlistKey: { inputId: 'settings-lemlist-key', statusId: 'status-lemlist' },
+      notionToken: { inputId: 'settings-notion-token', statusId: 'status-notion' },
+      claudeKey: { inputId: 'settings-claude-key', statusId: 'status-claude' },
+    };
 
-      if (valid) {
-        status.textContent = 'Format OK';
+    for (const [field, info] of Object.entries(keys)) {
+      const ids = fieldMap[field];
+      if (!ids) continue;
+
+      const input = document.getElementById(ids.inputId);
+      const status = document.getElementById(ids.statusId);
+      if (!input || !status) continue;
+
+      if (info.configured) {
+        input.value = '';
+        input.placeholder = info.masked;
+        status.textContent = 'Configuré (chiffré)';
         status.className = 'input-status connected';
         status.style.color = '';
       } else {
-        status.textContent = 'Format invalide';
-        status.className = 'input-status error';
+        input.placeholder = input.dataset.originalPlaceholder || input.placeholder;
+        status.textContent = 'Non configuré';
+        status.className = 'input-status';
         status.style.color = '';
       }
-    }, 600);
-  });
+    }
+  } catch { /* backend not available */ }
+}
+
+/* ═══ Settings Page — Load preferences from localStorage ═══ */
+function loadSettingsPrefs() {
+  const saved = localStorage.getItem('bakal_settings_prefs');
+  if (!saved) return;
+  try {
+    const prefs = JSON.parse(saved);
+    const selects = {
+      'settings-lemlist-daily-limit': prefs.lemlistDailyLimit,
+      'settings-lemlist-send-window': prefs.lemlistSendWindow,
+      'settings-lemlist-send-days': prefs.lemlistSendDays,
+      'settings-linkedin-delay': prefs.linkedinDelay,
+      'settings-claude-model': prefs.claudeModel,
+      'settings-claude-validation': prefs.claudeValidation,
+    };
+    for (const [id, val] of Object.entries(selects)) {
+      if (!val) continue;
+      const el = document.getElementById(id);
+      if (el) {
+        for (let i = 0; i < el.options.length; i++) {
+          if (el.options[i].text === val || el.options[i].value === val) {
+            el.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    if (prefs.notifEmail) {
+      const el = document.getElementById('settings-notif-email');
+      if (el) el.value = prefs.notifEmail;
+    }
+  } catch { /* ignore */ }
+}
+
+async function testApiConnections() {
+  const statusMap = {
+    lemlistKey: 'status-lemlist',
+    notionToken: 'status-notion',
+    claudeKey: 'status-claude',
+  };
+
+  // Show testing state for all
+  for (const statusId of Object.values(statusMap)) {
+    const el = document.getElementById(statusId);
+    if (el) {
+      el.textContent = 'Test en cours...';
+      el.className = 'input-status';
+      el.style.color = 'var(--text-secondary)';
+    }
+  }
+
+  // Try real backend connectivity test
+  if (typeof BakalAPI !== 'undefined') {
+    try {
+      const { results } = await BakalAPI.testKeys();
+
+      for (const [field, result] of Object.entries(results)) {
+        const statusId = statusMap[field];
+        if (!statusId) continue;
+        const el = document.getElementById(statusId);
+        if (!el) continue;
+
+        if (result.status === 'connected') {
+          el.textContent = 'Connecté';
+          el.className = 'input-status connected';
+        } else if (result.status === 'invalid') {
+          el.textContent = 'Clé invalide';
+          el.className = 'input-status error';
+        } else if (result.status === 'not_configured') {
+          el.textContent = 'Non configuré';
+          el.className = 'input-status';
+        } else {
+          el.textContent = result.message || 'Erreur';
+          el.className = 'input-status error';
+        }
+        el.style.color = '';
+      }
+      return;
+    } catch { /* backend not available, fall through */ }
+  }
+
+  // Offline fallback — basic format validation on input values
+  const localChecks = [
+    { id: 'settings-lemlist-key', statusId: 'status-lemlist', check: v => v.length > 10 },
+    { id: 'settings-notion-token', statusId: 'status-notion', check: v => v.startsWith('ntn_') || v.startsWith('secret_') },
+    { id: 'settings-claude-key', statusId: 'status-claude', check: v => v.startsWith('sk-ant-') },
+  ];
+
+  for (const c of localChecks) {
+    const input = document.getElementById(c.id);
+    const status = document.getElementById(c.statusId);
+    const value = input?.value?.trim();
+    if (!status) continue;
+
+    if (!value) {
+      status.textContent = 'Non connecté';
+      status.className = 'input-status';
+    } else if (c.check(value)) {
+      status.textContent = 'Format OK';
+      status.className = 'input-status connected';
+    } else {
+      status.textContent = 'Format invalide';
+      status.className = 'input-status error';
+    }
+    status.style.color = '';
+  }
 }
 
 /* ═══ Dashboard Export ═══ */
@@ -416,4 +528,6 @@ function initTheme() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadProfile();
+  loadSettingsPrefs();
+  loadSettingsKeys();
 });

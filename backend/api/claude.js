@@ -2,9 +2,13 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { config } = require('../config');
 
 let client;
+let clientKeyHash;
 function getClient() {
-  if (!client) {
-    client = new Anthropic({ apiKey: config.claude.apiKey });
+  // Recreate client if key changed (e.g. after settings update)
+  const currentKey = config.claude.apiKey || '';
+  if (!client || clientKeyHash !== currentKey) {
+    client = new Anthropic({ apiKey: currentKey });
+    clientKeyHash = currentKey;
   }
   return client;
 }
