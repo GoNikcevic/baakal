@@ -1047,6 +1047,25 @@ body {
 }
 .editor-bottom-info { font-size: 12px; color: var(--text-muted); }
 
+/* ═══════════ LAUNCH BAR ═══════════ */
+.editor-launch-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; margin-bottom: 16px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.editor-launch-info { flex: 1; }
+.btn-launch {
+  background: var(--text-primary); color: var(--bg-primary);
+  border: none; border-radius: var(--radius-sm);
+  padding: 10px 24px; font-size: 13px; font-weight: 600;
+  font-family: var(--font); cursor: pointer;
+  letter-spacing: -0.2px;
+  transition: opacity var(--transition);
+}
+.btn-launch:hover { opacity: 0.85; }
+.btn-launch:disabled { opacity: 0.5; cursor: default; }
+
 /* ═══════════ VARIABLE MANAGER ═══════════ */
 .var-panel {
   border-top: 1px solid var(--border);

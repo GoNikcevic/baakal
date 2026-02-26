@@ -265,17 +265,33 @@ function renderEditorMain() {
   // Header
   let paramsHtml = c.params.map(p => `<span class="editor-param">${p.l}: ${p.v}</span>`).join('');
 
-  // AI bar
-  const aiBarHtml = `
-    <div class="ai-bar">
-      <div class="ai-bar-icon">🤖</div>
-      <div class="ai-bar-content">
-        <div class="ai-bar-title">${c.aiBar.title}</div>
-        <div class="ai-bar-text">${c.aiBar.text}</div>
-      </div>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="applyAllSuggestions()">Appliquer tout</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="dismissAllSuggestions()">Ignorer</button>
-    </div>`;
+  // AI bar (only if suggestions exist)
+  let aiBarHtml = '';
+  if (c.aiBar) {
+    aiBarHtml = `
+      <div class="ai-bar">
+        <div class="ai-bar-icon">~</div>
+        <div class="ai-bar-content">
+          <div class="ai-bar-title">${c.aiBar.title}</div>
+          <div class="ai-bar-text">${c.aiBar.text}</div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="applyAllSuggestions()">Appliquer tout</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="dismissAllSuggestions()">Ignorer</button>
+      </div>`;
+  }
+
+  // Launch bar for prep campaigns
+  let launchBarHtml = '';
+  if (c.status === 'prep') {
+    launchBarHtml = `
+      <div class="editor-launch-bar">
+        <div class="editor-launch-info">
+          <div style="font-size:14px;font-weight:600;letter-spacing:-0.2px;">Séquence prête</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${c.touchpoints.length} touchpoints · Vérifiez vos messages puis lancez la campagne</div>
+        </div>
+        <button class="btn-launch" onclick="launchSequence('${activeEditorCampaign}')">Lancer la séquence</button>
+      </div>`;
+  }
 
   // Touchpoints
   let tpHtml = '';
@@ -363,10 +379,11 @@ function renderEditorMain() {
         <div class="editor-header-params">${paramsHtml}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">⚙️ Paramètres</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">✨ Tout régénérer</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">Paramètres</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">Tout régénérer</button>
       </div>
     </div>
+    ${launchBarHtml}
     ${aiBarHtml}
     ${tpHtml}
     ${bottomHtml}
@@ -647,6 +664,62 @@ function showCampaignParams() {
     </div>
   `;
   header.after(panel);
+}
+
+/* ═══ Launch Sequence ═══ */
+function launchSequence(campaignKey) {
+  const c = editorCampaigns[campaignKey];
+  if (!c) return;
+
+  const bar = document.querySelector('.editor-launch-bar');
+  const btn = bar?.querySelector('.btn-launch');
+  if (!btn) return;
+
+  // Disable button and show progress
+  btn.disabled = true;
+  btn.textContent = 'Lancement en cours...';
+  btn.style.opacity = '0.6';
+
+  // Collect latest edits from DOM before launching
+  c.touchpoints.forEach(tp => {
+    const card = document.querySelector(`[data-tp="${tp.id}"]`);
+    if (!card) return;
+    const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+    const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+    if (subjectEl) tp.subject = subjectEl.innerHTML;
+    if (bodyEl) tp.body = bodyEl.innerHTML.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '');
+  });
+
+  // Update status
+  c.status = 'active';
+  if (typeof BAKAL !== 'undefined' && BAKAL.campaigns[campaignKey]) {
+    BAKAL.campaigns[campaignKey].status = 'active';
+  }
+
+  // Simulate deployment
+  setTimeout(() => {
+    // Replace launch bar with success message
+    bar.innerHTML = `
+      <div class="editor-launch-info" style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:var(--success);letter-spacing:-0.2px;">Séquence déployée</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${c.touchpoints.length} touchpoints actifs · Les premiers envois démarrent sous 24h</div>
+      </div>
+    `;
+    bar.style.borderColor = 'var(--success)';
+
+    // Update sidebar status dot
+    renderEditorSidebar();
+
+    // Re-render dashboard
+    if (typeof initFromData === 'function') initFromData();
+
+    // Fade out launch bar after 4s
+    setTimeout(() => {
+      bar.style.transition = 'opacity 0.5s, max-height 0.5s';
+      bar.style.opacity = '0';
+      setTimeout(() => bar.remove(), 500);
+    }, 4000);
+  }, 1500);
 }
 
 function regenerateAll() {

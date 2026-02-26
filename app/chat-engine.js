@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════
-   BAKAL — Local Chat Engine
-   Intelligent campaign builder that works without backend
+   BAKAL — Hybrid Chat Engine
+   Claude API via backend when available,
+   local pattern-matching engine as fallback
    ═══════════════════════════════════════════════════ */
 
-/* ═══ Conversation state ═══ */
+/* ═══ Conversation state (local engine) ═══ */
 let _conv = {
   stage: 'init',         // init | gathering | confirm | done
   params: {},            // collected campaign parameters
@@ -159,22 +160,19 @@ function generateSequence(params) {
   ];
 }
 
-/* ═══ Response logic ═══ */
+/* ═══ Local response logic ═══ */
 
 function buildResponse(userText) {
   const text = userText.trim();
   const lower = text.toLowerCase();
 
-  // Store in history
   _conv.history.push({ role: 'user', content: text });
 
-  // Extract any new params from this message
   const newParams = extractAllParams(text);
   Object.assign(_conv.params, newParams);
 
   let response;
 
-  // Handle optimization / non-creation queries
   if (_conv.stage === 'init' && (lower.includes('optimi') || lower.includes('sous-performe') || lower.includes('améliorer'))) {
     response = handleOptimizationQuery(text);
   } else if (_conv.stage === 'init' && (lower.includes('angle') || lower.includes('approche')) && lower.includes('secteur')) {
@@ -182,23 +180,19 @@ function buildResponse(userText) {
   } else if (_conv.stage === 'confirm') {
     response = handleConfirmation(text);
   } else {
-    // Handle done stage - any new request restarts
     if (_conv.stage === 'done') {
       resetConversation();
       const np = extractAllParams(text);
       Object.assign(_conv.params, np);
     }
 
-    // Set first thread title
     if (!_conv.threadTitle) {
       _conv.threadTitle = text.length > 50 ? text.slice(0, 47) + '...' : text;
     }
 
     _conv.stage = 'gathering';
 
-    // Figure out what we're missing
     const missing = getMissingParams();
-
     if (missing.length === 0) {
       response = proposeCampaign();
     } else {
@@ -206,9 +200,7 @@ function buildResponse(userText) {
     }
   }
 
-  // Store assistant response in history (for metadata retrieval)
   _conv.history.push({ role: 'assistant', content: response.content, metadata: response.metadata });
-
   return response;
 }
 
@@ -220,7 +212,6 @@ function getMissingParams() {
   for (const p of required) {
     if (!_conv.params[p] && !_conv.asked.includes(p)) missing.push(p);
   }
-  // After required, only ask for 1-2 optional ones
   let optionalAsked = 0;
   for (const p of nice) {
     if (!_conv.params[p] && !_conv.asked.includes(p) && optionalAsked < 2) {
@@ -228,14 +219,12 @@ function getMissingParams() {
       optionalAsked++;
     }
   }
-
   return missing;
 }
 
 function askForParam(param) {
   _conv.asked.push(param);
 
-  // Build a contextual ack of what we know so far
   let ack = '';
   const p = _conv.params;
   if (Object.keys(p).length > 0) {
@@ -263,7 +252,6 @@ function proposeCampaign() {
   _conv.stage = 'confirm';
 
   const p = _conv.params;
-  // Fill defaults for missing optional params
   if (!p.channel) p.channel = 'email';
   if (!p.zone) p.zone = 'France entière';
   if (!p.size) p.size = '11-50 sal.';
@@ -287,39 +275,20 @@ function proposeCampaign() {
   recap += `La séquence contient **${sequence.length} touchpoints** avec des messages personnalisés pour votre cible.\n\n`;
   recap += `Voulez-vous **créer cette campagne** ? Vous pourrez ensuite modifier chaque message dans l'éditeur de séquences.`;
 
-  const campaign = {
-    name,
-    sector: p.sector,
-    position: p.position,
-    size: p.size,
-    channel: p.channel,
-    zone: p.zone,
-    angle: p.angle,
-    tone: p.tone,
-    sequence,
-  };
+  const campaign = { name, sector: p.sector, position: p.position, size: p.size, channel: p.channel, zone: p.zone, angle: p.angle, tone: p.tone, sequence };
 
-  return {
-    content: recap,
-    metadata: { action: 'create_campaign', campaign },
-  };
+  return { content: recap, metadata: { action: 'create_campaign', campaign } };
 }
 
 function handleConfirmation(text) {
   const lower = text.toLowerCase();
 
-  // Accept
   if (lower.match(/\b(oui|ok|go|créer|crée|valide|parfait|c'est bon|on y va|lance|top|génial|super|d'accord|allons-y|confirme|yes)\b/)) {
     _conv.stage = 'done';
-    return {
-      content: `La campagne est en cours de création...`,
-      _autoCreate: true,
-    };
+    return { content: `La campagne est en cours de création...`, _autoCreate: true };
   }
 
-  // Modify
   if (lower.match(/\b(modif|chang|ajust|plutôt|prefer|non|pas|autre|different)\b/)) {
-    // Check what they want to change
     const newParams = extractAllParams(text);
     if (Object.keys(newParams).length > 0) {
       Object.assign(_conv.params, newParams);
@@ -329,7 +298,6 @@ function handleConfirmation(text) {
     return { content: `Bien sûr. Qu'est-ce que vous souhaitez changer ?\n\nVous pouvez modifier le secteur, la cible, le canal, la zone, la taille d'entreprise, ou l'angle d'approche.` };
   }
 
-  // Unclear
   return { content: `Souhaitez-vous créer cette campagne telle quelle, ou préférez-vous modifier quelque chose ?` };
 }
 
@@ -373,7 +341,7 @@ function buildCampaignName(p) {
   return `${pos} ${sec}`;
 }
 
-/* ═══ Campaign creation ═══ */
+/* ═══ Campaign creation (shared by both modes) ═══ */
 
 function createCampaignLocally(campaignData) {
   if (typeof BAKAL === 'undefined') return null;
@@ -436,18 +404,18 @@ function createCampaignLocally(campaignData) {
     },
   };
 
-  // Also register in copy editor if the function exists
+  // Register in copy editor
   if (typeof registerCampaignInEditor === 'function') {
     registerCampaignInEditor(id, BAKAL.campaigns[id]);
   }
 
-  // Re-render dashboard data
+  // Re-render dashboard
   if (typeof initFromData === 'function') initFromData();
 
   return id;
 }
 
-/* ═══ Thread management (local) ═══ */
+/* ═══ Thread management (local fallback) ═══ */
 
 let _localThreads = [];
 let _localThreadIdCounter = 1;
@@ -467,12 +435,25 @@ function deleteLocalThread(id) {
   _localThreads = _localThreads.filter(t => t.id !== id);
 }
 
-/* ═══ Integration with chat.js ═══ */
+/* ═══ Hybrid integration with chat.js ═══ */
 
-// Override the sendChatMessage to use local engine
-function patchChatForLocalEngine() {
-  // Replace the global sendChatMessage
+function patchChatHybrid() {
+  // Store references to original chat.js functions
+  const _origSendChatMessage = window.sendChatMessage;
+  const _origCreateCampaignFromChat = window.createCampaignFromChat;
+  const _origLoadChatThreads = window.loadChatThreads;
+  const _origNewChatThread = window.newChatThread;
+  const _origSelectChatThread = window.selectChatThread;
+  const _origDeleteChatThread = window.deleteChatThread;
+
+  /* ─── sendChatMessage: backend (Claude API) or local engine ─── */
   window.sendChatMessage = async function(overrideText) {
+    // Backend available → use Claude API via backend
+    if (_backendAvailable && typeof BakalAPI !== 'undefined') {
+      return _origSendChatMessage.call(this, overrideText);
+    }
+
+    // Offline → local engine
     if (_chatSending) return;
 
     const input = document.getElementById('chatInput');
@@ -484,7 +465,7 @@ function patchChatForLocalEngine() {
       autoResizeChatInput(input);
     }
 
-    // Create thread if needed
+    // Create local thread if needed
     if (!_chatThreadId) {
       const thread = createLocalThread(text.slice(0, 60));
       _chatThreadId = thread.id;
@@ -493,16 +474,14 @@ function patchChatForLocalEngine() {
       resetConversation();
     }
 
-    // Show user message
     appendMessage('user', text);
     showTypingIndicator();
     _chatSending = true;
     updateSendButton();
 
-    // Process through local engine
     const response = buildResponse(text);
 
-    // Simulate typing delay (proportional to response length)
+    // Typing delay proportional to response length
     const delay = Math.min(600 + response.content.length * 3, 2000);
     await new Promise(r => setTimeout(r, delay));
 
@@ -519,17 +498,14 @@ function patchChatForLocalEngine() {
       }
     }
 
-    // Handle auto-create
-    if (response._autoCreate && response.metadata?.campaign) {
-      // No metadata on this message since we show a separate creation message
-    }
+    // Handle auto-create (user said "oui" to campaign proposal)
     if (response._autoCreate) {
       const lastMeta = getLastCampaignMetadata();
       if (lastMeta) {
         setTimeout(() => {
           const id = createCampaignLocally(lastMeta);
           if (id) {
-            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès ! Redirection vers l'éditeur de séquences...`);
+            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
             setTimeout(() => showPage('copyeditor'), 1200);
           }
         }, 500);
@@ -541,28 +517,70 @@ function patchChatForLocalEngine() {
     input.focus();
   };
 
-  // Override thread management
+  /* ─── createCampaignFromChat: action card button handler ─── */
+  window.createCampaignFromChat = async function(campaignData) {
+    // Backend available → create via API, then register locally
+    if (_backendAvailable && typeof BakalAPI !== 'undefined' && _chatThreadId) {
+      try {
+        const result = await BakalAPI.request('/chat/threads/' + _chatThreadId + '/create-campaign', {
+          method: 'POST',
+          body: JSON.stringify({ campaign: campaignData }),
+        });
+
+        // Register in local BAKAL + editor
+        const backendId = result.campaign ? String(result.campaign.id) : null;
+        const id = createCampaignLocally(campaignData);
+
+        appendMessage('assistant', `Campagne **"${campaignData.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
+        setTimeout(() => showPage('copyeditor'), 1200);
+        return;
+      } catch (err) {
+        console.warn('Backend campaign creation failed, falling back to local:', err.message);
+      }
+    }
+
+    // Offline fallback → create locally
+    const id = createCampaignLocally(campaignData);
+    if (id) {
+      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée !\nRedirection vers l'éditeur de séquences...`);
+      setTimeout(() => showPage('copyeditor'), 1200);
+    } else {
+      appendMessage('assistant', 'Erreur lors de la création. Essayez via le bouton **+ Nouvelle campagne** du dashboard.');
+    }
+  };
+
+  /* ─── Thread management: backend or local ─── */
   window.loadChatThreads = function() {
+    if (_backendAvailable && typeof BakalAPI !== 'undefined') {
+      return _origLoadChatThreads.call(this);
+    }
     _chatThreads = _localThreads;
     renderChatThreadList();
   };
 
   window.newChatThread = function() {
+    if (_backendAvailable && typeof BakalAPI !== 'undefined') {
+      return _origNewChatThread.call(this);
+    }
     _chatThreadId = null;
     resetConversation();
     showChatWelcome();
   };
 
   window.selectChatThread = function(threadId) {
+    if (_backendAvailable && typeof BakalAPI !== 'undefined') {
+      return _origSelectChatThread.call(this, threadId);
+    }
     _chatThreadId = threadId;
     renderChatThreadList();
-    // For local threads, just show existing messages (they stay in DOM)
-    // or show welcome if empty
     showChatWelcome();
   };
 
   window.deleteChatThread = function(threadId, e) {
     if (e) e.stopPropagation();
+    if (_backendAvailable && typeof BakalAPI !== 'undefined') {
+      return _origDeleteChatThread.call(this, threadId, e);
+    }
     deleteLocalThread(threadId);
     if (_chatThreadId === threadId) {
       _chatThreadId = null;
@@ -572,25 +590,12 @@ function patchChatForLocalEngine() {
     _chatThreads = _localThreads;
     renderChatThreadList();
   };
-
-  // Override createCampaignFromChat for action card buttons
-  window.createCampaignFromChat = function(campaignData) {
-    const id = createCampaignLocally(campaignData);
-    if (id) {
-      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée ! Redirection vers l'éditeur...`);
-      setTimeout(() => showPage('copyeditor'), 1200);
-    } else {
-      appendMessage('assistant', 'Erreur lors de la création. Essayez via le bouton **+ Nouvelle campagne** du dashboard.');
-    }
-  };
 }
 
 function getLastCampaignMetadata() {
-  // Walk history backwards to find the last proposed campaign
   for (let i = _conv.history.length - 1; i >= 0; i--) {
     if (_conv.history[i].metadata?.campaign) return _conv.history[i].metadata.campaign;
   }
-  // Rebuild from params
   if (_conv.params.sector && _conv.params.position) {
     const p = _conv.params;
     return {
@@ -610,12 +615,10 @@ function getLastCampaignMetadata() {
 
 /* ═══ Init ═══ */
 
-// Auto-patch when loaded (always use local engine since there's no backend)
 document.addEventListener('DOMContentLoaded', () => {
-  patchChatForLocalEngine();
+  patchChatHybrid();
 });
 
-// Also patch immediately if DOM is already loaded
 if (document.readyState !== 'loading') {
-  patchChatForLocalEngine();
+  patchChatHybrid();
 }
