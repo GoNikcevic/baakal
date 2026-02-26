@@ -201,7 +201,7 @@ function applyInspirationSuggestion() {
   // Flash the form fields briefly
   document.querySelectorAll('.creator-body .form-input, .creator-body .form-select').forEach(el => {
     el.style.transition = 'box-shadow 0.3s';
-    el.style.boxShadow = '0 0 0 2px var(--accent)';
+    el.style.boxShadow = '0 0 0 2px var(--border-light)';
     setTimeout(() => { el.style.boxShadow = ''; }, 800);
   });
 }

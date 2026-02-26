@@ -130,7 +130,7 @@ function appendMessage(role, content, metadata, animate = true) {
   showChatMessages();
   const inner = document.getElementById('chatMessagesInner');
 
-  const avatar = role === 'assistant' ? 'B' : '→';
+  const avatar = role === 'assistant' ? 'b' : '~';
   const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
   // Format the content
@@ -201,7 +201,7 @@ function showTypingIndicator() {
   const inner = document.getElementById('chatMessagesInner');
   inner.insertAdjacentHTML('beforeend', `
     <div class="chat-typing" id="chatTyping">
-      <div class="chat-msg-avatar" style="width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;background:var(--accent-glow);color:var(--accent-light);border:1px solid rgba(108,92,231,0.2);">B</div>
+      <div class="chat-msg-avatar" style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border);">b</div>
       <div class="chat-typing-dots">
         <div class="chat-typing-dot"></div>
         <div class="chat-typing-dot"></div>

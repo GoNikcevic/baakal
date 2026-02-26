@@ -449,7 +449,7 @@ function renderReports() {
       { v: r.metrics.openRate, l: 'Ouvertures', color: 'var(--success)' },
       { v: r.metrics.replyRate, l: 'Réponses', color: 'var(--blue)' },
       { v: r.metrics.interested, l: 'Intéressés', color: 'var(--warning)' },
-      { v: r.metrics.meetings, l: 'RDV', color: 'var(--accent-light)' }
+      { v: r.metrics.meetings, l: 'RDV', color: 'var(--text-secondary)' }
     ].map(m =>
       `<div class="report-metric">
         <div class="report-metric-value"${m.color ? ` style="color:${m.color}"` : ''}>${m.v}</div>

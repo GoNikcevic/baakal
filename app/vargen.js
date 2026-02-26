@@ -208,7 +208,7 @@ function renderVargenContext() {
     <select id="vargen-scenario-select" style="
       margin-left:auto;padding:6px 12px;border-radius:6px;
       background:var(--bg-elevated);border:1px solid var(--border);
-      color:var(--text-secondary);font-size:12px;font-family:'Outfit',sans-serif;
+      color:var(--text-secondary);font-size:12px;font-family:var(--font);
       cursor:pointer;
     " onchange="switchVargenScenario(this.value)">
       ${Object.entries(vargenScenarios).map(([key, s]) =>
@@ -390,8 +390,8 @@ function editVarSuggestion(key) {
   const formula = card.querySelector('.vargen-formula-prompt');
   if (formula) {
     formula.focus();
-    formula.style.borderColor = 'var(--accent)';
-    formula.style.boxShadow = '0 0 0 2px rgba(108,92,231,0.2)';
+    formula.style.borderColor = 'var(--text-muted)';
+    formula.style.boxShadow = '0 0 0 2px var(--accent-glow)';
     formula.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -471,7 +471,7 @@ function regenerateVarSuggestions() {
     const card = document.getElementById('vargen-card');
     if (card) {
       card.style.transition = 'box-shadow 0.3s';
-      card.style.boxShadow = '0 0 30px rgba(108,92,231,0.15)';
+      card.style.boxShadow = '0 0 20px var(--accent-glow)';
       setTimeout(() => { card.style.boxShadow = ''; }, 1500);
     }
   }, 2000);

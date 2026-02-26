@@ -139,7 +139,7 @@ async function testApiConnections() {
     // Show testing state
     status.textContent = 'Test...';
     status.className = 'input-status';
-    status.style.color = 'var(--accent-light)';
+    status.style.color = 'var(--text-secondary)';
 
     setTimeout(() => {
       // If backend reported service status, use it
@@ -219,7 +219,7 @@ function generateNewSequence() {
     <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Claude génère votre séquence...</div>
     <div style="font-size:13px;color:var(--text-muted);">Analyse du profil entreprise et des données cross-campagne</div>
     <div style="margin-top:24px;width:200px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;">
-      <div style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 2s linear;" id="gen-progress"></div>
+      <div style="width:0%;height:100%;background:var(--text-muted);border-radius:2px;transition:width 2s linear;" id="gen-progress"></div>
     </div>
   `;
   main.style.position = 'relative';
@@ -251,7 +251,7 @@ function rerunAnalysis() {
   const subtitle = document.querySelector('.reco-page-subtitle');
   if (subtitle) {
     subtitle.textContent = 'Claude analyse vos campagnes... Veuillez patienter.';
-    subtitle.style.color = 'var(--accent-light)';
+    subtitle.style.color = 'var(--text-secondary)';
 
     setTimeout(() => {
       subtitle.textContent = 'Claude analyse vos campagnes et propose des optimisations · Mis à jour à l\'instant';
@@ -353,7 +353,7 @@ function rotateInspiration() {
   const suggestion = document.querySelector('.inspi-suggestion');
   if (suggestion) {
     suggestion.style.transition = 'box-shadow 0.3s';
-    suggestion.style.boxShadow = '0 0 0 2px var(--accent)';
+    suggestion.style.boxShadow = '0 0 0 2px var(--border-light)';
     setTimeout(() => { suggestion.style.boxShadow = ''; }, 800);
   }
 }

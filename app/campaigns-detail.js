@@ -151,14 +151,14 @@ function renderActiveCampaign(c) {
       ${kpi(c.kpis.acceptRate + '%', "Taux d'acceptation", c.kpis.acceptRate, 'var(--success)')}
       ${kpi(c.kpis.replyRate + '%', 'Taux de réponse', c.kpis.replyRate * 10, c.kpis.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)')}
       ${kpi(c.kpis.interested, 'Intéressés', c.kpis.interested * 10, 'var(--warning)')}
-      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--accent-light)')}`;
+      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--text-secondary)')}`;
   } else {
     kpisHtml = `
       ${kpi(c.kpis.contacts, 'Prospects contactés', c.volume.sent / c.volume.planned * 100, 'var(--accent)')}
       ${kpi(c.kpis.openRate + '%', "Taux d'ouverture", c.kpis.openRate, 'var(--success)')}
       ${kpi(c.kpis.replyRate + '%', 'Taux de réponse', c.kpis.replyRate * 10, 'var(--blue)')}
       ${kpi(c.kpis.interested, 'Intéressés', c.kpis.interested * 10, 'var(--warning)')}
-      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--accent-light)')}`;
+      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--text-secondary)')}`;
   }
 
   // Sequence
@@ -181,8 +181,8 @@ function renderActiveCampaign(c) {
   let nextActionHtml = '';
   if (c.nextAction) {
     const actionBg = c.nextAction.type === 'testing' ? 'var(--accent-glow)' : 'var(--warning-bg)';
-    const actionBorder = c.nextAction.type === 'testing' ? 'rgba(108,92,231,0.2)' : 'rgba(255,170,0,0.2)';
-    const actionColor = c.nextAction.type === 'testing' ? 'var(--accent-light)' : 'var(--warning)';
+    const actionBorder = c.nextAction.type === 'testing' ? 'var(--border)' : 'var(--border)';
+    const actionColor = c.nextAction.type === 'testing' ? 'var(--text-primary)' : 'var(--warning)';
     const actionIcon = c.nextAction.type === 'testing' ? '🧬' : '⚡';
     nextActionHtml = `<div>
       <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Prochaine action</div>
