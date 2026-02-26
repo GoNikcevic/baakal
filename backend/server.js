@@ -6,6 +6,7 @@ const errorHandler = require('./middleware/error-handler');
 const campaignsRouter = require('./routes/campaigns');
 const dashboardRouter = require('./routes/dashboard');
 const aiRouter = require('./routes/ai');
+const chatRouter = require('./routes/chat');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/chat', chatRouter);
 
 // Error handling
 app.use(errorHandler);

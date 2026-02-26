@@ -281,7 +281,8 @@ const BakalAPI = (() => {
       return request('/health');
     },
 
-    /* Expose transforms for external use */
+    /* Expose internal helpers for external use */
+    request,
     campaignToBackend,
     sequenceToBackend,
     transformCampaign,

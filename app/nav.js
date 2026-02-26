@@ -70,7 +70,7 @@ function showPage(page, section) {
   const dashEls = ['section-overview','section-reports','section-campaigns','section-refinement'];
   const dashHeader = document.querySelector('.main > .page-header');
   const dashTabs = document.querySelector('.main > .tabs');
-  const allPages = ['page-copyeditor','page-recos','page-profil','page-settings'];
+  const allPages = ['page-chat','page-copyeditor','page-recos','page-profil','page-settings'];
 
   // Hide all standalone pages
   allPages.forEach(id => {
@@ -78,7 +78,13 @@ function showPage(page, section) {
     if (el) el.style.display = 'none';
   });
 
-  if (page === 'copyeditor') {
+  if (page === 'chat') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-chat').style.display = 'block';
+    if (typeof initChat === 'function') initChat();
+  } else if (page === 'copyeditor') {
     dashHeader.style.display = 'none';
     dashTabs.style.display = 'none';
     dashEls.forEach(id => document.getElementById(id).style.display = 'none');
@@ -110,6 +116,7 @@ function showPage(page, section) {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
     const text = item.textContent;
+    if (page === 'chat' && text.includes('Assistant')) item.classList.add('active');
     if (page === 'copyeditor' && text.includes('Copy')) item.classList.add('active');
     if (page === 'dashboard' && text.includes('Dashboard')) item.classList.add('active');
     if (page === 'recos' && text.includes('Recommandations')) item.classList.add('active');

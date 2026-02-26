@@ -123,6 +123,24 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_versions_campaign ON versions(campaign_id);
     CREATE INDEX IF NOT EXISTS idx_memory_category ON memory_patterns(category);
     CREATE INDEX IF NOT EXISTS idx_memory_confidence ON memory_patterns(confidence);
+
+    CREATE TABLE IF NOT EXISTS chat_threads (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      title           TEXT DEFAULT 'Nouvelle conversation',
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      thread_id       INTEGER NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
+      role            TEXT NOT NULL CHECK (role IN ('user','assistant')),
+      content         TEXT NOT NULL,
+      metadata        TEXT,
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id);
   `);
 }
 
@@ -427,6 +445,61 @@ function dashboardKpis() {
   `).get();
 }
 
+// =============================================
+// Chat
+// =============================================
+
+const chatThreads = {
+  list() {
+    return getDb()
+      .prepare('SELECT * FROM chat_threads ORDER BY updated_at DESC')
+      .all();
+  },
+
+  get(id) {
+    return getDb().prepare('SELECT * FROM chat_threads WHERE id = ?').get(id);
+  },
+
+  create(title) {
+    const stmt = getDb().prepare('INSERT INTO chat_threads (title) VALUES (?)');
+    const result = stmt.run(title || 'Nouvelle conversation');
+    return { id: result.lastInsertRowid, title: title || 'Nouvelle conversation' };
+  },
+
+  updateTitle(id, title) {
+    getDb().prepare("UPDATE chat_threads SET title = ?, updated_at = datetime('now') WHERE id = ?").run(title, id);
+  },
+
+  touch(id) {
+    getDb().prepare("UPDATE chat_threads SET updated_at = datetime('now') WHERE id = ?").run(id);
+  },
+
+  delete(id) {
+    return getDb().prepare('DELETE FROM chat_threads WHERE id = ?').run(id);
+  },
+};
+
+const chatMessages = {
+  listByThread(threadId) {
+    return getDb()
+      .prepare('SELECT * FROM chat_messages WHERE thread_id = ? ORDER BY created_at ASC')
+      .all(threadId);
+  },
+
+  create(threadId, role, content, metadata) {
+    const stmt = getDb().prepare(
+      'INSERT INTO chat_messages (thread_id, role, content, metadata) VALUES (?, ?, ?, ?)'
+    );
+    const result = stmt.run(threadId, role, content, metadata ? JSON.stringify(metadata) : null);
+    chatThreads.touch(threadId);
+    return { id: result.lastInsertRowid, threadId, role, content, metadata };
+  },
+
+  deleteByThread(threadId) {
+    return getDb().prepare('DELETE FROM chat_messages WHERE thread_id = ?').run(threadId);
+  },
+};
+
 module.exports = {
   getDb,
   campaigns,
@@ -435,4 +508,6 @@ module.exports = {
   versions,
   memoryPatterns,
   dashboardKpis,
+  chatThreads,
+  chatMessages,
 };

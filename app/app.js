@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof loadDemoData === 'function') loadDemoData();
     if (typeof initFromData === 'function') initFromData();
   }
-  showSection('overview');
-  document.querySelector('.nav-item')?.classList.add('active');
+  // Start on the chat page (the main experience)
+  showPage('chat');
 });
 
 // ═══════════ KEYBOARD SHORTCUTS ═══════════
