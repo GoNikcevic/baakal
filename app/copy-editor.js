@@ -170,6 +170,49 @@ const editorCampaigns = {
 /* ═══ State ═══ */
 let activeEditorCampaign = 'daf-idf';
 
+/* ═══ Register new campaign from chat ═══ */
+function registerCampaignInEditor(id, campaign) {
+  const chIcons = { email: '~', linkedin: '~', multi: '~' };
+  const chBgs = { email: 'var(--blue-bg)', linkedin: 'rgba(167,139,250,0.15)', multi: 'rgba(251,146,60,0.15)' };
+  const ch = campaign.channel || 'email';
+  const seq = campaign.sequence || [];
+
+  editorCampaigns[id] = {
+    name: campaign.name,
+    icon: chIcons[ch] || '~',
+    iconBg: chBgs[ch] || 'var(--blue-bg)',
+    channel: ch === 'linkedin' ? 'LinkedIn' : ch === 'multi' ? 'Multi' : 'Email',
+    meta: `${seq.length} touchpoints · Nouvelle`,
+    status: campaign.status || 'prep',
+    params: [
+      { l: 'Canal', v: ch === 'linkedin' ? 'LinkedIn' : ch === 'multi' ? 'Multi' : 'Email' },
+      { l: 'Cible', v: `${campaign.position || ''} · ${(campaign.sector || '').split(' ')[0]}` },
+      { l: 'Taille', v: campaign.size || '' },
+      { l: 'Angle', v: campaign.angle || '' },
+      { l: 'Ton', v: campaign.tone || 'Pro décontracté' },
+      { l: 'Tutoiement', v: campaign.formality || 'Vous' },
+    ].filter(p => p.v),
+    aiBar: null,
+    touchpoints: seq.map(s => ({
+      id: s.id,
+      type: s.type,
+      label: s.label || '',
+      timing: s.timing || '',
+      subType: '',
+      subject: s.subject ? highlightVars(s.subject) : null,
+      body: highlightVars(s.body || ''),
+      suggestion: null,
+    })),
+  };
+
+  // Switch to this campaign and re-render
+  activeEditorCampaign = id;
+  if (document.getElementById('editor-campaign-list')) {
+    renderEditorSidebar();
+    renderEditorMain();
+  }
+}
+
 /* ═══ Variable highlighting ═══ */
 function highlightVars(text) {
   return text.replace(/\{\{(\w+)\}\}/g, '<span class="var">{{$1}}</span>');
