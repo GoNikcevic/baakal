@@ -370,7 +370,50 @@ function downloadCSV(rows, filename) {
   URL.revokeObjectURL(url);
 }
 
+/* ═══════════════════════════════════════════════════
+   THEME — Light/Dark mode with localStorage persistence
+   ═══════════════════════════════════════════════════ */
+
+function applyTheme(theme) {
+  if (theme === 'system') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+
+  // Update the toggle switch in settings
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) {
+    const current = document.documentElement.getAttribute('data-theme');
+    toggle.classList.toggle('on', current === 'light');
+  }
+}
+
+function setTheme(theme) {
+  localStorage.setItem('bakal-theme', theme);
+  applyTheme(theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'light' ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('bakal-theme') || 'dark';
+  applyTheme(saved);
+
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (localStorage.getItem('bakal-theme') === 'system') {
+      applyTheme('system');
+    }
+  });
+}
+
 /* ═══ Init — Load saved data on page load ═══ */
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   loadProfile();
 });

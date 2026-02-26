@@ -36,6 +36,33 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 
+[data-theme="light"] {
+  --bg-primary: #f5f6fa;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f1f5;
+  --bg-elevated: #f8f9fc;
+  --border: #e2e4ed;
+  --border-light: #ecedf3;
+  --text-primary: #1a1b2e;
+  --text-secondary: #5c5e72;
+  --text-muted: #9496a8;
+  --accent: #6c5ce7;
+  --accent-light: #5a4bd1;
+  --accent-glow: rgba(108, 92, 231, 0.08);
+  --success: #00b87a;
+  --success-bg: rgba(0, 184, 122, 0.08);
+  --warning: #e69500;
+  --warning-bg: rgba(230, 149, 0, 0.08);
+  --danger: #e55353;
+  --danger-bg: rgba(229, 83, 83, 0.08);
+  --blue: #2b8ad9;
+  --blue-bg: rgba(43, 138, 217, 0.08);
+  --purple: #7c5ed6;
+  --orange: #e67e22;
+  --shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Outfit', sans-serif;
@@ -2764,6 +2791,27 @@ body {
                   <option>Manuel (suggestions uniquement)</option>
                 </select>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🎨 Apparence</div></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-title">Mode clair</div>
+                <div class="toggle-desc">Basculer entre le thème sombre et le thème clair</div>
+              </div>
+              <div class="toggle-switch" id="themeToggle" onclick="toggleTheme()"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px;">
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;flex:1;" onclick="setTheme('dark')">🌙 Sombre</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;flex:1;" onclick="setTheme('light')">☀️ Clair</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;flex:1;" onclick="setTheme('system')">💻 Système</button>
             </div>
           </div>
         </div>
