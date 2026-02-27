@@ -223,10 +223,14 @@ const BakalAPI = (() => {
     async fetchDashboard() {
       const data = await request('/dashboard');
       const kpis = data.kpis || {};
+
+      const openRate = kpis.avg_open_rate;
+      const replyRate = kpis.avg_reply_rate;
+
       return {
-        contacts: { value: kpis.total_contacts || 0, trend: '', direction: 'up' },
-        openRate: { value: kpis.avg_open_rate ? kpis.avg_open_rate + '%' : '—', trend: '', direction: 'up' },
-        replyRate: { value: kpis.avg_reply_rate ? kpis.avg_reply_rate + '%' : '—', trend: '', direction: 'up' },
+        contacts: { value: kpis.total_contacts || 0, trend: kpis.active_campaigns ? kpis.active_campaigns + ' campagne(s)' : '', direction: 'up' },
+        openRate: { value: openRate ? openRate + '%' : '—', trend: openRate >= 50 ? '✓ Au-dessus du benchmark' : openRate ? '↗ Objectif : 50%' : '', direction: openRate >= 50 ? 'up' : 'flat' },
+        replyRate: { value: replyRate ? replyRate + '%' : '—', trend: replyRate >= 5 ? '✓ Au-dessus du benchmark' : replyRate ? '↗ Objectif : 5%' : '', direction: replyRate >= 5 ? 'up' : 'flat' },
         interested: { value: kpis.total_interested || 0, trend: '', direction: 'up' },
         meetings: { value: kpis.total_meetings || 0, trend: '', direction: 'up' },
         stops: { value: '—', trend: '', direction: 'up' },

@@ -240,11 +240,11 @@ async function loadFromBackend() {
       BAKAL.campaigns = campaigns;
       BAKAL.globalKpis = kpis;
       // Opportunities, recommendations, reports, chartData
-      // not yet served by backend — keep empty or use demo as supplement
-      BAKAL.opportunities = [];
-      BAKAL.recommendations = [];
-      BAKAL.reports = [];
-      BAKAL.chartData = [];
+      // not yet served by backend — supplement with demo data
+      BAKAL.opportunities = JSON.parse(JSON.stringify(BAKAL_DEMO_DATA.opportunities));
+      BAKAL.recommendations = JSON.parse(JSON.stringify(BAKAL_DEMO_DATA.recommendations));
+      BAKAL.reports = JSON.parse(JSON.stringify(BAKAL_DEMO_DATA.reports));
+      BAKAL.chartData = JSON.parse(JSON.stringify(BAKAL_DEMO_DATA.chartData));
       return true;
     }
 
