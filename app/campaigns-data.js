@@ -674,6 +674,9 @@ function initFromData() {
     }
   });
 
+  // ─── Sidebar campaign list ───
+  if (typeof renderSidebarCampaigns === 'function') renderSidebarCampaigns();
+
   // ─── Overview section ───
   const overviewSection = document.getElementById('section-overview');
   const kpiGrid = overviewSection.querySelector('.kpi-grid');

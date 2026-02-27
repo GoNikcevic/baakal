@@ -368,6 +368,92 @@ function updateSendButton() {
   if (btn) btn.disabled = _chatSending;
 }
 
+/* ═══ Action button starters ═══ */
+
+function startChatAction(action) {
+  const prompts = {
+    create: 'Je veux créer une nouvelle campagne de prospection. Guide-moi étape par étape.',
+    optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je améliorer ?',
+    analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
+  };
+  const text = prompts[action];
+  if (text) sendChatMessage(text);
+}
+
+/* ═══ AI status check ═══ */
+
+async function updateAiStatus() {
+  const badge = document.getElementById('aiStatusBadge');
+  if (!badge) return;
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    badge.className = 'ai-status';
+    badge.innerHTML = '<span class="ai-pulse"></span>Online';
+  } else {
+    badge.className = 'ai-status offline';
+    badge.innerHTML = '<span class="ai-pulse"></span>Offline';
+  }
+}
+
+/* ═══ User dropdown ═══ */
+
+function toggleUserDropdown() {
+  const dd = document.getElementById('userDropdown');
+  const card = document.getElementById('userCard');
+  dd.classList.toggle('open');
+  card.classList.toggle('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const footer = document.querySelector('.sidebar-footer');
+  if (footer && !footer.contains(e.target)) {
+    const dd = document.getElementById('userDropdown');
+    const card = document.getElementById('userCard');
+    if (dd) dd.classList.remove('open');
+    if (card) card.classList.remove('open');
+  }
+});
+
+/* ═══ Sidebar campaign list ═══ */
+
+function renderSidebarCampaigns() {
+  const container = document.getElementById('sidebarCampaignList');
+  if (!container) return;
+  if (typeof BAKAL === 'undefined' || !BAKAL.campaigns) {
+    container.innerHTML = '';
+    return;
+  }
+  const campaigns = Object.values(BAKAL.campaigns);
+  if (campaigns.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = campaigns.slice(0, 6).map(c => {
+    const name = c.name || c.id;
+    const shortName = name.length > 22 ? name.slice(0, 22) + '…' : name;
+    return '<div class="nav-campaign-item" onclick="showPage(\'dashboard\',\'campaigns\')">' + shortName + '</div>';
+  }).join('');
+}
+
+/* ═══ Stack status check ═══ */
+
+async function updateStackStatus() {
+  // Claude API status
+  const claudeDot = document.getElementById('stackClaude');
+  if (claudeDot && typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      const health = await BakalAPI.request('/health');
+      const services = health.services || {};
+      claudeDot.className = services.claude ? 'stack-dot online' : 'stack-dot offline';
+    } catch {
+      claudeDot.className = 'stack-dot offline';
+    }
+  }
+  // N8N status — pending until we have real check
+  const n8nDot = document.getElementById('stackN8n');
+  if (n8nDot) n8nDot.className = 'stack-dot pending';
+}
+
 /* ═══ Init ═══ */
 
 function initChat() {
@@ -379,6 +465,9 @@ function initChat() {
     showChatWelcome();
   }
   document.getElementById('chatInput')?.focus();
+  updateAiStatus();
+  renderSidebarCampaigns();
+  updateStackStatus();
 }
 
 /* ═══ Formatting helpers ═══ */
