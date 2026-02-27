@@ -5,6 +5,17 @@ const notionSync = require('../api/notion-sync');
 
 const router = Router();
 
+// GET /api/campaigns/lemlist/list — List campaigns from Lemlist (for linking)
+// MUST be before /:id to avoid Express matching "lemlist" as an id param
+router.get('/lemlist/list', async (_req, res, next) => {
+  try {
+    const campaigns = await lemlist.listCampaigns();
+    res.json({ campaigns });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/campaigns — List all campaigns
 router.get('/', (req, res) => {
   const { status, channel } = req.query;
@@ -124,16 +135,6 @@ router.post('/:id/versions', (req, res) => {
   notionSync.syncVersion(version.id, campaign.id).catch(console.error);
 
   res.status(201).json(version);
-});
-
-// GET /api/campaigns/lemlist/list — List campaigns from Lemlist (for linking)
-router.get('/lemlist/list', async (_req, res, next) => {
-  try {
-    const campaigns = await lemlist.listCampaigns();
-    res.json({ campaigns });
-  } catch (err) {
-    next(err);
-  }
 });
 
 module.exports = router;

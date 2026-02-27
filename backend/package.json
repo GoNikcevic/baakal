@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "setup-notion": "node scripts/setup-notion.js"
+    "setup-notion": "node scripts/setup-notion.js",
+    "seed": "node scripts/seed-demo.js",
+    "seed:reset": "node scripts/seed-demo.js --reset"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
