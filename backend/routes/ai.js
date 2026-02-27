@@ -2,8 +2,13 @@ const { Router } = require('express');
 const claude = require('../api/claude');
 const db = require('../db');
 const notionSync = require('../api/notion-sync');
+const dryRun = require('../api/dry-run');
 
 const router = Router();
+
+function isDryRun(req) {
+  return req.query.dry_run === 'true' || req.query.dry_run === '1';
+}
 
 // POST /api/ai/analyze — Analyze campaign performance
 router.post('/analyze', async (req, res, next) => {
@@ -13,7 +18,10 @@ router.post('/analyze', async (req, res, next) => {
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
     const sequence = db.touchpoints.listByCampaign(campaignId);
-    const result = await claude.analyzeCampaign({ ...campaign, sequence });
+
+    const result = isDryRun(req)
+      ? dryRun.analyzeCampaign({ ...campaign, sequence })
+      : await claude.analyzeCampaign({ ...campaign, sequence });
 
     // Save diagnostic to local DB
     const priorities = extractPriorities(result.diagnostic);
@@ -31,6 +39,7 @@ router.post('/analyze', async (req, res, next) => {
       diagnostic: result.diagnostic,
       priorities,
       usage: result.usage,
+      dryRun: isDryRun(req),
     });
   } catch (err) {
     next(err);
@@ -45,12 +54,9 @@ router.post('/regenerate', async (req, res, next) => {
     // Fetch cross-campaign memory from local DB
     const memory = db.memoryPatterns.list({});
 
-    const result = await claude.regenerateSequence({
-      diagnostic,
-      originalMessages,
-      memory,
-      clientParams,
-    });
+    const result = isDryRun(req)
+      ? dryRun.regenerateSequence({ diagnostic, originalMessages, memory, clientParams })
+      : await claude.regenerateSequence({ diagnostic, originalMessages, memory, clientParams });
 
     // Record version if we have a campaign
     if (campaignId) {
@@ -72,6 +78,7 @@ router.post('/regenerate', async (req, res, next) => {
       messages: result.parsed?.messages || [],
       summary: result.parsed?.summary || result.raw,
       usage: result.usage,
+      dryRun: isDryRun(req),
     });
   } catch (err) {
     next(err);
@@ -81,7 +88,6 @@ router.post('/regenerate', async (req, res, next) => {
 // POST /api/ai/consolidate-memory — Monthly memory consolidation
 router.post('/consolidate-memory', async (req, res, next) => {
   try {
-    // Gather all diagnostics across campaigns
     const campaigns = db.campaigns.list({});
     const allDiagnostics = [];
     for (const campaign of campaigns) {
@@ -93,7 +99,9 @@ router.post('/consolidate-memory', async (req, res, next) => {
 
     const existingMemory = db.memoryPatterns.list({});
 
-    const result = await claude.consolidateMemory(allDiagnostics, existingMemory);
+    const result = isDryRun(req)
+      ? dryRun.consolidateMemory(allDiagnostics, existingMemory)
+      : await claude.consolidateMemory(allDiagnostics, existingMemory);
 
     // Save new patterns
     const saved = [];
@@ -109,7 +117,6 @@ router.post('/consolidate-memory', async (req, res, next) => {
         });
         saved.push(created.id);
 
-        // Background sync to Notion
         notionSync.syncMemoryPattern(created.id).catch(console.error);
       }
     }
@@ -118,6 +125,7 @@ router.post('/consolidate-memory', async (req, res, next) => {
       patternsCreated: saved.length,
       summary: result.parsed?.summary || result.raw,
       usage: result.usage,
+      dryRun: isDryRun(req),
     });
   } catch (err) {
     next(err);

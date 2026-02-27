@@ -4,13 +4,54 @@ const { config } = require('../config');
 let client;
 let clientKeyHash;
 function getClient() {
-  // Recreate client if key changed (e.g. after settings update)
   const currentKey = config.claude.apiKey || '';
+  if (!currentKey) {
+    const err = new Error('Clé API Anthropic non configurée. Ajoutez-la dans Réglages ou dans le fichier .env.');
+    err.status = 503;
+    err.code = 'API_KEY_MISSING';
+    throw err;
+  }
   if (!client || clientKeyHash !== currentKey) {
     client = new Anthropic({ apiKey: currentKey });
     clientKeyHash = currentKey;
   }
   return client;
+}
+
+/** Wrap Anthropic SDK errors into user-friendly messages */
+function wrapApiError(err) {
+  const msg = err?.error?.error?.message || err?.message || String(err);
+
+  if (msg.includes('credit balance') || msg.includes('billing')) {
+    const wrapped = new Error('Crédits API Anthropic insuffisants. Rechargez votre compte sur console.anthropic.com.');
+    wrapped.status = 402;
+    wrapped.code = 'INSUFFICIENT_CREDITS';
+    return wrapped;
+  }
+  if (msg.includes('authentication') || msg.includes('invalid x-api-key') || msg.includes('invalid api key')) {
+    const wrapped = new Error('Clé API Anthropic invalide. Vérifiez-la dans Réglages.');
+    wrapped.status = 401;
+    wrapped.code = 'INVALID_API_KEY';
+    return wrapped;
+  }
+  if (msg.includes('rate_limit') || msg.includes('rate limit')) {
+    const wrapped = new Error('Limite de requêtes API atteinte. Réessayez dans quelques instants.');
+    wrapped.status = 429;
+    wrapped.code = 'RATE_LIMITED';
+    return wrapped;
+  }
+  if (msg.includes('overloaded') || msg.includes('529')) {
+    const wrapped = new Error('API Anthropic temporairement surchargée. Réessayez dans quelques minutes.');
+    wrapped.status = 503;
+    wrapped.code = 'API_OVERLOADED';
+    return wrapped;
+  }
+
+  // Unknown API error — keep original but clean up
+  const wrapped = new Error('Erreur API Claude : ' + msg.substring(0, 200));
+  wrapped.status = err.status || 500;
+  wrapped.code = 'API_ERROR';
+  return wrapped;
 }
 
 // =============================================
@@ -33,17 +74,22 @@ Format de sortie :
 3. Priorités d'optimisation (classées par impact)
 4. Instructions de régénération pour chaque message à optimiser`;
 
-  const response = await getClient().messages.create({
-    model: config.claude.model,
-    max_tokens: 2000,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: `Analyse cette campagne :\n\n${JSON.stringify(campaignData, null, 2)}`,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await getClient().messages.create({
+      model: config.claude.model,
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyse cette campagne :\n\n${JSON.stringify(campaignData, null, 2)}`,
+        },
+      ],
+    });
+  } catch (err) {
+    throw wrapApiError(err);
+  }
 
   return {
     diagnostic: response.content[0].text,
@@ -92,12 +138,17 @@ Format de sortie JSON :
     clientParams ? `\nParamètres client :\n${JSON.stringify(clientParams, null, 2)}` : '',
   ].filter(Boolean).join('\n');
 
-  const response = await getClient().messages.create({
-    model: config.claude.model,
-    max_tokens: 4000,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userContent }],
-  });
+  let response;
+  try {
+    response = await getClient().messages.create({
+      model: config.claude.model,
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }],
+    });
+  } catch (err) {
+    throw wrapApiError(err);
+  }
 
   const text = response.content[0].text;
 
@@ -153,17 +204,22 @@ Format de sortie JSON :
   "summary": "Résumé des découvertes"
 }`;
 
-  const response = await getClient().messages.create({
-    model: config.claude.model,
-    max_tokens: 3000,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: `Diagnostics du mois :\n${JSON.stringify(diagnostics, null, 2)}\n\nMémoire existante :\n${JSON.stringify(existingMemory, null, 2)}`,
-      },
-    ],
-  });
+  let response;
+  try {
+    response = await getClient().messages.create({
+      model: config.claude.model,
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: `Diagnostics du mois :\n${JSON.stringify(diagnostics, null, 2)}\n\nMémoire existante :\n${JSON.stringify(existingMemory, null, 2)}`,
+        },
+      ],
+    });
+  } catch (err) {
+    throw wrapApiError(err);
+  }
 
   const text = response.content[0].text;
 
@@ -227,12 +283,17 @@ Quand une campagne est prête à être créée, retourne un bloc JSON dans ta r�
 
 ${context ? `\nContexte actuel de l'utilisateur :\n${context}` : ''}`;
 
-  const response = await getClient().messages.create({
-    model: config.claude.model,
-    max_tokens: 3000,
-    system: systemPrompt,
-    messages,
-  });
+  let response;
+  try {
+    response = await getClient().messages.create({
+      model: config.claude.model,
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages,
+    });
+  } catch (err) {
+    throw wrapApiError(err);
+  }
 
   return {
     content: response.content[0].text,
