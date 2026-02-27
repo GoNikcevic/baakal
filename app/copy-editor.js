@@ -4,7 +4,8 @@
    ═══════════════════════════════════════════════════ */
 
 /* ═══ Campaign Data ═══ */
-const editorCampaigns = {
+/* Hardcoded fallback data — used only when BAKAL data not available */
+const _editorFallback = {
   'daf-idf': {
     name: 'DAF Île-de-France',
     icon: '✉️',
@@ -167,12 +168,72 @@ const editorCampaigns = {
   }
 };
 
+/* ═══ Live data — synced from BAKAL on init ═══ */
+let editorCampaigns = {};
+
 /* ═══ State ═══ */
-let activeEditorCampaign = 'daf-idf';
+let activeEditorCampaign = null;
+
+/* ═══ Register new campaign from chat ═══ */
+function registerCampaignInEditor(id, campaign) {
+  const chIcons = { email: '~', linkedin: '~', multi: '~' };
+  const chBgs = { email: 'var(--blue-bg)', linkedin: 'rgba(167,139,250,0.15)', multi: 'rgba(251,146,60,0.15)' };
+  const ch = campaign.channel || 'email';
+  const seq = campaign.sequence || [];
+
+  editorCampaigns[id] = {
+    name: campaign.name,
+    icon: chIcons[ch] || '~',
+    iconBg: chBgs[ch] || 'var(--blue-bg)',
+    channel: ch === 'linkedin' ? 'LinkedIn' : ch === 'multi' ? 'Multi' : 'Email',
+    meta: `${seq.length} touchpoints · Nouvelle`,
+    status: campaign.status || 'prep',
+    params: [
+      { l: 'Canal', v: ch === 'linkedin' ? 'LinkedIn' : ch === 'multi' ? 'Multi' : 'Email' },
+      { l: 'Cible', v: `${campaign.position || ''} · ${(campaign.sector || '').split(' ')[0]}` },
+      { l: 'Taille', v: campaign.size || '' },
+      { l: 'Angle', v: campaign.angle || '' },
+      { l: 'Ton', v: campaign.tone || 'Pro décontracté' },
+      { l: 'Tutoiement', v: campaign.formality || 'Vous' },
+    ].filter(p => p.v),
+    aiBar: null,
+    touchpoints: seq.map(s => ({
+      id: s.id,
+      type: s.type,
+      label: s.label || '',
+      timing: s.timing || '',
+      subType: '',
+      subject: s.subject ? highlightVars(s.subject) : null,
+      body: highlightVars(s.body || ''),
+      suggestion: null,
+    })),
+  };
+
+  // Switch to this campaign and re-render
+  activeEditorCampaign = id;
+  if (document.getElementById('editor-campaign-list')) {
+    renderEditorSidebar();
+    renderEditorMain();
+  }
+}
 
 /* ═══ Variable highlighting ═══ */
 function highlightVars(text) {
   return text.replace(/\{\{(\w+)\}\}/g, '<span class="var">{{$1}}</span>');
+}
+
+/** Strip HTML back to plain text, preserving {{variables}} */
+function stripEditorHtml(html) {
+  // Convert <br> to newlines
+  let text = html.replace(/<br\s*\/?>/gi, '\n');
+  // Convert <span class="var">{{x}}</span> back to {{x}}
+  text = text.replace(/<span[^>]*class="var"[^>]*>(.*?)<\/span>/gi, '$1');
+  // Remove any remaining HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+  // Decode HTML entities
+  const tmp = document.createElement('textarea');
+  tmp.innerHTML = text;
+  return tmp.value;
 }
 
 /* ═══ Character counter ═══ */
@@ -222,17 +283,33 @@ function renderEditorMain() {
   // Header
   let paramsHtml = c.params.map(p => `<span class="editor-param">${p.l}: ${p.v}</span>`).join('');
 
-  // AI bar
-  const aiBarHtml = `
-    <div class="ai-bar">
-      <div class="ai-bar-icon">🤖</div>
-      <div class="ai-bar-content">
-        <div class="ai-bar-title">${c.aiBar.title}</div>
-        <div class="ai-bar-text">${c.aiBar.text}</div>
-      </div>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="applyAllSuggestions()">Appliquer tout</button>
-      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="dismissAllSuggestions()">Ignorer</button>
-    </div>`;
+  // AI bar (only if suggestions exist)
+  let aiBarHtml = '';
+  if (c.aiBar) {
+    aiBarHtml = `
+      <div class="ai-bar">
+        <div class="ai-bar-icon">~</div>
+        <div class="ai-bar-content">
+          <div class="ai-bar-title">${c.aiBar.title}</div>
+          <div class="ai-bar-text">${c.aiBar.text}</div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="applyAllSuggestions()">Appliquer tout</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;white-space:nowrap;" onclick="dismissAllSuggestions()">Ignorer</button>
+      </div>`;
+  }
+
+  // Launch bar for prep campaigns
+  let launchBarHtml = '';
+  if (c.status === 'prep') {
+    launchBarHtml = `
+      <div class="editor-launch-bar">
+        <div class="editor-launch-info">
+          <div style="font-size:14px;font-weight:600;letter-spacing:-0.2px;">Séquence prête</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${c.touchpoints.length} touchpoints · Vérifiez vos messages puis lancez la campagne</div>
+        </div>
+        <button class="btn-launch" onclick="launchSequence('${activeEditorCampaign}')">Lancer la séquence</button>
+      </div>`;
+  }
 
   // Touchpoints
   let tpHtml = '';
@@ -320,10 +397,11 @@ function renderEditorMain() {
         <div class="editor-header-params">${paramsHtml}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">⚙️ Paramètres</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">✨ Tout régénérer</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">Paramètres</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">Tout régénérer</button>
       </div>
     </div>
+    ${launchBarHtml}
     ${aiBarHtml}
     ${tpHtml}
     ${bottomHtml}
@@ -347,19 +425,87 @@ function selectEditorCampaign(key) {
   renderEditorMain();
 }
 
+/* ═══ Sync from BAKAL data layer ═══ */
+function syncEditorFromBAKAL() {
+  if (typeof BAKAL === 'undefined' || !BAKAL.campaigns) return;
+
+  const chIcons = { email: '✉️', linkedin: '💼', multi: '📧' };
+  const chBgs = { email: 'var(--blue-bg)', linkedin: 'rgba(151,117,250,0.15)', multi: 'var(--warning-bg)' };
+  const chLabels = { email: 'Email', linkedin: 'LinkedIn', multi: 'Multi-canal' };
+
+  for (const [id, c] of Object.entries(BAKAL.campaigns)) {
+    // Skip if already registered with touchpoint data from editor-specific interactions
+    if (editorCampaigns[id] && editorCampaigns[id]._synced) continue;
+
+    const ch = c.channel || 'email';
+    const seq = c.sequence || [];
+
+    editorCampaigns[id] = {
+      _synced: true,
+      _backendId: c._backendId || id,
+      name: c.name,
+      icon: chIcons[ch] || '✉️',
+      iconBg: chBgs[ch] || 'var(--blue-bg)',
+      channel: chLabels[ch] || 'Email',
+      meta: `${seq.length} touchpoints · ${c.status === 'prep' ? 'En préparation' : 'Itération ' + (c.iteration || 1)}`,
+      status: c.status || 'prep',
+      params: [
+        { l: 'Canal', v: chLabels[ch] || 'Email' },
+        { l: 'Cible', v: [c.position, c.sectorShort].filter(Boolean).join(' · ') },
+        c.size ? { l: 'Taille', v: c.size } : null,
+        c.angle ? { l: 'Angle', v: c.angle } : null,
+        { l: 'Ton', v: c.tone || 'Pro décontracté' },
+        { l: 'Tutoiement', v: c.formality || 'Vous' },
+        c.length ? { l: 'Longueur', v: c.length } : null,
+        c.cta ? { l: 'CTA', v: c.cta } : null,
+      ].filter(Boolean),
+      aiBar: null,
+      touchpoints: seq.map(s => ({
+        id: s.id,
+        _backendId: s._backendId,
+        type: s.type,
+        label: s.label || '',
+        timing: s.timing || '',
+        subType: s.subType || '',
+        subject: s.subject ? highlightVars(s.subject) : null,
+        body: highlightVars(s.body || ''),
+        maxChars: s.maxChars || undefined,
+        suggestion: null,
+      })),
+    };
+  }
+}
+
 /* ═══ Init ═══ */
 function initCopyEditor() {
+  // Sync live data from BAKAL, fall back to hardcoded data
+  syncEditorFromBAKAL();
+
+  if (Object.keys(editorCampaigns).length === 0) {
+    editorCampaigns = JSON.parse(JSON.stringify(_editorFallback));
+  }
+
+  if (!activeEditorCampaign || !editorCampaigns[activeEditorCampaign]) {
+    activeEditorCampaign = Object.keys(editorCampaigns)[0] || null;
+  }
+
+  if (!activeEditorCampaign) return;
+
   renderEditorSidebar();
   renderEditorMain();
 }
 
 /* ═══ Touchpoint Actions ═══ */
-function regenerateTouchpoint(tpId) {
+async function regenerateTouchpoint(tpId) {
   const card = document.querySelector(`[data-tp="${tpId}"]`);
   if (!card) return;
 
+  const c = editorCampaigns[activeEditorCampaign];
+  const tp = c.touchpoints.find(t => t.id === tpId);
+  if (!tp) return;
+
   const body = card.querySelector('.tp-editable[data-field="body"]');
-  const originalHtml = body.innerHTML;
+  const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
 
   // Show loading state
   body.style.opacity = '0.4';
@@ -371,13 +517,52 @@ function regenerateTouchpoint(tpId) {
   dots.textContent = '🤖 Régénération en cours...';
   body.parentElement.insertBefore(dots, body);
 
-  // Simulate regeneration delay
-  setTimeout(() => {
-    body.style.opacity = '1';
-    dots.textContent = '✅ Régénéré — vérifiez le résultat avant de sauvegarder';
-    dots.style.color = 'var(--success)';
-    setTimeout(() => dots.remove(), 3000);
-  }, 1500);
+  // Call AI API (with dry_run fallback)
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    const backendId = c._backendId || activeEditorCampaign;
+    const campaign = BAKAL.campaigns[activeEditorCampaign] || {};
+
+    try {
+      const result = await BakalAPI.request('/ai/regenerate?dry_run=true', {
+        method: 'POST',
+        body: JSON.stringify({
+          campaignId: backendId,
+          diagnostic: `${tpId} — À régénérer : le message actuel sous-performe`,
+          originalMessages: [{ step: tpId, subject: stripEditorHtml(tp.subject || ''), body: stripEditorHtml(tp.body || '') }],
+          clientParams: { tone: campaign.tone, formality: campaign.formality, sector: campaign.sector, length: campaign.length },
+        }),
+      });
+
+      // Apply the first variant if available
+      const msg = (result.messages || []).find(m => m.step === tpId);
+      if (msg && msg.variantA) {
+        if (subjectEl && msg.variantA.subject) {
+          subjectEl.innerHTML = highlightVars(msg.variantA.subject);
+        }
+        if (body && msg.variantA.body) {
+          body.innerHTML = highlightVars(msg.variantA.body).replace(/\n/g, '<br>');
+        }
+      }
+
+      body.style.opacity = '1';
+      dots.textContent = '✅ Régénéré — vérifiez le résultat avant de sauvegarder';
+      dots.style.color = 'var(--success)';
+    } catch (err) {
+      body.style.opacity = '1';
+      dots.textContent = '⚠️ Erreur : ' + err.message;
+      dots.style.color = 'var(--danger)';
+    }
+  } else {
+    // No backend — just show a placeholder
+    setTimeout(() => {
+      body.style.opacity = '1';
+      dots.textContent = '⚠️ Backend non disponible';
+      dots.style.color = 'var(--warning)';
+    }, 500);
+  }
+
+  card.classList.remove('editing');
+  setTimeout(() => dots.remove(), 4000);
 }
 
 function duplicateTouchpoint(tpId) {
@@ -434,9 +619,31 @@ function applySuggestion(tpId) {
   const suggestion = card?.querySelector('.tp-ai-suggestion');
   if (!suggestion) return;
 
-  // Flash the body field to indicate the change
   const body = card.querySelector('.tp-editable[data-field="body"]');
-  if (body) {
+  const c = editorCampaigns[activeEditorCampaign];
+  const tp = c.touchpoints.find(t => t.id === tpId);
+
+  if (body && tp && tp.suggestion) {
+    // Extract the proposed text from the suggestion (after "Proposition :")
+    const suggestionText = tp.suggestion.text;
+    const proposalMatch = suggestionText.match(/Proposition\s*:\s*"([^"]+)"/i) ||
+                          suggestionText.match(/Proposition\s*:\s*(.+?)(?:\s*→|$)/i);
+
+    if (proposalMatch) {
+      // Replace the last sentence/CTA in the body with the proposed text
+      const proposal = highlightVars(proposalMatch[1].trim());
+      const currentHtml = body.innerHTML;
+      // Replace last sentence (after last line break or period)
+      const lines = currentHtml.split(/<br\s*\/?>/);
+      if (lines.length > 1) {
+        lines[lines.length - 1] = proposal;
+        body.innerHTML = lines.join('<br>');
+      } else {
+        body.innerHTML += '<br>' + proposal;
+      }
+    }
+
+    // Flash the body field green
     body.style.transition = 'box-shadow 0.3s';
     body.style.boxShadow = '0 0 0 2px var(--success)';
     setTimeout(() => { body.style.boxShadow = ''; }, 1000);
@@ -507,13 +714,59 @@ function dismissAllSuggestions() {
 }
 
 /* ═══ Save / Cancel ═══ */
-function saveEditorChanges() {
+async function saveEditorChanges() {
   const bottomBar = document.querySelector('.editor-bottom-bar');
   const info = bottomBar.querySelector('.editor-bottom-info');
   const now = new Date();
   const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const c = editorCampaigns[activeEditorCampaign];
 
-  info.innerHTML = `<span style="color:var(--success);font-weight:600;">✅ Séquences sauvegardées</span> · ${time}`;
+  // Collect edited content from DOM, stripping HTML back to plain text
+  c.touchpoints.forEach(tp => {
+    const card = document.querySelector(`[data-tp="${tp.id}"]`);
+    if (!card) return;
+    const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+    const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+    if (subjectEl) tp.subject = stripEditorHtml(subjectEl.innerHTML);
+    if (bodyEl) tp.body = stripEditorHtml(bodyEl.innerHTML);
+  });
+
+  // Persist to backend if available
+  let savedToBackend = false;
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    const backendId = c._backendId || activeEditorCampaign;
+    try {
+      await BakalAPI.saveSequence(backendId, c.touchpoints);
+      savedToBackend = true;
+    } catch (err) {
+      console.warn('Backend save failed:', err.message);
+      info.innerHTML = `<span style="color:var(--danger);font-weight:600;">⚠️ Erreur de sauvegarde</span> · ${err.message}`;
+      setTimeout(() => {
+        info.textContent = 'Les modifications n\'ont pas été sauvegardées sur le serveur';
+      }, 3000);
+      return;
+    }
+  }
+
+  // Also update BAKAL data layer so dashboard stays in sync
+  if (typeof BAKAL !== 'undefined' && BAKAL.campaigns[activeEditorCampaign]) {
+    const campaign = BAKAL.campaigns[activeEditorCampaign];
+    campaign.sequence = c.touchpoints.map(tp => ({
+      id: tp.id,
+      _backendId: tp._backendId,
+      type: tp.type,
+      label: tp.label,
+      timing: tp.timing,
+      subType: tp.subType,
+      subject: tp.subject ? stripEditorHtml(tp.subject) : null,
+      body: stripEditorHtml(tp.body || ''),
+      maxChars: tp.maxChars,
+      stats: null,
+    }));
+  }
+
+  const suffix = savedToBackend ? ' · Synchronisé' : ' · Local';
+  info.innerHTML = `<span style="color:var(--success);font-weight:600;">✅ Séquences sauvegardées</span> · ${time}${suffix}`;
 
   // Flash all cards green briefly
   document.querySelectorAll('.touchpoint-card').forEach(card => {
@@ -522,7 +775,12 @@ function saveEditorChanges() {
     setTimeout(() => { card.style.borderColor = ''; }, 1000);
   });
 
-  // Reset info after delay
+  // Re-highlight vars after save (since we stripped HTML for saving)
+  c.touchpoints.forEach(tp => {
+    tp.subject = tp.subject ? highlightVars(tp.subject) : null;
+    tp.body = highlightVars(tp.body || '');
+  });
+
   setTimeout(() => {
     info.textContent = `Dernière sauvegarde : aujourd'hui à ${time}`;
   }, 3000);
@@ -562,11 +820,76 @@ function showCampaignParams() {
   header.after(panel);
 }
 
-function regenerateAll() {
-  // Show loading on all cards
-  document.querySelectorAll('.touchpoint-card').forEach(card => {
-    card.style.opacity = '0.5';
+/* ═══ Launch Sequence ═══ */
+async function launchSequence(campaignKey) {
+  const c = editorCampaigns[campaignKey];
+  if (!c) return;
+
+  const bar = document.querySelector('.editor-launch-bar');
+  const btn = bar?.querySelector('.btn-launch');
+  if (!btn) return;
+
+  // Disable button and show progress
+  btn.disabled = true;
+  btn.textContent = 'Lancement en cours...';
+  btn.style.opacity = '0.6';
+
+  // Collect latest edits from DOM before launching
+  c.touchpoints.forEach(tp => {
+    const card = document.querySelector(`[data-tp="${tp.id}"]`);
+    if (!card) return;
+    const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+    const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+    if (subjectEl) tp.subject = stripEditorHtml(subjectEl.innerHTML);
+    if (bodyEl) tp.body = stripEditorHtml(bodyEl.innerHTML);
   });
+
+  // Save sequence + update status on backend
+  const backendId = c._backendId || campaignKey;
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      await BakalAPI.saveSequence(backendId, c.touchpoints);
+      await BakalAPI.updateCampaign(backendId, { status: 'active' });
+    } catch (err) {
+      console.warn('Backend launch failed:', err.message);
+      btn.disabled = false;
+      btn.textContent = 'Lancer la séquence';
+      btn.style.opacity = '1';
+      bar.insertAdjacentHTML('beforeend',
+        `<div style="color:var(--danger);font-size:12px;margin-top:8px;">⚠️ ${err.message}</div>`);
+      return;
+    }
+  }
+
+  // Update local status
+  c.status = 'active';
+  if (typeof BAKAL !== 'undefined' && BAKAL.campaigns[campaignKey]) {
+    BAKAL.campaigns[campaignKey].status = 'active';
+  }
+
+  // Show success
+  bar.innerHTML = `
+    <div class="editor-launch-info" style="flex:1;">
+      <div style="font-size:14px;font-weight:600;color:var(--success);letter-spacing:-0.2px;">Séquence déployée</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${c.touchpoints.length} touchpoints actifs · Les premiers envois démarrent sous 24h</div>
+    </div>
+  `;
+  bar.style.borderColor = 'var(--success)';
+
+  renderEditorSidebar();
+  if (typeof initFromData === 'function') initFromData();
+
+  // Fade out launch bar
+  setTimeout(() => {
+    bar.style.transition = 'opacity 0.5s, max-height 0.5s';
+    bar.style.opacity = '0';
+    setTimeout(() => bar.remove(), 500);
+  }, 4000);
+}
+
+async function regenerateAll() {
+  const cards = document.querySelectorAll('.touchpoint-card');
+  cards.forEach(card => { card.style.opacity = '0.5'; });
 
   const aiBar = document.querySelector('.ai-bar');
   if (aiBar) {
@@ -575,15 +898,52 @@ function regenerateAll() {
     aiBar.querySelectorAll('button').forEach(b => b.style.display = 'none');
   }
 
-  // Simulate completion
-  setTimeout(() => {
-    document.querySelectorAll('.touchpoint-card').forEach(card => {
-      card.style.opacity = '1';
-    });
-    if (aiBar) {
-      aiBar.querySelector('.ai-bar-title').textContent = '✅ Régénération terminée';
-      aiBar.querySelector('.ai-bar-text').textContent = 'Vérifiez les nouvelles versions et sauvegardez.';
-      aiBar.style.borderColor = 'var(--success)';
+  const c = editorCampaigns[activeEditorCampaign];
+  const backendId = c._backendId || activeEditorCampaign;
+  const campaign = (typeof BAKAL !== 'undefined' && BAKAL.campaigns[activeEditorCampaign]) || {};
+
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      // First analyze
+      await BakalAPI.request('/ai/analyze?dry_run=true', {
+        method: 'POST',
+        body: JSON.stringify({ campaignId: backendId }),
+      });
+
+      // Then regenerate
+      const result = await BakalAPI.request('/ai/regenerate?dry_run=true', {
+        method: 'POST',
+        body: JSON.stringify({
+          campaignId: backendId,
+          diagnostic: 'Régénération complète de la séquence demandée par l\'utilisateur',
+          originalMessages: c.touchpoints.map(tp => ({
+            step: tp.id,
+            subject: stripEditorHtml(tp.subject || ''),
+            body: stripEditorHtml(tp.body || ''),
+          })),
+          clientParams: { tone: campaign.tone, formality: campaign.formality, sector: campaign.sector, length: campaign.length },
+        }),
+      });
+
+      // Apply regenerated messages
+      (result.messages || []).forEach(msg => {
+        if (!msg.variantA) return;
+        const card = document.querySelector(`[data-tp="${msg.step}"]`);
+        if (!card) return;
+        const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+        const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+        if (subjectEl && msg.variantA.subject) subjectEl.innerHTML = highlightVars(msg.variantA.subject);
+        if (bodyEl && msg.variantA.body) bodyEl.innerHTML = highlightVars(msg.variantA.body).replace(/\n/g, '<br>');
+      });
+    } catch (err) {
+      console.warn('Regenerate all failed:', err.message);
     }
-  }, 2000);
+  }
+
+  cards.forEach(card => { card.style.opacity = '1'; });
+  if (aiBar) {
+    aiBar.querySelector('.ai-bar-title').textContent = '✅ Régénération terminée';
+    aiBar.querySelector('.ai-bar-text').textContent = 'Vérifiez les nouvelles versions et sauvegardez.';
+    aiBar.style.borderColor = 'var(--success)';
+  }
 }

@@ -151,14 +151,14 @@ function renderActiveCampaign(c) {
       ${kpi(c.kpis.acceptRate + '%', "Taux d'acceptation", c.kpis.acceptRate, 'var(--success)')}
       ${kpi(c.kpis.replyRate + '%', 'Taux de réponse', c.kpis.replyRate * 10, c.kpis.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)')}
       ${kpi(c.kpis.interested, 'Intéressés', c.kpis.interested * 10, 'var(--warning)')}
-      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--accent-light)')}`;
+      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--text-secondary)')}`;
   } else {
     kpisHtml = `
       ${kpi(c.kpis.contacts, 'Prospects contactés', c.volume.sent / c.volume.planned * 100, 'var(--accent)')}
       ${kpi(c.kpis.openRate + '%', "Taux d'ouverture", c.kpis.openRate, 'var(--success)')}
       ${kpi(c.kpis.replyRate + '%', 'Taux de réponse', c.kpis.replyRate * 10, 'var(--blue)')}
       ${kpi(c.kpis.interested, 'Intéressés', c.kpis.interested * 10, 'var(--warning)')}
-      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--accent-light)')}`;
+      ${kpi(c.kpis.meetings, 'RDV obtenus', c.kpis.meetings > 0 ? c.kpis.meetings / 6 * 100 : 0, 'var(--text-secondary)')}`;
   }
 
   // Sequence
@@ -181,8 +181,8 @@ function renderActiveCampaign(c) {
   let nextActionHtml = '';
   if (c.nextAction) {
     const actionBg = c.nextAction.type === 'testing' ? 'var(--accent-glow)' : 'var(--warning-bg)';
-    const actionBorder = c.nextAction.type === 'testing' ? 'rgba(108,92,231,0.2)' : 'rgba(255,170,0,0.2)';
-    const actionColor = c.nextAction.type === 'testing' ? 'var(--accent-light)' : 'var(--warning)';
+    const actionBorder = c.nextAction.type === 'testing' ? 'var(--border)' : 'var(--border)';
+    const actionColor = c.nextAction.type === 'testing' ? 'var(--text-primary)' : 'var(--warning)';
     const actionIcon = c.nextAction.type === 'testing' ? '🧬' : '⚡';
     nextActionHtml = `<div>
       <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Prochaine action</div>
@@ -202,9 +202,9 @@ function renderActiveCampaign(c) {
         <div class="campaign-detail-tags">${tags}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">⏸ Pause</button>
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">📥 Exporter</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;">🧬 Lancer un test A/B</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="togglePauseCampaign('${c.id}', this)">⏸ Pause</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="exportCampaign('${c.id}')">📥 Exporter</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="launchABTest('${c.id}')">🧬 Lancer un test A/B</button>
       </div>
     </div>
 
@@ -280,8 +280,8 @@ function renderPrepCampaign(c) {
       <div style="background:var(--bg-elevated);border-radius:8px;padding:16px;border-left:3px solid var(--accent);line-height:1.65;">
         <div style="font-size:13px;color:var(--text-secondary);">${c.preLaunchReco.text}</div>
         <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="btn btn-success" style="font-size:12px;padding:8px 14px;">✅ Appliquer la suggestion</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">❌ Garder tel quel</button>
+          <button class="btn btn-success" style="font-size:12px;padding:8px 14px;" onclick="applyPreLaunchReco('${c.id}', this)">✅ Appliquer la suggestion</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="dismissPreLaunchReco(this)">❌ Garder tel quel</button>
         </div>
       </div>
     </div>`;
@@ -306,8 +306,8 @@ function renderPrepCampaign(c) {
         <div class="campaign-detail-tags">${tags}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">✏️ Modifier</button>
-        <button class="btn btn-success" style="font-size:12px;padding:8px 14px;">🚀 Lancer la campagne</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="editPrepCampaign('${c.id}')">✏️ Modifier</button>
+        <button class="btn btn-success" style="font-size:12px;padding:8px 14px;" onclick="launchPrepCampaign('${c.id}')">🚀 Lancer la campagne</button>
       </div>
     </div>
 
@@ -330,4 +330,267 @@ function renderPrepCampaign(c) {
       <div class="card-header"><div class="card-title">ℹ️ Informations campagne</div></div>
       <div class="card-body">${infoHtml}</div>
     </div>`;
+}
+
+
+/* ═══════════════════════════════════════════
+   ACTION HANDLERS
+   ═══════════════════════════════════════════ */
+
+/* ═══ Active campaign: Pause/Resume ═══ */
+function togglePauseCampaign(id, btn) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  if (c.status === 'active') {
+    c.status = 'paused';
+    btn.innerHTML = '▶️ Reprendre';
+    btn.style.borderColor = 'var(--success)';
+    btn.style.color = 'var(--success)';
+    // Dim the KPI section
+    const detail = document.getElementById('detail-' + id);
+    if (detail) {
+      detail.querySelector('.campaign-kpis').style.opacity = '0.5';
+      detail.querySelector('.sequence-card').style.opacity = '0.5';
+    }
+  } else {
+    c.status = 'active';
+    btn.innerHTML = '⏸ Pause';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    const detail = document.getElementById('detail-' + id);
+    if (detail) {
+      detail.querySelector('.campaign-kpis').style.opacity = '1';
+      detail.querySelector('.sequence-card').style.opacity = '1';
+    }
+  }
+}
+
+/* ═══ Active campaign: Export to CSV ═══ */
+function exportCampaign(id) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  // Build CSV content
+  const rows = [['Touchpoint', 'Type', 'Timing', 'Subject', 'Body', 'Open%', 'Reply%']];
+  c.sequence.forEach(s => {
+    const body = s.body.replace(/<[^>]*>/g, '').replace(/\n/g, ' ');
+    const subject = s.subject ? s.subject.replace(/<[^>]*>/g, '') : '';
+    rows.push([
+      s.id, s.type, s.timing, subject, body,
+      s.stats?.open ?? '', s.stats?.reply ?? ''
+    ]);
+  });
+
+  const csv = rows.map(r => r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${c.name.replace(/[^a-zA-Z0-9]/g, '_')}_export.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ═══ Active campaign: Launch A/B test ═══ */
+function launchABTest(id) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  const detail = document.getElementById('detail-' + id);
+  if (!detail) return;
+
+  // Show inline A/B test dialog
+  const header = detail.querySelector('.campaign-detail-header');
+  let panel = detail.querySelector('.ab-test-panel');
+  if (panel) { panel.remove(); return; }
+
+  panel = document.createElement('div');
+  panel.className = 'ab-test-panel';
+  panel.style.cssText = 'background:var(--bg-card);border:1px solid var(--accent);border-radius:12px;padding:24px;margin:16px 0;';
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:600;">🧬 Configurer un test A/B</div>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="this.closest('.ab-test-panel').remove()">✕ Fermer</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;">Touchpoint à tester</div>
+        <select class="form-select" id="ab-step-select">
+          ${c.sequence.map(s => `<option value="${s.id}">${s.id} — ${s.label}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;">Répartition</div>
+        <select class="form-select">
+          <option>50/50 (recommandé)</option>
+          <option>70/30</option>
+          <option>80/20</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+      Claude va générer une variante B automatiquement basée sur les données cross-campagne.
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="confirmABTest('${id}', this)">🧬 Lancer le test</button>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="this.closest('.ab-test-panel').remove()">Annuler</button>
+    </div>
+  `;
+  header.after(panel);
+}
+
+function confirmABTest(id, btn) {
+  const panel = btn.closest('.ab-test-panel');
+  const step = panel.querySelector('#ab-step-select').value;
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
+      <span style="font-size:20px;">🧬</span>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--success);">Test A/B lancé sur ${step}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Régénération en cours par Claude · Résultats estimés dans 5-7 jours</div>
+      </div>
+    </div>
+  `;
+  panel.style.borderColor = 'var(--success)';
+  setTimeout(() => { panel.style.transition = 'opacity 0.5s'; panel.style.opacity = '0.6'; }, 3000);
+}
+
+/* ═══ Prep campaign: Edit parameters ═══ */
+function editPrepCampaign(id) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  const detail = document.getElementById('detail-' + id);
+  const checklist = detail.querySelector('div[style*="Checklist"]')?.parentElement;
+  if (!checklist) return;
+
+  let panel = detail.querySelector('.edit-params-panel');
+  if (panel) { panel.remove(); return; }
+
+  panel = document.createElement('div');
+  panel.className = 'edit-params-panel';
+  panel.style.cssText = 'background:var(--bg-card);border:1px solid var(--accent);border-radius:12px;padding:24px;margin:16px 0;';
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:600;">✏️ Modifier les paramètres</div>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="this.closest('.edit-params-panel').remove()">✕ Fermer</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Secteur</div>
+        <input class="form-input" value="${c.sector}" id="edit-sector-${id}">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Angle</div>
+        <select class="form-select" id="edit-angle-${id}">
+          ${['Douleur client','Preuve sociale','Offre directe','Contenu éducatif'].map(a => `<option${a === c.angle ? ' selected' : ''}>${a}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Ton</div>
+        <select class="form-select" id="edit-tone-${id}">
+          ${['Pro décontracté','Formel & Corporate','Direct & punchy'].map(t => `<option${t === c.tone ? ' selected' : ''}>${t}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="savePrepEdits('${id}')">💾 Sauvegarder</button>
+  `;
+  checklist.before(panel);
+}
+
+function savePrepEdits(id) {
+  const c = BAKAL.campaigns[id];
+  c.sector = document.getElementById('edit-sector-' + id).value;
+  c.sectorShort = c.sector.split(' ')[0];
+  c.angle = document.getElementById('edit-angle-' + id).value;
+  c.tone = document.getElementById('edit-tone-' + id).value;
+  c.info.copyDesc = c.tone + ' · ' + c.formality + ' · ' + c.angle + ' · FR';
+  showCampaignDetail(id);
+}
+
+/* ═══ Prep campaign: Launch ═══ */
+function launchPrepCampaign(id) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  // Check if sequences exist
+  if (!c.sequence || c.sequence.length === 0) {
+    const detail = document.getElementById('detail-' + id);
+    const header = detail.querySelector('.campaign-detail-header');
+    let alert = detail.querySelector('.launch-alert');
+    if (alert) { alert.remove(); return; }
+
+    alert = document.createElement('div');
+    alert.className = 'launch-alert';
+    alert.style.cssText = 'background:var(--danger-bg);border:1px solid rgba(255,107,107,0.3);border-radius:12px;padding:16px;margin:16px 0;display:flex;align-items:center;gap:12px;';
+    alert.innerHTML = `
+      <span style="font-size:18px;">⚠️</span>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--danger);">Impossible de lancer — séquences manquantes</div>
+        <div style="font-size:12px;color:var(--text-muted);">Générez d'abord les séquences via Claude depuis l'éditeur Copy & Séquences.</div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;margin-left:auto;" onclick="this.closest('.launch-alert').remove()">✕</button>
+    `;
+    header.after(alert);
+    return;
+  }
+
+  // Check all checklist items
+  const notDone = c.prepChecklist.filter(ch => !ch.done);
+  if (notDone.length > 1) {
+    // More than just "Déploiement" left
+    const detail = document.getElementById('detail-' + id);
+    const header = detail.querySelector('.campaign-detail-header');
+    let alert = detail.querySelector('.launch-alert');
+    if (alert) alert.remove();
+
+    alert = document.createElement('div');
+    alert.className = 'launch-alert';
+    alert.style.cssText = 'background:var(--warning-bg);border:1px solid rgba(255,170,0,0.3);border-radius:12px;padding:16px;margin:16px 0;display:flex;align-items:center;gap:12px;';
+    alert.innerHTML = `
+      <span style="font-size:18px;">⏳</span>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--warning);">Étapes de préparation incomplètes</div>
+        <div style="font-size:12px;color:var(--text-muted);">${notDone.length} étape(s) restante(s) : ${notDone.map(n => n.title).join(', ')}</div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;margin-left:auto;" onclick="this.closest('.launch-alert').remove()">✕</button>
+    `;
+    header.after(alert);
+    return;
+  }
+
+  // Launch!
+  c.status = 'active';
+  c.startDate = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  c.iteration = 1;
+  c.kpis = { contacts: 0, openRate: 0, replyRate: 0, interested: 0, meetings: 0, stops: 0 };
+  c.prepChecklist.forEach(ch => { ch.done = true; ch.status = 'Fait'; ch.statusColor = 'success'; ch.icon = '✅'; });
+  if (typeof initFromData === 'function') initFromData();
+  showCampaignDetail(id);
+}
+
+/* ═══ Pre-launch reco: Apply / Dismiss ═══ */
+function applyPreLaunchReco(id, btn) {
+  const recoBlock = btn.closest('div[style*="border-left:3px"]');
+  if (!recoBlock) return;
+
+  recoBlock.style.borderLeftColor = 'var(--success)';
+  const actions = recoBlock.querySelector('div[style*="display:flex;gap:8px"]');
+  if (actions) {
+    actions.innerHTML = '<div style="font-size:12px;color:var(--success);font-weight:600;">✅ Suggestion appliquée — sera intégrée dans la génération des séquences</div>';
+  }
+}
+
+function dismissPreLaunchReco(btn) {
+  const recoBlock = btn.closest('div[style*="border-left:3px"]');
+  if (!recoBlock) return;
+
+  recoBlock.style.transition = 'opacity 0.3s';
+  recoBlock.style.opacity = '0.4';
+  const actions = recoBlock.querySelector('div[style*="display:flex;gap:8px"]');
+  if (actions) {
+    actions.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Suggestion ignorée</div>';
+  }
 }

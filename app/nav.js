@@ -7,6 +7,33 @@ document.querySelectorAll('.reco-filter').forEach(btn => {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.reco-filter').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
+
+    const filterText = this.textContent.replace(/\d+/g, '').trim();
+    const cards = document.querySelectorAll('.reco-card');
+
+    cards.forEach(card => {
+      const badge = card.querySelector('.reco-priority-badge');
+      const campaign = card.querySelector('.reco-card-campaign')?.textContent || '';
+      const badgeText = badge?.textContent.trim() || '';
+      let show = true;
+
+      if (filterText === 'Toutes') {
+        show = true;
+      } else if (filterText === 'Critiques') {
+        show = card.classList.contains('priority-critical');
+      } else if (filterText === 'Importantes') {
+        show = card.classList.contains('priority-important');
+      } else if (filterText === 'Suggestions') {
+        show = card.classList.contains('priority-suggestion');
+      } else if (filterText === 'Appliquées') {
+        show = card.classList.contains('priority-applied') || badgeText === 'Appliquée';
+      } else {
+        // Campaign name filter
+        show = campaign.includes(filterText);
+      }
+
+      card.style.display = show ? 'block' : 'none';
+    });
   });
 });
 
@@ -28,49 +55,90 @@ function toggleInspiration() {
 
 /* ═══ Section navigation (dashboard tabs) ═══ */
 function showSection(name) {
-  ['overview', 'reports', 'campaigns', 'refinement'].forEach(s => {
-    document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
+  ['overview', 'reports', 'analytics', 'campaigns', 'refinement'].forEach(s => {
+    const el = document.getElementById('section-' + s);
+    if (el) el.style.display = s === name ? 'block' : 'none';
   });
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['overview', 'reports', 'campaigns', 'refinement'][i] === name);
+    t.classList.toggle('active', ['overview', 'reports', 'analytics', 'campaigns', 'refinement'][i] === name);
   });
   if (name === 'campaigns') backToCampaignsList();
   if (name === 'refinement' && typeof initVarGenerator === 'function') initVarGenerator();
+  if (name === 'analytics' && typeof renderAnalytics === 'function') renderAnalytics();
 }
 
 /* ═══ Page-level navigation ═══ */
-function showPage(page) {
-  const dashEls = ['section-overview','section-reports','section-campaigns','section-refinement'];
+function showPage(page, section) {
+  const dashEls = ['section-overview','section-reports','section-analytics','section-campaigns','section-refinement'];
   const dashHeader = document.querySelector('.main > .page-header');
   const dashTabs = document.querySelector('.main > .tabs');
-  const copyPage = document.getElementById('page-copyeditor');
-  const recosPage = document.getElementById('page-recos');
+  const allPages = ['page-chat','page-copyeditor','page-recos','page-profil','page-settings'];
 
-  copyPage.style.display = 'none';
-  recosPage.style.display = 'none';
+  // Hide all standalone pages
+  allPages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 
-  if (page === 'copyeditor') {
+  if (page === 'chat') {
     dashHeader.style.display = 'none';
     dashTabs.style.display = 'none';
     dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    copyPage.style.display = 'block';
+    document.getElementById('page-chat').style.display = 'block';
+    if (typeof initChat === 'function') initChat();
+  } else if (page === 'copyeditor') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-copyeditor').style.display = 'block';
     if (typeof initCopyEditor === 'function') initCopyEditor();
   } else if (page === 'recos') {
     dashHeader.style.display = 'none';
     dashTabs.style.display = 'none';
     dashEls.forEach(id => document.getElementById(id).style.display = 'none');
-    recosPage.style.display = 'block';
+    document.getElementById('page-recos').style.display = 'block';
+  } else if (page === 'profil') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-profil').style.display = 'block';
+  } else if (page === 'settings') {
+    dashHeader.style.display = 'none';
+    dashTabs.style.display = 'none';
+    dashEls.forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('page-settings').style.display = 'block';
   } else {
+    // Dashboard — show header + tabs + section
     dashHeader.style.display = 'flex';
     dashTabs.style.display = 'flex';
-    showSection('overview');
+    showSection(section || 'overview');
   }
 
+  // Update active nav item
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
-    if (page === 'copyeditor' && item.textContent.includes('Copy')) item.classList.add('active');
-    if (page === 'dashboard' && item.textContent.includes('Dashboard')) item.classList.add('active');
-    if (page === 'recos' && item.textContent.includes('Recommandations')) item.classList.add('active');
+    const text = item.textContent;
+    if (page === 'chat' && text.includes('Assistant')) item.classList.add('active');
+    if (page === 'copyeditor' && text.includes('Copy')) item.classList.add('active');
+    if (page === 'dashboard' && text.includes('Dashboard')) item.classList.add('active');
+    if (page === 'recos' && text.includes('Recommandations')) item.classList.add('active');
+    if (page === 'profil' && text.includes('Profil')) item.classList.add('active');
+    if (page === 'settings' && text.includes('Paramètres')) item.classList.add('active');
+    // Section shortcuts from sidebar
+    if (page === 'dashboard' && section === 'campaigns' && text.includes('Campagnes') && !text.includes('Dashboard')) item.classList.add('active');
+    if (page === 'dashboard' && section === 'reports' && text.includes('Rapports')) item.classList.add('active');
+    if (page === 'dashboard' && section === 'refinement' && text.includes('Refinement')) item.classList.add('active');
+  });
+
+  // Update mobile nav active state
+  document.querySelectorAll('.mobile-nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    const txt = btn.textContent.trim();
+    if (page === 'chat' && txt.includes('Chat')) btn.classList.add('active');
+    if (page === 'dashboard' && txt.includes('Dashboard')) btn.classList.add('active');
+    if (page === 'copyeditor' && txt.includes('Copy')) btn.classList.add('active');
+    if (page === 'recos' && txt.includes('Recos')) btn.classList.add('active');
+    if (page === 'settings' && txt.includes('Config')) btn.classList.add('active');
   });
 }
 
@@ -146,7 +214,7 @@ function applyInspirationSuggestion() {
   // Flash the form fields briefly
   document.querySelectorAll('.creator-body .form-input, .creator-body .form-select').forEach(el => {
     el.style.transition = 'box-shadow 0.3s';
-    el.style.boxShadow = '0 0 0 2px var(--accent)';
+    el.style.boxShadow = '0 0 0 2px var(--border-light)';
     setTimeout(() => { el.style.boxShadow = ''; }, 800);
   });
 }
@@ -159,7 +227,7 @@ function closeInspirationToEdit() {
   document.getElementById('creator-name').focus();
 }
 
-function createCampaign() {
+async function createCampaign() {
   const values = getCreatorFormValues();
 
   // Validate name
@@ -189,13 +257,25 @@ function createCampaign() {
   };
   const ch = channelMap[values.channel] || channelMap['Email + LinkedIn'];
 
+  // Persist to backend if available
+  let backendId = null;
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      const created = await BakalAPI.createCampaign(values);
+      backendId = created.id;
+    } catch (err) {
+      console.warn('Backend create failed:', err.message);
+    }
+  }
+
   // Add campaign to BAKAL data layer
   if (typeof BAKAL !== 'undefined') {
     const today = new Date();
     const dateStr = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-    BAKAL.campaigns[id] = {
-      id: id,
+    BAKAL.campaigns[backendId || id] = {
+      _backendId: backendId,
+      id: backendId ? String(backendId) : id,
       name: values.name,
       client: 'FormaPro Consulting',
       status: 'prep',
