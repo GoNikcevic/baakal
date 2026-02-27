@@ -257,6 +257,10 @@ async function testApiConnections() {
         }
         el.style.color = '';
       }
+      // Sync connection status cards
+      if (typeof updateSettingsConnectionStatus === 'function') {
+        setTimeout(updateSettingsConnectionStatus, 200);
+      }
       return;
     } catch { /* backend not available, fall through */ }
   }
@@ -285,6 +289,11 @@ async function testApiConnections() {
       status.className = 'input-status error';
     }
     status.style.color = '';
+  }
+
+  // Sync connection status cards
+  if (typeof updateSettingsConnectionStatus === 'function') {
+    setTimeout(updateSettingsConnectionStatus, 500);
   }
 }
 

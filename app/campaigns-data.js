@@ -776,6 +776,20 @@ function initFromData() {
     renderCampaignsList();
   }
 
+  // ─── Analytics section ───
+  const analyticsSection = document.getElementById('section-analytics');
+  if (analyticsSection) {
+    if (empty) {
+      if (!analyticsSection.dataset.originalSaved) {
+        analyticsSection.dataset.originalHtml = analyticsSection.innerHTML;
+        analyticsSection.dataset.originalSaved = 'true';
+      }
+      if (typeof renderEmptyAnalytics === 'function') renderEmptyAnalytics();
+    } else if (analyticsSection.dataset.originalSaved) {
+      analyticsSection.innerHTML = analyticsSection.dataset.originalHtml;
+    }
+  }
+
   // ─── Refinement section ───
   const refinementSection = document.getElementById('section-refinement');
   if (empty) {

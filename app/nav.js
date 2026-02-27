@@ -55,19 +55,21 @@ function toggleInspiration() {
 
 /* ═══ Section navigation (dashboard tabs) ═══ */
 function showSection(name) {
-  ['overview', 'reports', 'campaigns', 'refinement'].forEach(s => {
-    document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
+  ['overview', 'reports', 'analytics', 'campaigns', 'refinement'].forEach(s => {
+    const el = document.getElementById('section-' + s);
+    if (el) el.style.display = s === name ? 'block' : 'none';
   });
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['overview', 'reports', 'campaigns', 'refinement'][i] === name);
+    t.classList.toggle('active', ['overview', 'reports', 'analytics', 'campaigns', 'refinement'][i] === name);
   });
   if (name === 'campaigns') backToCampaignsList();
   if (name === 'refinement' && typeof initVarGenerator === 'function') initVarGenerator();
+  if (name === 'analytics' && typeof renderAnalytics === 'function') renderAnalytics();
 }
 
 /* ═══ Page-level navigation ═══ */
 function showPage(page, section) {
-  const dashEls = ['section-overview','section-reports','section-campaigns','section-refinement'];
+  const dashEls = ['section-overview','section-reports','section-analytics','section-campaigns','section-refinement'];
   const dashHeader = document.querySelector('.main > .page-header');
   const dashTabs = document.querySelector('.main > .tabs');
   const allPages = ['page-chat','page-copyeditor','page-recos','page-profil','page-settings'];
@@ -126,6 +128,17 @@ function showPage(page, section) {
     if (page === 'dashboard' && section === 'campaigns' && text.includes('Campagnes') && !text.includes('Dashboard')) item.classList.add('active');
     if (page === 'dashboard' && section === 'reports' && text.includes('Rapports')) item.classList.add('active');
     if (page === 'dashboard' && section === 'refinement' && text.includes('Refinement')) item.classList.add('active');
+  });
+
+  // Update mobile nav active state
+  document.querySelectorAll('.mobile-nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    const txt = btn.textContent.trim();
+    if (page === 'chat' && txt.includes('Chat')) btn.classList.add('active');
+    if (page === 'dashboard' && txt.includes('Dashboard')) btn.classList.add('active');
+    if (page === 'copyeditor' && txt.includes('Copy')) btn.classList.add('active');
+    if (page === 'recos' && txt.includes('Recos')) btn.classList.add('active');
+    if (page === 'settings' && txt.includes('Config')) btn.classList.add('active');
   });
 }
 
