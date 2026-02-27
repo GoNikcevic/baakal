@@ -419,18 +419,15 @@ body {
   cursor: pointer; transition: all var(--transition);
 }
 .inspiration-toggle:hover { border-color: var(--border-light); }
-.toggle-switch {
-  width: 40px; height: 22px; background: var(--bg-elevated);
-  border-radius: 11px; position: relative; transition: background var(--transition);
-  flex-shrink: 0;
+.inspiration-toggle .toggle-switch {
+  border: none; cursor: pointer;
+  transition: background var(--transition);
 }
-.toggle-switch.on { background: var(--text-primary); }
-.toggle-switch::after {
-  content: ''; position: absolute; width: 16px; height: 16px;
-  background: white; border-radius: 50%; top: 2px; left: 3px;
+.inspiration-toggle .toggle-switch::after {
+  background: white; left: 3px;
   transition: transform var(--transition);
 }
-.toggle-switch.on::after { transform: translateX(18px); }
+.inspiration-toggle .toggle-switch.on::after { left: 3px; transform: translateX(18px); }
 .inspiration-text h4 { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
 .inspiration-text p { font-size: 12px; color: var(--text-muted); }
 
