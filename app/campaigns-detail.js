@@ -202,9 +202,9 @@ function renderActiveCampaign(c) {
         <div class="campaign-detail-tags">${tags}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">⏸ Pause</button>
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">📥 Exporter</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;">🧬 Lancer un test A/B</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="toggleCampaignPause('${c.id}', this)">⏸ Pause</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="exportCampaign('${c.id}')">📥 Exporter</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="showSection('refinement')">🧬 Lancer un test A/B</button>
       </div>
     </div>
 
@@ -280,8 +280,8 @@ function renderPrepCampaign(c) {
       <div style="background:var(--bg-elevated);border-radius:8px;padding:16px;border-left:3px solid var(--accent);line-height:1.65;">
         <div style="font-size:13px;color:var(--text-secondary);">${c.preLaunchReco.text}</div>
         <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="btn btn-success" style="font-size:12px;padding:8px 14px;">✅ Appliquer la suggestion</button>
-          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">❌ Garder tel quel</button>
+          <button class="btn btn-success" style="font-size:12px;padding:8px 14px;" onclick="applyPreLaunchReco('${c.id}', this)">✅ Appliquer la suggestion</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="dismissPreLaunchReco('${c.id}', this)">❌ Garder tel quel</button>
         </div>
       </div>
     </div>`;
@@ -306,8 +306,8 @@ function renderPrepCampaign(c) {
         <div class="campaign-detail-tags">${tags}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;">✏️ Modifier</button>
-        <button class="btn btn-success" style="font-size:12px;padding:8px 14px;">🚀 Lancer la campagne</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="editCampaignCopy('${c.id}')">✏️ Modifier</button>
+        <button class="btn btn-success" style="font-size:12px;padding:8px 14px;" onclick="launchPrepCampaign('${c.id}', this)">🚀 Lancer la campagne</button>
       </div>
     </div>
 
@@ -330,4 +330,165 @@ function renderPrepCampaign(c) {
       <div class="card-header"><div class="card-title">ℹ️ Informations campagne</div></div>
       <div class="card-body">${infoHtml}</div>
     </div>`;
+}
+
+
+/* ═══════════════════════════════════════════
+   ACTIONS — Campaign Detail Buttons
+   ═══════════════════════════════════════════ */
+
+/* ═══ Pause / Resume an active campaign ═══ */
+function toggleCampaignPause(id, btn) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  if (c._paused) {
+    c._paused = false;
+    btn.innerHTML = '⏸ Pause';
+    btn.closest('.campaign-detail-header').querySelector('.campaign-detail-title').style.opacity = '';
+    showDetailToast('▶️ Campagne relancée');
+  } else {
+    c._paused = true;
+    btn.innerHTML = '▶️ Reprendre';
+    btn.closest('.campaign-detail-header').querySelector('.campaign-detail-title').style.opacity = '0.5';
+    showDetailToast('⏸ Campagne mise en pause');
+  }
+
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+}
+
+/* ═══ Export campaign data as JSON file ═══ */
+function exportCampaign(id) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  const exportData = {
+    name: c.name,
+    client: c.client,
+    status: c.status,
+    channel: c.channel,
+    sector: c.sector,
+    zone: c.zone,
+    kpis: c.kpis,
+    sequence: c.sequence.map(s => ({
+      id: s.id,
+      type: s.type,
+      label: s.label,
+      timing: s.timing,
+      subject: s.subject,
+      body: s.body,
+      stats: s.stats
+    })),
+    diagnostics: c.diagnostics,
+    history: c.history,
+    exportedAt: new Date().toISOString()
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bakal-${c.id}-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showDetailToast('📥 Export téléchargé');
+}
+
+/* ═══ Navigate to copy editor for a campaign ═══ */
+function editCampaignCopy(id) {
+  showSection('copyEditor');
+  if (typeof selectEditorCampaign === 'function') {
+    selectEditorCampaign(id);
+  }
+}
+
+/* ═══ Launch a prep campaign → set to active ═══ */
+function launchPrepCampaign(id, btn) {
+  const c = BAKAL.campaigns[id];
+  if (!c || c.status !== 'prep') return;
+
+  c.status = 'active';
+  c.startDate = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  c.info.period = c.startDate + ' → En cours (0 jours)';
+
+  // Initialize KPIs if null
+  if (c.kpis.openRate === null) c.kpis.openRate = 0;
+  if (c.kpis.replyRate === null) c.kpis.replyRate = 0;
+  if (c.kpis.interested === null) c.kpis.interested = 0;
+  if (c.kpis.meetings === null) c.kpis.meetings = 0;
+
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+  if (typeof initFromData === 'function') initFromData();
+
+  // Re-render the detail view as active
+  showCampaignDetail(id);
+  showDetailToast('🚀 Campagne lancée !');
+}
+
+/* ═══ Apply pre-launch AI recommendation ═══ */
+function applyPreLaunchReco(id, btn) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  const recoBlock = btn.closest('div[style*="border-radius:var(--radius-lg)"]');
+  if (recoBlock) {
+    recoBlock.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:16px;">
+        <span style="font-size:20px;">✅</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--success);">Suggestion appliquée</div>
+          <div style="font-size:12px;color:var(--text-muted);">Les modifications seront intégrées dans la séquence avant le lancement.</div>
+        </div>
+      </div>`;
+  }
+
+  c._recoApplied = true;
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+}
+
+/* ═══ Dismiss pre-launch AI recommendation ═══ */
+function dismissPreLaunchReco(id, btn) {
+  const c = BAKAL.campaigns[id];
+  if (!c) return;
+
+  const recoBlock = btn.closest('div[style*="border-radius:var(--radius-lg)"]');
+  if (recoBlock) {
+    recoBlock.style.transition = 'opacity 0.3s, max-height 0.3s';
+    recoBlock.style.opacity = '0';
+    setTimeout(() => {
+      recoBlock.style.maxHeight = '0';
+      recoBlock.style.overflow = 'hidden';
+      recoBlock.style.padding = '0';
+      recoBlock.style.marginBottom = '0';
+      recoBlock.style.border = 'none';
+    }, 300);
+  }
+
+  c._recoDismissed = true;
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+}
+
+/* ═══ Toast helper for detail view ═══ */
+function showDetailToast(message) {
+  const existing = document.querySelector('.detail-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'detail-toast';
+  toast.style.cssText = `
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--bg-elevated);border:1px solid var(--border);
+    color:var(--text-primary);font-size:13px;font-weight:600;
+    padding:10px 24px;border-radius:8px;box-shadow:var(--shadow);z-index:500;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.3s';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
 }
