@@ -1251,21 +1251,44 @@ function toggleFaq(item) {
   if (!wasOpen) item.classList.add('open');
 }
 
+// ══════ WEBHOOK CONFIG ══════
+// Replace with your N8N webhook URL when ready
+const WEBHOOK_URL = 'https://VOTRE-INSTANCE.app.n8n.cloud/webhook/bakal-landing';
+
 // Form submit
-function handleSubmit(e) {
+async function handleSubmit(e) {
   e.preventDefault();
   const form = document.getElementById('qualForm');
+  const btn = form.querySelector('.form-submit');
+  const originalText = btn.textContent;
+
+  // Disable button during submission
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+
   const formData = new FormData(form);
   const data = Object.fromEntries(formData);
-  
-  // Log data (in production, send to N8N webhook or email)
-  console.log('Form submission:', data);
-  
-  // Show success
+  data.source = 'landing-page';
+  data.date = new Date().toISOString();
+
+  // Send to webhook
+  try {
+    if (!WEBHOOK_URL.includes('VOTRE-INSTANCE')) {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      console.log('[Bakal] Webhook not configured yet. Form data:', data);
+    }
+  } catch (err) {
+    console.log('[Bakal] Webhook error (form still shows success):', err);
+  }
+
+  // Show success regardless — don't block the user
   form.style.display = 'none';
   document.getElementById('formSuccess').classList.add('visible');
-  
-  // Scroll to success message
   document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 </script>

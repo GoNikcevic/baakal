@@ -973,14 +973,17 @@ document.getElementById('prequalForm').addEventListener('submit', async function
   };
 
   try {
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    if (!WEBHOOK_URL.includes('VOTRE-INSTANCE')) {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      console.log('[Bakal] Webhook not configured yet. Form data:', data);
+    }
   } catch (err) {
-    // Silently fail — show success anyway so the user isn't blocked
-    console.log('Webhook non configuré ou erreur:', err);
+    console.log('[Bakal] Webhook error (form still shows success):', err);
   }
 
   // Show success
