@@ -16,8 +16,28 @@ document.getElementById('creatorModal')?.addEventListener('click', (e) => {
 
 // ═══════════ INIT ═══════════
 document.addEventListener('DOMContentLoaded', () => {
-  // Load demo data by default (toggle switch starts in "active/demo" state)
-  if (typeof loadDemoData === 'function') loadDemoData();
+  // Try to restore saved state first; fall back to demo data
+  const restored = typeof BakalStore !== 'undefined' && BakalStore.restore();
+
+  if (!restored) {
+    if (typeof loadDemoData === 'function') loadDemoData();
+  }
+
+  // Sync the demo toggle switch to match restored state
+  if (restored) {
+    const toggle = document.getElementById('demoToggle');
+    const label = document.getElementById('demoToggleLabel');
+    if (toggle && label) {
+      if (_demoMode) {
+        toggle.classList.add('active');
+        label.textContent = 'Données démo';
+      } else {
+        toggle.classList.remove('active');
+        label.textContent = 'Nouvel utilisateur';
+      }
+    }
+  }
+
   if (typeof initFromData === 'function') initFromData();
   showSection('overview');
   document.querySelector('.nav-item')?.classList.add('active');

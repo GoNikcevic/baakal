@@ -231,6 +231,9 @@ function toggleDemoMode() {
 
   initFromData();
 
+  // Persist the mode switch
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+
   // Re-navigate to current section
   showSection('overview');
 }

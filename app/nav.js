@@ -239,6 +239,9 @@ function createCampaign() {
 
     // Re-render all sections (handles empty→populated transition)
     initFromData();
+
+    // Persist the new campaign
+    if (typeof BakalStore !== 'undefined') BakalStore.save();
   }
 
   // Show success state in footer

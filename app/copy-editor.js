@@ -394,6 +394,7 @@ function duplicateTouchpoint(tpId) {
   // Insert after original
   c.touchpoints.splice(tpIndex + 1, 0, copy);
   renderEditorMain();
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
 
   // Flash the new card
   const newCard = document.querySelector(`[data-tp="${copy.id}"]`);
@@ -425,6 +426,7 @@ function deleteTouchpoint(tpId) {
   setTimeout(() => {
     c.touchpoints = c.touchpoints.filter(t => t.id !== tpId);
     renderEditorMain();
+    if (typeof BakalStore !== 'undefined') BakalStore.save();
   }, 500);
 }
 
@@ -512,6 +514,22 @@ function saveEditorChanges() {
   const info = bottomBar.querySelector('.editor-bottom-info');
   const now = new Date();
   const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  // Capture current edits from the DOM back into the data model
+  const c = editorCampaigns[activeEditorCampaign];
+  if (c) {
+    c.touchpoints.forEach(tp => {
+      const card = document.querySelector(`[data-tp="${tp.id}"]`);
+      if (!card) return;
+      const subjectEl = card.querySelector('.tp-editable[data-field="subject"]');
+      const bodyEl = card.querySelector('.tp-editable[data-field="body"]');
+      if (subjectEl) tp.subject = subjectEl.innerHTML;
+      if (bodyEl) tp.body = bodyEl.innerHTML.replace(/<br\s*\/?>/g, '\n');
+    });
+  }
+
+  // Persist to localStorage
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
 
   info.innerHTML = `<span style="color:var(--success);font-weight:600;">✅ Séquences sauvegardées</span> · ${time}`;
 

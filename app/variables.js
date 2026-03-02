@@ -330,6 +330,9 @@ function createCustomVariable() {
   renderVarPanel();
   refreshVarInsertBars();
 
+  // Persist custom variables
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
+
   // Show success toast
   showVarToast(`Variable {{${name}}} créée` + (syncMode !== 'local' ? ' · Sync Lemlist activée' : ''));
 }
@@ -340,6 +343,7 @@ function deleteCustomVar(index) {
   variableRegistry.custom.splice(index, 1);
   renderVarPanel();
   refreshVarInsertBars();
+  if (typeof BakalStore !== 'undefined') BakalStore.save();
   showVarToast(`Variable {{${v.key}}} supprimée`);
 }
 
