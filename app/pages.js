@@ -445,40 +445,6 @@ function sortCampaignsList() {
   rows.forEach(r => list.appendChild(r));
 }
 
-/* ═══ Creator — Rotate inspiration ═══ */
-const inspirationSuggestions = [
-  { name: 'Dirigeants Comptabilité IdF — Douleur', sector: 'Comptabilité', position: 'Dirigeant', size: '11-50', zone: 'Île-de-France', tone: 'Pro décontracté', channel: 'Email + LinkedIn', angle: 'Douleur', volume: 'Standard' },
-  { name: 'DRH PME Lyon — Preuve sociale', sector: 'Conseil', position: 'DRH', size: '51-200', zone: 'Lyon', tone: 'Formel & Corporate', channel: 'Email + LinkedIn', angle: 'Preuve sociale', volume: 'Modéré' },
-  { name: 'DSI IT Paris — Contenu', sector: 'IT', position: 'DSI', size: '11-50', zone: 'Île-de-France', tone: 'Direct & punchy', channel: 'Email uniquement', angle: 'Contenu éducatif', volume: 'Standard' },
-];
-let inspiIndex = 0;
-
-function rotateInspiration() {
-  inspiIndex = (inspiIndex + 1) % inspirationSuggestions.length;
-  const s = inspirationSuggestions[inspiIndex];
-
-  const title = document.querySelector('.inspi-suggestion h5');
-  if (title) title.textContent = '🎯 Campagne recommandée : "' + s.name + '"';
-
-  const params = document.querySelectorAll('.inspi-param-value');
-  if (params.length >= 6) {
-    params[0].textContent = s.sector;
-    params[1].textContent = s.position;
-    params[2].textContent = s.size + ' salariés';
-    params[3].textContent = s.zone;
-    params[4].textContent = s.channel;
-    params[5].textContent = s.volume;
-  }
-
-  // Flash the suggestion
-  const suggestion = document.querySelector('.inspi-suggestion');
-  if (suggestion) {
-    suggestion.style.transition = 'box-shadow 0.3s';
-    suggestion.style.boxShadow = '0 0 0 2px var(--border-light)';
-    setTimeout(() => { suggestion.style.boxShadow = ''; }, 800);
-  }
-}
-
 /* ═══ CSV download helper ═══ */
 function downloadCSV(rows, filename) {
   const csv = rows.map(r => r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
