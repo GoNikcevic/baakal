@@ -3616,61 +3616,14 @@ body {
           </select>
         </div>
 
-        <!-- Inspiration toggle -->
-        <div class="inspiration-toggle" onclick="toggleInspiration()">
-          <div class="toggle-switch" id="inspiToggle"></div>
+        <!-- Inspiration — redirects to chat assistant -->
+        <div class="inspiration-toggle" onclick="toggleInspiration()" style="cursor:pointer;">
+          <div style="font-size:20px;margin-right:10px;">💬</div>
           <div class="inspiration-text">
-            <h4>💡 Besoin d'inspiration</h4>
-            <p>Claude analyse vos campagnes passées et vous propose une campagne optimisée de A à Z</p>
+            <h4>💡 Besoin d'inspiration ?</h4>
+            <p>Demandez à l'assistant Claude de vous proposer une campagne optimisée basée sur vos données</p>
           </div>
-        </div>
-
-        <!-- Inspiration panel -->
-        <div class="inspiration-panel" id="inspiPanel">
-          <div class="inspi-header">
-            <div class="inspi-icon">🤖</div>
-            <div>
-              <div class="inspi-title">Proposition de Claude</div>
-              <div class="inspi-sub">Basée sur l'analyse de 2 campagnes et 652 contacts</div>
-            </div>
-          </div>
-          <div class="inspi-suggestion">
-            <h5>🎯 Campagne recommandée : "Dirigeants Comptabilité IdF — Douleur"</h5>
-            <div class="inspi-params">
-              <div class="inspi-param">
-                <div class="inspi-param-label">Secteur</div>
-                <div class="inspi-param-value">Comptabilité & Finance</div>
-              </div>
-              <div class="inspi-param">
-                <div class="inspi-param-label">Poste</div>
-                <div class="inspi-param-value">Dirigeant / CEO</div>
-              </div>
-              <div class="inspi-param">
-                <div class="inspi-param-label">Taille</div>
-                <div class="inspi-param-value">11-50 salariés</div>
-              </div>
-              <div class="inspi-param">
-                <div class="inspi-param-label">Zone</div>
-                <div class="inspi-param-value">Île-de-France</div>
-              </div>
-              <div class="inspi-param">
-                <div class="inspi-param-label">Canal</div>
-                <div class="inspi-param-value">Email + LinkedIn</div>
-              </div>
-              <div class="inspi-param">
-                <div class="inspi-param-label">Volume</div>
-                <div class="inspi-param-value">Standard (~100/sem)</div>
-              </div>
-            </div>
-            <div class="inspi-reason">
-              <strong>Pourquoi cette campagne :</strong> Votre meilleur taux de conversion (9.2%) vient du segment DAF/Comptabilité. En ciblant les dirigeants (au lieu des DAF), vous touchez le décideur final — vos données montrent +11.3% de taux de réponse sur ce poste. L'angle "douleur client" surperforme de 3.2pts dans ce secteur. Le canal hybride combine le reach email (62% d'ouverture) et la conversion LinkedIn (33% de ratio réponse→RDV).
-            </div>
-            <div class="inspi-actions">
-              <button class="btn btn-success" style="font-size:13px;" onclick="applyInspirationSuggestion()">✅ Lancer cette campagne</button>
-              <button class="btn btn-ghost" style="font-size:13px;" onclick="rotateInspiration()">🔄 Autre suggestion</button>
-              <button class="btn btn-ghost" style="font-size:13px;" onclick="closeInspirationToEdit()">✏️ Modifier les paramètres</button>
-            </div>
-          </div>
+          <div style="margin-left:auto;font-size:16px;color:var(--text-muted);">→</div>
         </div>
       </div>
     </div>

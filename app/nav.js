@@ -47,10 +47,22 @@ function toggleCreator() {
 }
 
 function toggleInspiration() {
-  const toggle = document.getElementById('inspiToggle');
-  const panel = document.getElementById('inspiPanel');
-  toggle.classList.toggle('on');
-  panel.classList.toggle('show');
+  // Close creator modal and redirect to chat with a pre-filled inspiration request
+  toggleCreator();
+  resetCreatorForm();
+  showPage('chat');
+
+  // Wait for chat to initialize, then send a pre-filled message
+  setTimeout(() => {
+    const input = document.getElementById('chatInput');
+    if (input) {
+      const message = 'Aide-moi à créer une campagne. Propose-moi une cible et un angle basés sur ce qui fonctionne le mieux.';
+      input.value = message;
+      if (typeof autoResizeChatInput === 'function') autoResizeChatInput(input);
+      // Auto-send the message
+      if (typeof sendChatMessage === 'function') sendChatMessage();
+    }
+  }, 300);
 }
 
 /* ═══ Section navigation (dashboard tabs) ═══ */
@@ -167,13 +179,6 @@ function resetCreatorForm() {
   document.getElementById('creator-channel').selectedIndex = 0;
   document.getElementById('creator-angle').selectedIndex = 0;
   document.getElementById('creator-volume').selectedIndex = 0;
-  // Close inspiration if open
-  const toggle = document.getElementById('inspiToggle');
-  const panel = document.getElementById('inspiPanel');
-  if (toggle.classList.contains('on')) {
-    toggle.classList.remove('on');
-    panel.classList.remove('show');
-  }
 }
 
 function resetCreatorFooter() {
@@ -182,49 +187,6 @@ function resetCreatorFooter() {
     <button class="btn btn-ghost" onclick="toggleCreator()">Annuler</button>
     <button class="btn btn-primary" onclick="createCampaign()">🚀 Créer la campagne</button>
   `;
-}
-
-function setSelectByText(selectEl, text) {
-  for (let i = 0; i < selectEl.options.length; i++) {
-    if (selectEl.options[i].text.includes(text)) {
-      selectEl.selectedIndex = i;
-      return;
-    }
-  }
-}
-
-function applyInspirationSuggestion() {
-  // Fill form with the AI-suggested values
-  document.getElementById('creator-name').value = 'Dirigeants Comptabilité IdF — Douleur';
-  setSelectByText(document.getElementById('creator-sector'), 'Comptabilité');
-  setSelectByText(document.getElementById('creator-position'), 'Dirigeant');
-  setSelectByText(document.getElementById('creator-size'), '11-50');
-  setSelectByText(document.getElementById('creator-zone'), 'Île-de-France');
-  setSelectByText(document.getElementById('creator-tone'), 'Pro décontracté');
-  setSelectByText(document.getElementById('creator-channel'), 'Email + LinkedIn');
-  setSelectByText(document.getElementById('creator-angle'), 'Douleur');
-  setSelectByText(document.getElementById('creator-volume'), 'Standard');
-
-  // Close inspiration panel and scroll to top
-  const toggle = document.getElementById('inspiToggle');
-  const panel = document.getElementById('inspiPanel');
-  toggle.classList.remove('on');
-  panel.classList.remove('show');
-
-  // Flash the form fields briefly
-  document.querySelectorAll('.creator-body .form-input, .creator-body .form-select').forEach(el => {
-    el.style.transition = 'box-shadow 0.3s';
-    el.style.boxShadow = '0 0 0 2px var(--border-light)';
-    setTimeout(() => { el.style.boxShadow = ''; }, 800);
-  });
-}
-
-function closeInspirationToEdit() {
-  const toggle = document.getElementById('inspiToggle');
-  const panel = document.getElementById('inspiPanel');
-  toggle.classList.remove('on');
-  panel.classList.remove('show');
-  document.getElementById('creator-name').focus();
 }
 
 async function createCampaign() {
