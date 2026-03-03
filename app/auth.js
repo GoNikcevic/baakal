@@ -32,7 +32,7 @@ const BakalAuth = (() => {
   }
 
   async function login(email, password) {
-    const res = await fetch('http://localhost:3001/api/auth/login', {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -44,7 +44,7 @@ const BakalAuth = (() => {
   }
 
   async function register(name, email, password, company) {
-    const res = await fetch('http://localhost:3001/api/auth/register', {
+    const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, company }),
@@ -64,7 +64,7 @@ const BakalAuth = (() => {
     const token = getToken();
     if (!token) return false;
     try {
-      const res = await fetch('http://localhost:3001/api/auth/me', {
+      const res = await fetch('/api/auth/me', {
         headers: { Authorization: 'Bearer ' + token },
       });
       if (!res.ok) {

@@ -54,8 +54,8 @@ app.use('/api/settings', requireAuth, settingsRouter);
 // Error handling
 app.use(errorHandler);
 
-app.listen(config.port, () => {
-  console.log(`\n🚀 Bakal backend running on http://localhost:${config.port}`);
+app.listen(config.port, '0.0.0.0', () => {
+  console.log(`\n🚀 Bakal backend running on http://0.0.0.0:${config.port}`);
   console.log(`   Health check: http://localhost:${config.port}/api/health\n`);
   validateConfig([
     'lemlist.apiKey',

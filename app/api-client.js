@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const BakalAPI = (() => {
-  const BASE = 'http://localhost:3001/api';
+  const BASE = (window.location.origin || 'http://localhost:3001') + '/api';
 
   /* ─── Helpers ─── */
 
