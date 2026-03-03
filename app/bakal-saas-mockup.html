@@ -3344,6 +3344,24 @@ body {
               <div class="settings-status-state offline" id="settings-conn-calendly">Non connecté</div>
               <div class="settings-status-detail">Prise de RDV</div>
             </div>
+            <div class="settings-status-card">
+              <div class="settings-status-icon">⚡</div>
+              <div class="settings-status-name">Instantly</div>
+              <div class="settings-status-state offline" id="settings-conn-instantly">Non connecté</div>
+              <div class="settings-status-detail">Cold email à grande échelle</div>
+            </div>
+            <div class="settings-status-card">
+              <div class="settings-status-icon">👻</div>
+              <div class="settings-status-name">PhantomBuster</div>
+              <div class="settings-status-state offline" id="settings-conn-phantombuster">Non connecté</div>
+              <div class="settings-status-detail">Scraping LinkedIn</div>
+            </div>
+            <div class="settings-status-card">
+              <div class="settings-status-icon">📬</div>
+              <div class="settings-status-name">Mailreach</div>
+              <div class="settings-status-state offline" id="settings-conn-mailreach">Non connecté</div>
+              <div class="settings-status-detail">Warm-up email</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3410,6 +3428,14 @@ body {
               </div>
               <div class="form-hint">Salesforce → Setup → Apps → Connected Apps</div>
             </div>
+            <div class="form-group full">
+              <label class="form-label">👥 Folk API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-folk-key" type="password" placeholder="Copiez depuis Folk → Settings → API" data-original-placeholder="Copiez depuis Folk → Settings → API">
+                <span class="input-status" id="status-folk">Non connecté</span>
+              </div>
+              <div class="form-hint">Folk → Settings → Integrations → API Key</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3443,6 +3469,88 @@ body {
               </div>
               <div class="form-hint">Hunter → Dashboard → API → Your API Key</div>
             </div>
+            <div class="form-group full">
+              <label class="form-label">📱 Kaspr API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-kaspr-key" type="password" placeholder="Copiez depuis Kaspr → Settings → API" data-original-placeholder="Copiez depuis Kaspr → Settings → API">
+                <span class="input-status" id="status-kaspr">Non connecté</span>
+              </div>
+              <div class="form-hint">Kaspr → Dashboard → Settings → API · Spécialisé LinkedIn</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">🔮 Lusha API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-lusha-key" type="password" placeholder="Copiez depuis Lusha → Settings → API" data-original-placeholder="Copiez depuis Lusha → Settings → API">
+                <span class="input-status" id="status-lusha">Non connecté</span>
+              </div>
+              <div class="form-hint">Lusha → Settings → API · Emails & téléphones B2B</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">❄️ Snov.io API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-snov-key" type="password" placeholder="Copiez depuis Snov → Settings → API" data-original-placeholder="Copiez depuis Snov → Settings → API">
+                <span class="input-status" id="status-snov">Non connecté</span>
+              </div>
+              <div class="form-hint">Snov.io → Settings → API · Recherche & vérification email</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys — Outreach -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📤 Outreach & envoi</div><span style="font-size:11px;color:var(--text-muted);">Automatisez l'envoi d'emails et messages LinkedIn</span></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">⚡ Instantly API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-instantly-key" type="password" placeholder="Copiez depuis Instantly → Settings → API" data-original-placeholder="Copiez depuis Instantly → Settings → API">
+                <span class="input-status" id="status-instantly">Non connecté</span>
+              </div>
+              <div class="form-hint">Instantly → Settings → API · Cold email à grande échelle</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">🚀 La Growth Machine API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-lgm-key" type="password" placeholder="Copiez depuis LGM → Settings → API" data-original-placeholder="Copiez depuis LGM → Settings → API">
+                <span class="input-status" id="status-lgm">Non connecté</span>
+              </div>
+              <div class="form-hint">La Growth Machine → Settings → API · Multi-canal automatisé</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">🌐 Waalaxy API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-waalaxy-key" type="password" placeholder="Copiez depuis Waalaxy → Settings → API" data-original-placeholder="Copiez depuis Waalaxy → Settings → API">
+                <span class="input-status" id="status-waalaxy">Non connecté</span>
+              </div>
+              <div class="form-hint">Waalaxy → Settings → API · Prospection LinkedIn + Email</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys — LinkedIn / Scraping -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">🕷️ Scraping & extraction</div><span style="font-size:11px;color:var(--text-muted);">Extrayez des données LinkedIn et web</span></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">👻 PhantomBuster API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-phantombuster-key" type="password" placeholder="Copiez depuis PhantomBuster → Settings → API" data-original-placeholder="Copiez depuis PhantomBuster → Settings → API">
+                <span class="input-status" id="status-phantombuster">Non connecté</span>
+              </div>
+              <div class="form-hint">PhantomBuster → Dashboard → Settings → API · Scraping LinkedIn</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">🚢 Captain Data API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-captaindata-key" type="password" placeholder="Copiez depuis Captain Data → Settings → API" data-original-placeholder="Copiez depuis Captain Data → Settings → API">
+                <span class="input-status" id="status-captaindata">Non connecté</span>
+              </div>
+              <div class="form-hint">Captain Data → Settings → API · Workflows d'extraction</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3459,6 +3567,39 @@ body {
                 <span class="input-status" id="status-calendly">Non connecté</span>
               </div>
               <div class="form-hint">Calendly → Integrations → API & Webhooks → Personal Access Token</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">📆 Cal.com API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-calcom-key" type="password" placeholder="Copiez depuis Cal.com → Settings → API Keys" data-original-placeholder="Copiez depuis Cal.com → Settings → API Keys">
+                <span class="input-status" id="status-calcom">Non connecté</span>
+              </div>
+              <div class="form-hint">Cal.com → Settings → Developer → API Keys · Open-source</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys — Deliverability -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">📬 Délivrabilité</div><span style="font-size:11px;color:var(--text-muted);">Protégez votre réputation email et évitez les spams</span></div>
+        <div class="card-body">
+          <div class="form-stack">
+            <div class="form-group full">
+              <label class="form-label">📬 Mailreach API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-mailreach-key" type="password" placeholder="Copiez depuis Mailreach → Settings → API" data-original-placeholder="Copiez depuis Mailreach → Settings → API">
+                <span class="input-status" id="status-mailreach">Non connecté</span>
+              </div>
+              <div class="form-hint">Mailreach → Dashboard → API · Warm-up & monitoring inbox</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">🔥 Warmbox API Key</label>
+              <div class="input-with-status">
+                <input class="form-input mono" id="settings-warmbox-key" type="password" placeholder="Copiez depuis Warmbox → Settings → API" data-original-placeholder="Copiez depuis Warmbox → Settings → API">
+                <span class="input-status" id="status-warmbox">Non connecté</span>
+              </div>
+              <div class="form-hint">Warmbox → Settings → API · Warm-up automatisé</div>
             </div>
           </div>
         </div>

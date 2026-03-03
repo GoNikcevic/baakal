@@ -151,7 +151,13 @@ function updateSettingsConnectionStatus() {
   const statusMap = {
     'status-lemlist': 'settings-conn-lemlist',
     'status-notion': 'settings-conn-notion',
-    'status-claude': 'settings-conn-claude'
+    'status-claude': 'settings-conn-claude',
+    'status-hubspot': 'settings-conn-hubspot',
+    'status-dropcontact': 'settings-conn-dropcontact',
+    'status-calendly': 'settings-conn-calendly',
+    'status-instantly': 'settings-conn-instantly',
+    'status-phantombuster': 'settings-conn-phantombuster',
+    'status-mailreach': 'settings-conn-mailreach',
   };
 
   for (const [sourceId, targetId] of Object.entries(statusMap)) {
