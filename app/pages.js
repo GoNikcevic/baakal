@@ -94,16 +94,35 @@ async function saveSettings() {
 
   // Collect API keys from inputs
   const apiKeys = {
+    // ── Core ──
     lemlistKey: document.getElementById('settings-lemlist-key')?.value?.trim(),
     notionToken: document.getElementById('settings-notion-token')?.value?.trim(),
     claudeKey: document.getElementById('settings-claude-key')?.value?.trim(),
+    // ── CRM ──
     hubspotKey: document.getElementById('settings-hubspot-key')?.value?.trim(),
     pipedriveKey: document.getElementById('settings-pipedrive-key')?.value?.trim(),
     salesforceKey: document.getElementById('settings-salesforce-key')?.value?.trim(),
+    folkKey: document.getElementById('settings-folk-key')?.value?.trim(),
+    // ── Enrichment ──
     dropcontactKey: document.getElementById('settings-dropcontact-key')?.value?.trim(),
     apolloKey: document.getElementById('settings-apollo-key')?.value?.trim(),
     hunterKey: document.getElementById('settings-hunter-key')?.value?.trim(),
+    kasprKey: document.getElementById('settings-kaspr-key')?.value?.trim(),
+    lushaKey: document.getElementById('settings-lusha-key')?.value?.trim(),
+    snovKey: document.getElementById('settings-snov-key')?.value?.trim(),
+    // ── Outreach ──
+    instantlyKey: document.getElementById('settings-instantly-key')?.value?.trim(),
+    lgmKey: document.getElementById('settings-lgm-key')?.value?.trim(),
+    waalaxyKey: document.getElementById('settings-waalaxy-key')?.value?.trim(),
+    // ── LinkedIn / Scraping ──
+    phantombusterKey: document.getElementById('settings-phantombuster-key')?.value?.trim(),
+    captaindataKey: document.getElementById('settings-captaindata-key')?.value?.trim(),
+    // ── Calendar ──
     calendlyKey: document.getElementById('settings-calendly-key')?.value?.trim(),
+    calcomKey: document.getElementById('settings-calcom-key')?.value?.trim(),
+    // ── Deliverability ──
+    mailreachKey: document.getElementById('settings-mailreach-key')?.value?.trim(),
+    warmboxKey: document.getElementById('settings-warmbox-key')?.value?.trim(),
   };
 
   // Collect non-sensitive settings (these stay in localStorage)
@@ -165,10 +184,22 @@ async function loadSettingsKeys() {
       hubspotKey: { inputId: 'settings-hubspot-key', statusId: 'status-hubspot' },
       pipedriveKey: { inputId: 'settings-pipedrive-key', statusId: 'status-pipedrive' },
       salesforceKey: { inputId: 'settings-salesforce-key', statusId: 'status-salesforce' },
+      folkKey: { inputId: 'settings-folk-key', statusId: 'status-folk' },
       dropcontactKey: { inputId: 'settings-dropcontact-key', statusId: 'status-dropcontact' },
       apolloKey: { inputId: 'settings-apollo-key', statusId: 'status-apollo' },
       hunterKey: { inputId: 'settings-hunter-key', statusId: 'status-hunter' },
+      kasprKey: { inputId: 'settings-kaspr-key', statusId: 'status-kaspr' },
+      lushaKey: { inputId: 'settings-lusha-key', statusId: 'status-lusha' },
+      snovKey: { inputId: 'settings-snov-key', statusId: 'status-snov' },
+      instantlyKey: { inputId: 'settings-instantly-key', statusId: 'status-instantly' },
+      lgmKey: { inputId: 'settings-lgm-key', statusId: 'status-lgm' },
+      waalaxyKey: { inputId: 'settings-waalaxy-key', statusId: 'status-waalaxy' },
+      phantombusterKey: { inputId: 'settings-phantombuster-key', statusId: 'status-phantombuster' },
+      captaindataKey: { inputId: 'settings-captaindata-key', statusId: 'status-captaindata' },
       calendlyKey: { inputId: 'settings-calendly-key', statusId: 'status-calendly' },
+      calcomKey: { inputId: 'settings-calcom-key', statusId: 'status-calcom' },
+      mailreachKey: { inputId: 'settings-mailreach-key', statusId: 'status-mailreach' },
+      warmboxKey: { inputId: 'settings-warmbox-key', statusId: 'status-warmbox' },
     };
 
     for (const [field, info] of Object.entries(keys)) {
@@ -236,10 +267,22 @@ async function testApiConnections() {
     hubspotKey: 'status-hubspot',
     pipedriveKey: 'status-pipedrive',
     salesforceKey: 'status-salesforce',
+    folkKey: 'status-folk',
     dropcontactKey: 'status-dropcontact',
     apolloKey: 'status-apollo',
     hunterKey: 'status-hunter',
+    kasprKey: 'status-kaspr',
+    lushaKey: 'status-lusha',
+    snovKey: 'status-snov',
+    instantlyKey: 'status-instantly',
+    lgmKey: 'status-lgm',
+    waalaxyKey: 'status-waalaxy',
+    phantombusterKey: 'status-phantombuster',
+    captaindataKey: 'status-captaindata',
     calendlyKey: 'status-calendly',
+    calcomKey: 'status-calcom',
+    mailreachKey: 'status-mailreach',
+    warmboxKey: 'status-warmbox',
   };
 
   // Show testing state for all
@@ -294,10 +337,22 @@ async function testApiConnections() {
     { id: 'settings-hubspot-key', statusId: 'status-hubspot', check: v => v.startsWith('pat-') || v.length > 20 },
     { id: 'settings-pipedrive-key', statusId: 'status-pipedrive', check: v => v.length > 10 },
     { id: 'settings-salesforce-key', statusId: 'status-salesforce', check: v => v.length > 10 },
+    { id: 'settings-folk-key', statusId: 'status-folk', check: v => v.length > 10 },
     { id: 'settings-dropcontact-key', statusId: 'status-dropcontact', check: v => v.length > 10 },
     { id: 'settings-apollo-key', statusId: 'status-apollo', check: v => v.length > 10 },
     { id: 'settings-hunter-key', statusId: 'status-hunter', check: v => v.length > 10 },
+    { id: 'settings-kaspr-key', statusId: 'status-kaspr', check: v => v.length > 10 },
+    { id: 'settings-lusha-key', statusId: 'status-lusha', check: v => v.length > 10 },
+    { id: 'settings-snov-key', statusId: 'status-snov', check: v => v.length > 10 },
+    { id: 'settings-instantly-key', statusId: 'status-instantly', check: v => v.length > 10 },
+    { id: 'settings-lgm-key', statusId: 'status-lgm', check: v => v.length > 10 },
+    { id: 'settings-waalaxy-key', statusId: 'status-waalaxy', check: v => v.length > 10 },
+    { id: 'settings-phantombuster-key', statusId: 'status-phantombuster', check: v => v.length > 10 },
+    { id: 'settings-captaindata-key', statusId: 'status-captaindata', check: v => v.length > 10 },
     { id: 'settings-calendly-key', statusId: 'status-calendly', check: v => v.length > 10 },
+    { id: 'settings-calcom-key', statusId: 'status-calcom', check: v => v.length > 10 },
+    { id: 'settings-mailreach-key', statusId: 'status-mailreach', check: v => v.length > 10 },
+    { id: 'settings-warmbox-key', statusId: 'status-warmbox', check: v => v.length > 10 },
   ];
 
   for (const c of localChecks) {

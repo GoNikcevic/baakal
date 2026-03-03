@@ -6,20 +6,35 @@ const router = Router();
 
 // The API keys we manage — maps frontend field names to DB keys
 const KEY_MAP = {
-  // Core integrations
+  // ── Core ──
   lemlistKey: 'lemlist_api_key',
   notionToken: 'notion_token',
   claudeKey: 'anthropic_api_key',
-  // CRM
+  // ── CRM ──
   hubspotKey: 'hubspot_api_key',
   pipedriveKey: 'pipedrive_api_key',
   salesforceKey: 'salesforce_api_key',
-  // Enrichment
+  folkKey: 'folk_api_key',
+  // ── Enrichment ──
   dropcontactKey: 'dropcontact_api_key',
   apolloKey: 'apollo_api_key',
   hunterKey: 'hunter_api_key',
-  // Calendar
+  kasprKey: 'kaspr_api_key',
+  lushaKey: 'lusha_api_key',
+  snovKey: 'snov_api_key',
+  // ── Outreach ──
+  instantlyKey: 'instantly_api_key',
+  lgmKey: 'lgm_api_key',
+  waalaxyKey: 'waalaxy_api_key',
+  // ── LinkedIn / Scraping ──
+  phantombusterKey: 'phantombuster_api_key',
+  captaindataKey: 'captaindata_api_key',
+  // ── Calendar ──
   calendlyKey: 'calendly_api_key',
+  calcomKey: 'calcom_api_key',
+  // ── Deliverability ──
+  mailreachKey: 'mailreach_api_key',
+  warmboxKey: 'warmbox_api_key',
 };
 
 // GET /api/settings/keys — Return masked key status (never plaintext)
@@ -66,26 +81,22 @@ router.post('/keys', (req, res) => {
 
     const trimmed = (value || '').trim();
     if (!trimmed) {
-      // Empty value = delete the key
       db.settings.delete(dbKey);
       saved.push(field);
       continue;
     }
 
-    // Basic format validation
     const validation = validateKeyFormat(field, trimmed);
     if (!validation.valid) {
       errors.push(`${field}: ${validation.error}`);
       continue;
     }
 
-    // Encrypt and store
     const encrypted = encrypt(trimmed);
     db.settings.set(dbKey, encrypted);
     saved.push(field);
   }
 
-  // Notify config to reload keys from DB
   try {
     const { reloadKeys } = require('../config');
     if (typeof reloadKeys === 'function') reloadKeys();
@@ -123,7 +134,6 @@ function validateKeyFormat(field, value) {
   if (value.length < 8) {
     return { valid: false, error: 'Key too short (minimum 8 characters)' };
   }
-  // Prefix-specific validations
   if (field === 'notionToken' && !value.startsWith('ntn_') && !value.startsWith('secret_')) {
     return { valid: false, error: 'Should start with ntn_ or secret_' };
   }
@@ -136,37 +146,31 @@ function validateKeyFormat(field, value) {
   return { valid: true };
 }
 
+// Helper for Bearer-auth test calls
+async function testBearer(url, key) {
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
+  if (resp.ok) return { status: 'connected' };
+  if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
+  return { status: 'error', message: `HTTP ${resp.status}` };
+}
+
 async function testKey(field, key) {
   try {
     if (field === 'claudeKey') {
-      // Quick call to Anthropic to verify the key works
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1,
-          messages: [{ role: 'user', content: 'hi' }],
-        }),
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }),
       });
-      if (resp.ok || resp.status === 200) {
-        return { status: 'connected' };
-      }
+      if (resp.ok) return { status: 'connected' };
       const body = await resp.json().catch(() => ({}));
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: body.error?.message || `HTTP ${resp.status}` };
     }
 
     if (field === 'lemlistKey') {
-      // Lemlist uses Basic Auth with empty username and API key as password
       const basic = Buffer.from(':' + key).toString('base64');
-      const resp = await fetch('https://api.lemlist.com/api/team', {
-        headers: { Authorization: `Basic ${basic}` },
-      });
+      const resp = await fetch('https://api.lemlist.com/api/team', { headers: { Authorization: `Basic ${basic}` } });
       if (resp.ok) return { status: 'connected' };
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: `HTTP ${resp.status}` };
@@ -174,49 +178,23 @@ async function testKey(field, key) {
 
     if (field === 'notionToken') {
       const resp = await fetch('https://api.notion.com/v1/users/me', {
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Notion-Version': '2022-06-28',
-        },
+        headers: { 'Authorization': `Bearer ${key}`, 'Notion-Version': '2022-06-28' },
       });
       if (resp.ok) return { status: 'connected' };
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid token' };
       return { status: 'error', message: `HTTP ${resp.status}` };
     }
 
-    if (field === 'hubspotKey') {
-      const resp = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
-        headers: { Authorization: `Bearer ${key}` },
-      });
-      if (resp.ok) return { status: 'connected' };
-      if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${resp.status}` };
-    }
+    if (field === 'hubspotKey') return testBearer('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', key);
+    if (field === 'calendlyKey') return testBearer('https://api.calendly.com/users/me', key);
+    if (field === 'calcomKey') return testBearer('https://api.cal.com/v1/me', key);
+    if (field === 'instantlyKey') return testBearer('https://api.instantly.ai/api/v1/authenticate', key);
+    if (field === 'folkKey') return testBearer('https://api.folk.app/v1/me', key);
 
     if (field === 'pipedriveKey') {
       const resp = await fetch(`https://api.pipedrive.com/v1/users/me?api_token=${key}`);
       if (resp.ok) return { status: 'connected' };
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid API token' };
-      return { status: 'error', message: `HTTP ${resp.status}` };
-    }
-
-    if (field === 'dropcontactKey') {
-      const resp = await fetch('https://api.dropcontact.io/batch', {
-        method: 'POST',
-        headers: { 'X-Access-Token': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: [{ email: 'test@example.com' }], siren: false }),
-      });
-      if (resp.ok || resp.status === 200) return { status: 'connected' };
-      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
-      return { status: 'error', message: `HTTP ${resp.status}` };
-    }
-
-    if (field === 'apolloKey') {
-      const resp = await fetch('https://api.apollo.io/v1/auth/health', {
-        headers: { 'x-api-key': key },
-      });
-      if (resp.ok) return { status: 'connected' };
-      if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: `HTTP ${resp.status}` };
     }
 
@@ -227,18 +205,45 @@ async function testKey(field, key) {
       return { status: 'error', message: `HTTP ${resp.status}` };
     }
 
-    if (field === 'calendlyKey') {
-      const resp = await fetch('https://api.calendly.com/users/me', {
-        headers: { Authorization: `Bearer ${key}` },
+    if (field === 'dropcontactKey') {
+      const resp = await fetch('https://api.dropcontact.io/batch', {
+        method: 'POST',
+        headers: { 'X-Access-Token': key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [{ email: 'test@example.com' }], siren: false }),
       });
       if (resp.ok) return { status: 'connected' };
-      if (resp.status === 401) return { status: 'invalid', message: 'Invalid token' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: `HTTP ${resp.status}` };
     }
 
-    if (field === 'salesforceKey') {
-      // Salesforce uses OAuth tokens — basic validation
-      return { status: 'saved', message: 'Key saved (Salesforce requires OAuth flow for full test)' };
+    if (field === 'apolloKey') {
+      const resp = await fetch('https://api.apollo.io/v1/auth/health', { headers: { 'x-api-key': key } });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    if (field === 'phantombusterKey') {
+      const resp = await fetch('https://api.phantombuster.com/api/v2/agents/fetch-all', { headers: { 'X-Phantombuster-Key': key } });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    if (field === 'snovKey') {
+      const resp = await fetch('https://api.snov.io/v1/get-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: key }),
+      });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    // Tools that need OAuth or have no simple test endpoint — just save
+    if (['salesforceKey', 'kasprKey', 'lushaKey', 'lgmKey', 'waalaxyKey', 'captaindataKey', 'mailreachKey', 'warmboxKey'].includes(field)) {
+      return { status: 'saved', message: 'Key saved (no auto-test available for this service)' };
     }
 
     return { status: 'unknown' };

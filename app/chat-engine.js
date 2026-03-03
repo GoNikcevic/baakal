@@ -193,8 +193,8 @@ const INTEGRATIONS = {
   hubspotKey: {
     label: 'HubSpot', icon: '🟠', category: 'crm', priority: 4,
     regex: /\bpat-[a-zA-Z0-9_-]{20,}\b/, prefix: 'pat-',
-    desc: 'CRM et gestion de pipeline commercial',
-    benefit: 'Synchroniser automatiquement les prospects intéressés dans votre CRM. Suivre le pipeline du premier contact au closing.',
+    desc: 'CRM tout-en-un (marketing, ventes, service)',
+    benefit: 'Synchroniser automatiquement les prospects intéressés dans votre CRM. Suivre le pipeline du premier contact au closing. Tier gratuit disponible.',
     howToGet: 'HubSpot → Settings → Integrations → Private Apps → Create',
     url: 'https://app.hubspot.com/private-apps/',
   },
@@ -202,59 +202,162 @@ const INTEGRATIONS = {
     label: 'Pipedrive', icon: '🟢', category: 'crm', priority: 5,
     regex: null, prefix: null,
     desc: 'CRM orienté vente et pipeline',
-    benefit: 'Créer automatiquement des deals dans Pipedrive quand un prospect répond positivement. Suivre chaque lead dans votre pipeline.',
+    benefit: 'Créer automatiquement des deals quand un prospect répond positivement. Interface visuelle du pipeline. Idéal pour les équipes de 1 à 20 commerciaux.',
     howToGet: 'Pipedrive → Settings → Personal preferences → API',
     url: 'https://app.pipedrive.com/settings/api',
   },
+  folkKey: {
+    label: 'Folk', icon: '👥', category: 'crm', priority: 6,
+    regex: null, prefix: null,
+    desc: 'CRM relationnel, simple et moderne',
+    benefit: 'CRM léger pensé pour les petites équipes. Import de contacts LinkedIn en 1 clic, pipeline visuel, et intégrations natives avec les outils de prospection.',
+    howToGet: 'Folk → Settings → API → Generate Token',
+    url: 'https://app.folk.app/settings',
+  },
   salesforceKey: {
-    label: 'Salesforce', icon: '☁️', category: 'crm', priority: 6,
+    label: 'Salesforce', icon: '☁️', category: 'crm', priority: 7,
     regex: null, prefix: null,
     desc: 'CRM entreprise et gestion commerciale',
-    benefit: 'Intégrer Bakal dans votre écosystème Salesforce. Créer des leads et opportunités automatiquement.',
+    benefit: 'Intégrer Bakal dans votre écosystème Salesforce. Créer des leads et opportunités automatiquement. Pour les équipes 50+ ou les process complexes.',
     howToGet: 'Salesforce → Setup → Apps → Connected Apps → Consumer Key',
     url: null,
   },
   // ── Enrichment ──
   dropcontactKey: {
-    label: 'Dropcontact', icon: '📧', category: 'enrichment', priority: 7,
+    label: 'Dropcontact', icon: '📧', category: 'enrichment', priority: 8,
     regex: null, prefix: null,
-    desc: 'Enrichissement d\'emails B2B (RGPD-compliant)',
-    benefit: 'Trouver et vérifier les emails professionnels de vos prospects. Conforme RGPD, données fraîches, taux de fiabilité >98%.',
+    desc: 'Enrichissement email B2B — 100% RGPD, made in France',
+    benefit: 'Trouver et vérifier les emails pros de vos prospects. Conforme RGPD (audité CNIL), données fraîches, taux de fiabilité >98%. Le standard en France.',
     howToGet: 'Dropcontact → Dashboard → API → API Key',
     url: 'https://app.dropcontact.com/app/settings/api',
+    recommended: true,
   },
   apolloKey: {
-    label: 'Apollo.io', icon: '🚀', category: 'enrichment', priority: 8,
+    label: 'Apollo.io', icon: '🚀', category: 'enrichment', priority: 9,
     regex: null, prefix: null,
-    desc: 'Base de données B2B + enrichissement',
-    benefit: 'Accéder à +275M de contacts B2B. Trouver des prospects par secteur, poste, taille d\'entreprise et zone géographique.',
+    desc: 'Base de données B2B (275M+ contacts) + enrichissement',
+    benefit: 'Trouver des prospects par secteur, poste, taille d\'entreprise et zone géo. Enrichir les données. Séquençage intégré. Tier gratuit généreux.',
     howToGet: 'Apollo → Settings → Integrations → API Keys',
     url: 'https://app.apollo.io/#/settings/integrations/api',
   },
   hunterKey: {
-    label: 'Hunter.io', icon: '🔍', category: 'enrichment', priority: 9,
+    label: 'Hunter.io', icon: '🔍', category: 'enrichment', priority: 10,
     regex: null, prefix: null,
     desc: 'Recherche et vérification d\'emails',
-    benefit: 'Trouver les emails de n\'importe quel professionnel. Vérifier la validité des adresses avant l\'envoi pour protéger votre délivrabilité.',
+    benefit: 'Trouver les emails de n\'importe quel pro à partir du nom + entreprise. Vérifier la validité avant envoi. 25 recherches/mois gratuites.',
     howToGet: 'Hunter → Dashboard → API → Your API Key',
     url: 'https://hunter.io/api-keys',
   },
+  kasprKey: {
+    label: 'Kaspr', icon: '📱', category: 'enrichment', priority: 11,
+    regex: null, prefix: null,
+    desc: 'Emails et téléphones depuis LinkedIn',
+    benefit: 'Extension Chrome pour récupérer emails et numéros de téléphone directement depuis les profils LinkedIn. 395M+ de contacts. Idéal en combinaison avec Waalaxy.',
+    howToGet: 'Kaspr → Dashboard → API → Generate Key',
+    url: 'https://app.kaspr.io/settings',
+  },
+  lushaKey: {
+    label: 'Lusha', icon: '📇', category: 'enrichment', priority: 12,
+    regex: null, prefix: null,
+    desc: 'Données de contact B2B vérifiées (RGPD/CCPA)',
+    benefit: 'Données de contact directes (email + téléphone). Enrichissement de listes en masse. Extension navigateur. Conforme RGPD et CCPA.',
+    howToGet: 'Lusha → Settings → API → Access Token',
+    url: 'https://app.lusha.com/settings',
+  },
+  snovKey: {
+    label: 'Snov.io', icon: '🎯', category: 'enrichment', priority: 13,
+    regex: null, prefix: null,
+    desc: 'Email finder + vérificateur + séquences',
+    benefit: 'Tout-en-un : trouver des emails, les vérifier, et envoyer des séquences. Bonne alternative économique. Tier gratuit avec 50 crédits/mois.',
+    howToGet: 'Snov.io → Settings → API → User ID & Secret',
+    url: 'https://app.snov.io/account/api',
+  },
+  // ── Outreach (complémentaire) ──
+  instantlyKey: {
+    label: 'Instantly', icon: '⚡', category: 'outreach', priority: 14,
+    regex: null, prefix: null,
+    desc: 'Cold email à volume (comptes email illimités)',
+    benefit: 'Connecter des dizaines de boîtes email pour un tarif fixe. Rotation automatique, warm-up intégré. Idéal si vous envoyez plus de 200 emails/jour.',
+    howToGet: 'Instantly → Settings → Integrations → API',
+    url: 'https://app.instantly.ai/app/settings/integrations',
+  },
+  lgmKey: {
+    label: 'La Growth Machine', icon: '🇫🇷', category: 'outreach', priority: 15,
+    regex: null, prefix: null,
+    desc: 'Outreach multicanal français (Email + LinkedIn + Twitter)',
+    benefit: 'Séquences multicanales avec IA. Voice cloning pour les messages audio LinkedIn. Intégrations natives HubSpot/Pipedrive. Alternative française à Lemlist.',
+    howToGet: 'LGM → Settings → Integrations → API Key',
+    url: 'https://app.lagrowthmachine.com/settings',
+  },
+  waalaxyKey: {
+    label: 'Waalaxy', icon: '👾', category: 'outreach', priority: 16,
+    regex: null, prefix: null,
+    desc: 'Prospection LinkedIn + email — très populaire en Europe',
+    benefit: 'Automatiser la prospection LinkedIn (connexions, messages, visites) + email. Import de leads depuis LinkedIn/Sales Navigator. Tier gratuit disponible.',
+    howToGet: 'Waalaxy → Settings → API',
+    url: 'https://app.waalaxy.com/settings',
+  },
+  // ── LinkedIn / Scraping ──
+  phantombusterKey: {
+    label: 'PhantomBuster', icon: '👻', category: 'scraping', priority: 17,
+    regex: null, prefix: null,
+    desc: 'Automatisation et scraping LinkedIn / web (no-code)',
+    benefit: 'Extraire des listes de prospects depuis LinkedIn, Google Maps, sites web. 100+ "Phantoms" prêts à l\'emploi. Enrichir et synchroniser avec votre CRM.',
+    howToGet: 'PhantomBuster → Dashboard → API → API Key',
+    url: 'https://phantombuster.com/api',
+  },
+  captaindataKey: {
+    label: 'Captain Data', icon: '🏴‍☠️', category: 'scraping', priority: 18,
+    regex: null, prefix: null,
+    desc: 'Extraction de données B2B — made in France',
+    benefit: 'Scraping LinkedIn, Google, sites d\'emploi. Enrichissement automatique. API-first, idéal pour automatiser les workflows N8N. Entreprise française.',
+    howToGet: 'Captain Data → Settings → API → API Key',
+    url: 'https://app.captaindata.co/settings',
+  },
   // ── Calendar ──
   calendlyKey: {
-    label: 'Calendly', icon: '📅', category: 'calendar', priority: 10,
+    label: 'Calendly', icon: '📅', category: 'calendar', priority: 19,
     regex: null, prefix: null,
     desc: 'Prise de rendez-vous automatisée',
-    benefit: 'Générer automatiquement des liens de RDV dans vos séquences. Tracker les rendez-vous pris directement dans Bakal.',
+    benefit: 'Générer automatiquement des liens de RDV dans vos séquences. Tracker les rendez-vous pris directement dans Bakal. Le plus utilisé.',
     howToGet: 'Calendly → Integrations → API & Webhooks → Personal Access Token',
     url: 'https://calendly.com/integrations/api_webhooks',
+  },
+  calcomKey: {
+    label: 'Cal.com', icon: '📆', category: 'calendar', priority: 20,
+    regex: null, prefix: null,
+    desc: 'Prise de RDV open-source et auto-hébergeable',
+    benefit: 'Alternative open-source à Calendly. Auto-hébergeable pour la confidentialité. Gratuit en self-hosted. API complète.',
+    howToGet: 'Cal.com → Settings → Developer → API Keys',
+    url: 'https://app.cal.com/settings/developer/api-keys',
+  },
+  // ── Deliverability ──
+  mailreachKey: {
+    label: 'Mailreach', icon: '🛡️', category: 'deliverability', priority: 21,
+    regex: null, prefix: null,
+    desc: 'Warm-up email + monitoring de délivrabilité',
+    benefit: 'Préchauffer vos boîtes email, tester le placement inbox vs spam, et monitorer votre réputation d\'expéditeur en temps réel.',
+    howToGet: 'Mailreach → Settings → API → API Key',
+    url: 'https://app.mailreach.co/settings',
+  },
+  warmboxKey: {
+    label: 'Warmbox', icon: '🔥', category: 'deliverability', priority: 22,
+    regex: null, prefix: null,
+    desc: 'Warm-up email avec 35 000 boîtes d\'échange',
+    benefit: 'Réchauffer vos boîtes email avec un réseau de 35 000 adresses. Emails générés par GPT-4 pour un warm-up réaliste. Rapport par fournisseur (Gmail, Outlook...).',
+    howToGet: 'Warmbox → Settings → API → API Key',
+    url: 'https://app.warmbox.ai/settings',
   },
 };
 
 const CATEGORY_INFO = {
-  core:       { label: 'Essentiels', desc: 'Les 3 outils de base pour faire fonctionner Bakal', icon: '⚡' },
-  crm:        { label: 'CRM', desc: 'Synchronisez vos leads dans votre CRM existant', icon: '📊' },
-  enrichment: { label: 'Enrichissement', desc: 'Trouvez et vérifiez les données de vos prospects', icon: '🔎' },
-  calendar:   { label: 'Calendrier', desc: 'Automatisez la prise de rendez-vous', icon: '📅' },
+  core:           { label: 'Essentiels', desc: 'Les 3 outils de base pour faire fonctionner Bakal', icon: '⚡' },
+  crm:            { label: 'CRM', desc: 'Synchronisez vos leads dans votre CRM existant', icon: '📊' },
+  enrichment:     { label: 'Enrichissement & Données B2B', desc: 'Trouvez et vérifiez les coordonnées de vos prospects', icon: '🔎' },
+  outreach:       { label: 'Outreach complémentaire', desc: 'Outils de prospection en complément de Lemlist', icon: '📨' },
+  scraping:       { label: 'Scraping & Automatisation', desc: 'Extraction de données LinkedIn et web', icon: '🕷️' },
+  calendar:       { label: 'Calendrier', desc: 'Automatisez la prise de rendez-vous', icon: '📅' },
+  deliverability: { label: 'Délivrabilité', desc: 'Warm-up et monitoring de vos emails', icon: '🛡️' },
 };
 
 function detectApiKeyInText(text) {
@@ -294,20 +397,42 @@ function isOnboardingIntent(lower) {
 }
 
 function detectWhichKey(lower) {
+  // ── Core ──
   if (lower.includes('lemlist')) return 'lemlistKey';
   if (lower.includes('notion')) return 'notionToken';
   if (lower.includes('claude') || lower.includes('anthropic')) return 'claudeKey';
+  // ── CRM ──
   if (lower.includes('hubspot')) return 'hubspotKey';
   if (lower.includes('pipedrive')) return 'pipedriveKey';
   if (lower.includes('salesforce')) return 'salesforceKey';
+  if (lower.includes('folk')) return 'folkKey';
+  // ── Enrichment ──
   if (lower.includes('dropcontact')) return 'dropcontactKey';
   if (lower.includes('apollo')) return 'apolloKey';
   if (lower.includes('hunter')) return 'hunterKey';
+  if (lower.includes('kaspr')) return 'kasprKey';
+  if (lower.includes('lusha')) return 'lushaKey';
+  if (lower.includes('snov')) return 'snovKey';
+  // ── Outreach ──
+  if (lower.includes('instantly')) return 'instantlyKey';
+  if (lower.includes('growth machine') || lower.includes('lgm')) return 'lgmKey';
+  if (lower.includes('waalaxy')) return 'waalaxyKey';
+  // ── LinkedIn / Scraping ──
+  if (lower.includes('phantombuster') || lower.includes('phantom')) return 'phantombusterKey';
+  if (lower.includes('captain data') || lower.includes('captaindata')) return 'captaindataKey';
+  // ── Calendar ──
   if (lower.includes('calendly')) return 'calendlyKey';
+  if (lower.includes('cal.com') || lower.includes('calcom')) return 'calcomKey';
+  // ── Deliverability ──
+  if (lower.includes('mailreach')) return 'mailreachKey';
+  if (lower.includes('warmbox')) return 'warmboxKey';
   // Category-level detection
   if (lower.match(/\bcrm\b/)) return '_category_crm';
   if (lower.match(/\b(enrichi|enrichment|données prospect|trouver.*email)\b/)) return '_category_enrichment';
   if (lower.match(/\b(calendrier|rdv|rendez.?vous|booking)\b/)) return '_category_calendar';
+  if (lower.match(/\b(outreach|séquence|cold.?email|envoi.?auto)\b/)) return '_category_outreach';
+  if (lower.match(/\b(scrap|extraction|données|linkedin.?scrap)\b/)) return '_category_scraping';
+  if (lower.match(/\b(délivrabilité|deliverability|warm.?up|inbox|spam)\b/)) return '_category_deliverability';
   return null;
 }
 
