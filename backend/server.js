@@ -3,7 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const { config, validateConfig } = require('./config');
 const errorHandler = require('./middleware/error-handler');
+const { requireAuth } = require('./middleware/auth');
 
+const authRouter = require('./routes/auth');
 const campaignsRouter = require('./routes/campaigns');
 const dashboardRouter = require('./routes/dashboard');
 const aiRouter = require('./routes/ai');
@@ -20,7 +22,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'app')));
 app.use('/landing', express.static(path.join(__dirname, '..', 'landing')));
 
-// Health check
+// Health check (public)
 app.get('/api/health', (_req, res) => {
   const configOk = validateConfig([
     'lemlist.apiKey',
@@ -39,12 +41,15 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// Routes
-app.use('/api/campaigns', campaignsRouter);
-app.use('/api/dashboard', dashboardRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/chat', chatRouter);
-app.use('/api/settings', settingsRouter);
+// Auth routes (public)
+app.use('/api/auth', authRouter);
+
+// Protected routes (require JWT)
+app.use('/api/campaigns', requireAuth, campaignsRouter);
+app.use('/api/dashboard', requireAuth, dashboardRouter);
+app.use('/api/ai', requireAuth, aiRouter);
+app.use('/api/chat', requireAuth, chatRouter);
+app.use('/api/settings', requireAuth, settingsRouter);
 
 // Error handling
 app.use(errorHandler);

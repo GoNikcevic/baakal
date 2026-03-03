@@ -11,10 +11,22 @@ const BakalAPI = (() => {
 
   async function request(path, opts = {}) {
     const url = BASE + path;
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...opts.headers },
-      ...opts,
-    });
+    const headers = { 'Content-Type': 'application/json', ...opts.headers };
+
+    // Attach JWT token if available
+    const token = typeof BakalAuth !== 'undefined' ? BakalAuth.getToken() : null;
+    if (token) {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+
+    const res = await fetch(url, { headers, ...opts });
+
+    // Handle 401 — redirect to login
+    if (res.status === 401 && typeof BakalAuth !== 'undefined') {
+      BakalAuth.showLoginScreen();
+      throw Object.assign(new Error('Session expired'), { status: 401 });
+    }
+
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw Object.assign(new Error(body.error || `HTTP ${res.status}`), { status: res.status });

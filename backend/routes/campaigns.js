@@ -16,10 +16,10 @@ router.get('/lemlist/list', async (_req, res, next) => {
   }
 });
 
-// GET /api/campaigns — List all campaigns
+// GET /api/campaigns — List campaigns (scoped to user)
 router.get('/', (req, res) => {
   const { status, channel } = req.query;
-  const campaigns = db.campaigns.list({ status, channel });
+  const campaigns = db.campaigns.list({ status, channel, userId: req.user.id });
 
   // Attach touchpoints to each campaign
   const result = campaigns.map((c) => ({
@@ -30,10 +30,13 @@ router.get('/', (req, res) => {
   res.json({ campaigns: result });
 });
 
-// GET /api/campaigns/:id — Campaign detail with sequence, diagnostics, history
+// GET /api/campaigns/:id — Campaign detail (ownership check)
 router.get('/:id', (req, res) => {
   const campaign = db.campaigns.get(req.params.id);
   if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+  if (campaign.user_id && campaign.user_id !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   res.json({
     campaign,
@@ -43,9 +46,9 @@ router.get('/:id', (req, res) => {
   });
 });
 
-// POST /api/campaigns — Create a new campaign
+// POST /api/campaigns — Create a new campaign (assigned to user)
 router.post('/', (req, res) => {
-  const campaign = db.campaigns.create(req.body);
+  const campaign = db.campaigns.create({ ...req.body, userId: req.user.id });
 
   // Create touchpoints if provided
   if (Array.isArray(req.body.sequence)) {
@@ -60,10 +63,16 @@ router.post('/', (req, res) => {
   res.status(201).json(campaign);
 });
 
-// PATCH /api/campaigns/:id — Update campaign
+// PATCH /api/campaigns/:id — Update campaign (ownership check)
 router.patch('/:id', (req, res) => {
+  const existing = db.campaigns.get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Campaign not found' });
+  if (existing.user_id && existing.user_id !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
   const updated = db.campaigns.update(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Campaign not found or no changes' });
+  if (!updated) return res.status(404).json({ error: 'No changes' });
 
   // Background sync to Notion
   notionSync.syncCampaign(updated.id).catch(console.error);
@@ -75,6 +84,9 @@ router.patch('/:id', (req, res) => {
 router.put('/:id/sequence', (req, res) => {
   const campaign = db.campaigns.get(req.params.id);
   if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+  if (campaign.user_id && campaign.user_id !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   // Delete existing and insert new
   db.touchpoints.deleteByCampaign(campaign.id);

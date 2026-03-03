@@ -3,10 +3,10 @@ const db = require('../db');
 
 const router = Router();
 
-// GET /api/dashboard — Aggregated KPIs + active campaigns
-router.get('/', (_req, res) => {
-  const kpis = db.dashboardKpis();
-  const campaigns = db.campaigns.list({ status: 'active' });
+// GET /api/dashboard — Aggregated KPIs + active campaigns (scoped to user)
+router.get('/', (req, res) => {
+  const kpis = db.dashboardKpis(req.user.id);
+  const campaigns = db.campaigns.list({ status: 'active', userId: req.user.id });
 
   res.json({ kpis, campaigns });
 });

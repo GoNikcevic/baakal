@@ -4,20 +4,24 @@ const claude = require('../api/claude');
 
 const router = Router();
 
-// GET /api/chat/threads — List all conversations
-router.get('/threads', (_req, res) => {
-  const threads = db.chatThreads.list();
+// GET /api/chat/threads — List conversations (scoped to user)
+router.get('/threads', (req, res) => {
+  const threads = db.chatThreads.list(req.user.id);
   res.json({ threads });
 });
 
 // POST /api/chat/threads — Create a new conversation
 router.post('/threads', (req, res) => {
-  const thread = db.chatThreads.create(req.body.title);
+  const thread = db.chatThreads.create(req.body.title, req.user.id);
   res.status(201).json(thread);
 });
 
 // DELETE /api/chat/threads/:id — Delete a conversation
 router.delete('/threads/:id', (req, res) => {
+  const thread = db.chatThreads.get(req.params.id);
+  if (thread && thread.user_id && thread.user_id !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
   db.chatMessages.deleteByThread(req.params.id);
   db.chatThreads.delete(req.params.id);
   res.json({ ok: true });
@@ -27,6 +31,9 @@ router.delete('/threads/:id', (req, res) => {
 router.get('/threads/:id/messages', (req, res) => {
   const thread = db.chatThreads.get(req.params.id);
   if (!thread) return res.status(404).json({ error: 'Thread not found' });
+  if (thread.user_id && thread.user_id !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
 
   const messages = db.chatMessages.listByThread(thread.id);
   res.json({ thread, messages });
@@ -53,8 +60,8 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       content: m.content,
     }));
 
-    // Build context from existing campaigns and profile
-    const campaigns = db.campaigns.list();
+    // Build context from existing campaigns (scoped to user)
+    const campaigns = db.campaigns.list({ userId: req.user.id });
     const context = campaigns.length > 0
       ? `Campagnes existantes: ${campaigns.map(c => `"${c.name}" (${c.status}, ${c.channel})`).join(', ')}`
       : 'Aucune campagne créée pour le moment.';
@@ -105,7 +112,7 @@ router.post('/threads/:id/create-campaign', (req, res) => {
     return res.status(400).json({ error: 'Campaign data required' });
   }
 
-  // Create campaign
+  // Create campaign (assigned to user)
   const campaign = db.campaigns.create({
     name: data.name,
     client: data.client || 'Mon entreprise',
@@ -122,6 +129,7 @@ router.post('/threads/:id/create-campaign', (req, res) => {
     cta: data.cta || null,
     startDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
     planned: data.planned || 100,
+    userId: req.user.id,
   });
 
   // Create touchpoints if sequence provided

@@ -147,7 +147,35 @@ function migrate(db) {
       value           TEXT NOT NULL,
       updated_at      TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      email           TEXT NOT NULL UNIQUE,
+      password_hash   TEXT NOT NULL,
+      name            TEXT NOT NULL,
+      company         TEXT,
+      role            TEXT NOT NULL DEFAULT 'client'
+                      CHECK (role IN ('admin','client')),
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `);
+
+  // Add user_id column to campaigns if not present
+  try {
+    db.prepare("SELECT user_id FROM campaigns LIMIT 1").get();
+  } catch {
+    db.exec("ALTER TABLE campaigns ADD COLUMN user_id INTEGER REFERENCES users(id)");
+  }
+
+  // Add user_id column to chat_threads if not present
+  try {
+    db.prepare("SELECT user_id FROM chat_threads LIMIT 1").get();
+  } catch {
+    db.exec("ALTER TABLE chat_threads ADD COLUMN user_id INTEGER REFERENCES users(id)");
+  }
 }
 
 // =============================================
@@ -159,6 +187,10 @@ const campaigns = {
     let sql = 'SELECT * FROM campaigns';
     const conditions = [];
     const params = [];
+    if (filter.userId) {
+      conditions.push('user_id = ?');
+      params.push(filter.userId);
+    }
     if (filter.status) {
       conditions.push('status = ?');
       params.push(filter.status);
@@ -184,8 +216,8 @@ const campaigns = {
     const stmt = getDb().prepare(`
       INSERT INTO campaigns (name, client, status, channel, sector, sector_short, position, size,
         angle, zone, tone, formality, length, cta, start_date, lemlist_id, iteration,
-        nb_prospects, sent, planned)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nb_prospects, sent, planned, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       data.name,
@@ -208,6 +240,7 @@ const campaigns = {
       data.nbProspects || 0,
       data.sent || 0,
       data.planned || 0,
+      data.userId || null,
     );
     return { id: result.lastInsertRowid, ...data };
   },
@@ -437,7 +470,11 @@ const memoryPatterns = {
 // Stats helpers
 // =============================================
 
-function dashboardKpis() {
+function dashboardKpis(userId) {
+  const where = userId
+    ? "WHERE status = 'active' AND user_id = ?"
+    : "WHERE status = 'active'";
+  const params = userId ? [userId] : [];
   return getDb().prepare(`
     SELECT
       COUNT(*) as active_campaigns,
@@ -447,8 +484,8 @@ function dashboardKpis() {
       ROUND(AVG(CASE WHEN accept_rate_lk IS NOT NULL THEN accept_rate_lk END), 1) as avg_accept_rate,
       COALESCE(SUM(interested), 0) as total_interested,
       COALESCE(SUM(meetings), 0) as total_meetings
-    FROM campaigns WHERE status = 'active'
-  `).get();
+    FROM campaigns ${where}
+  `).get(...params);
 }
 
 // =============================================
@@ -456,7 +493,12 @@ function dashboardKpis() {
 // =============================================
 
 const chatThreads = {
-  list() {
+  list(userId) {
+    if (userId) {
+      return getDb()
+        .prepare('SELECT * FROM chat_threads WHERE user_id = ? ORDER BY updated_at DESC')
+        .all(userId);
+    }
     return getDb()
       .prepare('SELECT * FROM chat_threads ORDER BY updated_at DESC')
       .all();
@@ -466,9 +508,9 @@ const chatThreads = {
     return getDb().prepare('SELECT * FROM chat_threads WHERE id = ?').get(id);
   },
 
-  create(title) {
-    const stmt = getDb().prepare('INSERT INTO chat_threads (title) VALUES (?)');
-    const result = stmt.run(title || 'Nouvelle conversation');
+  create(title, userId) {
+    const stmt = getDb().prepare('INSERT INTO chat_threads (title, user_id) VALUES (?, ?)');
+    const result = stmt.run(title || 'Nouvelle conversation', userId || null);
     return { id: result.lastInsertRowid, title: title || 'Nouvelle conversation' };
   },
 
@@ -532,6 +574,38 @@ const settings = {
   },
 };
 
+// =============================================
+// Users
+// =============================================
+
+const users = {
+  getByEmail(email) {
+    return getDb().prepare('SELECT * FROM users WHERE email = ?').get(email);
+  },
+
+  getById(id) {
+    return getDb().prepare('SELECT id, email, name, company, role, created_at FROM users WHERE id = ?').get(id);
+  },
+
+  create(data) {
+    const stmt = getDb().prepare(
+      'INSERT INTO users (email, password_hash, name, company, role) VALUES (?, ?, ?, ?, ?)'
+    );
+    const result = stmt.run(
+      data.email,
+      data.passwordHash,
+      data.name,
+      data.company || null,
+      data.role || 'client',
+    );
+    return { id: result.lastInsertRowid, email: data.email, name: data.name, role: data.role || 'client' };
+  },
+
+  count() {
+    return getDb().prepare('SELECT COUNT(*) as c FROM users').get().c;
+  },
+};
+
 module.exports = {
   getDb,
   campaigns,
@@ -543,4 +617,5 @@ module.exports = {
   chatThreads,
   chatMessages,
   settings,
+  users,
 };
