@@ -242,8 +242,43 @@ async function testKey(field, key) {
     }
 
     // Tools that need OAuth or have no simple test endpoint — just save
-    if (['salesforceKey', 'kasprKey', 'lushaKey', 'lgmKey', 'waalaxyKey', 'captaindataKey', 'mailreachKey', 'warmboxKey'].includes(field)) {
+    if (['salesforceKey', 'waalaxyKey', 'mailreachKey', 'warmboxKey'].includes(field)) {
       return { status: 'saved', message: 'Key saved (no auto-test available for this service)' };
+    }
+
+    if (field === 'kasprKey') {
+      const resp = await fetch('https://api.kaspr.io/v1/credits', {
+        headers: { 'Authorization': key, 'Content-Type': 'application/json' },
+      });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    if (field === 'lushaKey') {
+      const resp = await fetch('https://api.lusha.com/v1/contacts?limit=1', {
+        headers: { 'api_key': key },
+      });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    if (field === 'lgmKey') {
+      const resp = await fetch(`https://apiv2.lagrowthmachine.com/flow/members?apikey=${encodeURIComponent(key)}&limit=1`);
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+
+    if (field === 'captaindataKey') {
+      // Captain Data requires project ID in header — test with key only, may return 200 or 401
+      const resp = await fetch('https://api.captaindata.co/v3/project', {
+        headers: { 'Authorization': `x-api-key ${key}` },
+      });
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
     }
 
     return { status: 'unknown' };
