@@ -1991,24 +1991,102 @@ body {
 .notif-item-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
 .notif-item-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
 
-/* ═══════════ SETTINGS ENHANCEMENTS ═══════════ */
-.settings-status-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
-  margin-bottom: 8px;
+/* ═══════════ API CATALOG ═══════════ */
+.api-catalog-toolbar {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;
 }
-.settings-status-card {
+.api-catalog-search {
+  flex: 1; min-width: 200px; padding: 10px 14px 10px 36px;
   background: var(--bg-elevated); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px; text-align: center;
-  transition: all var(--transition);
+  border-radius: var(--radius); color: var(--text-primary); font-size: 13px;
+  transition: border-color var(--transition);
 }
-.settings-status-card:hover { border-color: var(--border-light); }
-.settings-status-icon { font-size: 24px; margin-bottom: 8px; }
-.settings-status-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
-.settings-status-state { font-size: 11px; font-weight: 500; }
-.settings-status-state.online { color: var(--success); }
-.settings-status-state.offline { color: var(--text-muted); }
-.settings-status-state.error { color: var(--danger); }
-.settings-status-detail { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.api-catalog-search:focus { outline: none; border-color: var(--border-light); }
+.api-catalog-search-wrap {
+  position: relative; flex: 1; min-width: 200px;
+}
+.api-catalog-search-wrap::before {
+  content: ''; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; border: 2px solid var(--text-muted); border-radius: 50%;
+  pointer-events: none;
+}
+.api-catalog-search-wrap::after {
+  content: ''; position: absolute; left: 23px; top: 60%; width: 2px; height: 6px;
+  background: var(--text-muted); transform: rotate(-45deg); pointer-events: none;
+}
+.api-catalog-filters {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.api-cat-filter {
+  padding: 6px 14px; font-size: 11px; font-weight: 600; border-radius: 20px;
+  background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary);
+  cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.api-cat-filter:hover { border-color: var(--border-light); color: var(--text-primary); }
+.api-cat-filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.api-catalog-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;
+}
+.api-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px; cursor: pointer; transition: all var(--transition); position: relative;
+  overflow: hidden;
+}
+.api-card:hover { border-color: var(--border-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.api-card.connected { border-color: var(--success); }
+.api-card.connected::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--success);
+}
+.api-card-top {
+  display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px;
+}
+.api-card-icon {
+  font-size: 28px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elevated); border-radius: var(--radius); flex-shrink: 0;
+}
+.api-card-info { flex: 1; min-width: 0; }
+.api-card-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.api-card-badge {
+  display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 10px; background: var(--bg-elevated); color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.api-card-badge.core { background: rgba(99,102,241,0.15); color: #818cf8; }
+.api-card-badge.crm { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.api-card-badge.enrichment { background: rgba(16,185,129,0.15); color: #10b981; }
+.api-card-badge.outreach { background: rgba(239,68,68,0.15); color: #ef4444; }
+.api-card-badge.scraping { background: rgba(168,85,247,0.15); color: #a855f7; }
+.api-card-badge.calendar { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.api-card-badge.deliverability { background: rgba(236,72,153,0.15); color: #ec4899; }
+.api-card-status {
+  display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0;
+}
+.api-card-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted);
+}
+.api-card-status-dot.online { background: var(--success); }
+.api-card-status-dot.error { background: var(--danger); }
+.api-card-status-text { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.api-card-desc {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0;
+}
+.api-card-expand {
+  max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+  margin-top: 0;
+}
+.api-card.open .api-card-expand {
+  max-height: 200px; margin-top: 14px;
+  border-top: 1px solid var(--border); padding-top: 14px;
+}
+.api-card-expand .form-hint { margin-top: 6px; }
+.api-card-chevron {
+  position: absolute; top: 20px; right: 16px; font-size: 12px; color: var(--text-muted);
+  transition: transform 0.3s;
+}
+.api-card.open .api-card-chevron { transform: rotate(180deg); }
+.api-catalog-count {
+  font-size: 12px; color: var(--text-muted); margin-top: 8px;
+}
 
 /* ═══════════ RESPONSIVE ═══════════ */
 @media (max-width: 1200px) {
@@ -2053,7 +2131,7 @@ body {
   .form-row { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .analytics-kpi-row { grid-template-columns: 1fr 1fr; }
-  .settings-status-grid { grid-template-columns: 1fr; }
+  .api-catalog-grid { grid-template-columns: 1fr; }
   .campaign-row { grid-template-columns: 1fr; gap: 8px; padding: 14px 16px; }
   .campaign-row-channel,
   .campaign-row-arrow { display: none; }
@@ -3340,309 +3418,532 @@ body {
         </div>
       </div>
 
-      <!-- Connection Status Dashboard -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">📡 État des connexions</div><button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="testApiConnections()">🔄 Tester</button></div>
-        <div class="card-body">
-          <div class="settings-status-grid" id="settingsStatusGrid">
-            <div class="settings-status-card">
-              <div class="settings-status-icon">✉️</div>
-              <div class="settings-status-name">Lemlist</div>
-              <div class="settings-status-state offline" id="settings-conn-lemlist">Non connecté</div>
-              <div class="settings-status-detail">Envoi d'emails & LinkedIn</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">📝</div>
-              <div class="settings-status-name">Notion</div>
-              <div class="settings-status-state offline" id="settings-conn-notion">Non connecté</div>
-              <div class="settings-status-detail">Hub données & CRM</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">🤖</div>
-              <div class="settings-status-name">Claude</div>
-              <div class="settings-status-state offline" id="settings-conn-claude">Non connecté</div>
-              <div class="settings-status-detail">IA & génération de copy</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">🟠</div>
-              <div class="settings-status-name">HubSpot</div>
-              <div class="settings-status-state offline" id="settings-conn-hubspot">Non connecté</div>
-              <div class="settings-status-detail">CRM & pipeline</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">📧</div>
-              <div class="settings-status-name">Dropcontact</div>
-              <div class="settings-status-state offline" id="settings-conn-dropcontact">Non connecté</div>
-              <div class="settings-status-detail">Enrichissement email</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">📅</div>
-              <div class="settings-status-name">Calendly</div>
-              <div class="settings-status-state offline" id="settings-conn-calendly">Non connecté</div>
-              <div class="settings-status-detail">Prise de RDV</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">⚡</div>
-              <div class="settings-status-name">Instantly</div>
-              <div class="settings-status-state offline" id="settings-conn-instantly">Non connecté</div>
-              <div class="settings-status-detail">Cold email à grande échelle</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">👻</div>
-              <div class="settings-status-name">PhantomBuster</div>
-              <div class="settings-status-state offline" id="settings-conn-phantombuster">Non connecté</div>
-              <div class="settings-status-detail">Scraping LinkedIn</div>
-            </div>
-            <div class="settings-status-card">
-              <div class="settings-status-icon">📬</div>
-              <div class="settings-status-name">Mailreach</div>
-              <div class="settings-status-state offline" id="settings-conn-mailreach">Non connecté</div>
-              <div class="settings-status-detail">Warm-up email</div>
-            </div>
+      <!-- API Catalog -->
+      <div class="card" id="apiCatalogCard">
+        <div class="card-header">
+          <div class="card-title">🔌 Bibliothèque d'intégrations</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="testApiConnections()">🔄 Tester tout</button>
+            <div class="api-catalog-count" id="apiCatalogCount"></div>
           </div>
         </div>
-      </div>
-
-      <!-- API Keys — Core -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">⚡ Intégrations essentielles</div></div>
         <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">✉️ Lemlist API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-lemlist-key" type="password" placeholder="Copiez depuis Lemlist → Settings → Integrations → API" data-original-placeholder="Copiez depuis Lemlist → Settings → Integrations → API">
-                <span class="input-status" id="status-lemlist">Non connecté</span>
-              </div>
-              <div class="form-hint">Lemlist → Settings → Integrations → API · <em>Chiffré côté serveur</em></div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Connectez vos outils pour automatiser votre prospection. Cliquez sur une carte pour configurer la clé API.</p>
+
+          <!-- Search & Filters -->
+          <div class="api-catalog-toolbar">
+            <div class="api-catalog-search-wrap">
+              <input class="api-catalog-search" type="text" placeholder="Rechercher une intégration..." id="apiCatalogSearch" oninput="filterApiCatalog()">
             </div>
-            <div class="form-group full">
-              <label class="form-label">🤖 Anthropic API Key (Claude)</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-claude-key" type="password" placeholder="sk-ant-..." data-original-placeholder="sk-ant-...">
-                <span class="input-status" id="status-claude">Non connecté</span>
-              </div>
-              <div class="form-hint">console.anthropic.com → Settings → API Keys</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">📝 Notion Integration Token</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-notion-token" type="password" placeholder="Copiez depuis notion.so/my-integrations" data-original-placeholder="Copiez depuis notion.so/my-integrations">
-                <span class="input-status" id="status-notion">Non connecté</span>
-              </div>
-              <div class="form-hint">notion.so/my-integrations → Créer une intégration</div>
+            <div class="api-catalog-filters" id="apiCatalogFilters">
+              <button class="api-cat-filter active" data-cat="all" onclick="setApiCatFilter('all',this)">Toutes</button>
+              <button class="api-cat-filter" data-cat="core" onclick="setApiCatFilter('core',this)">Core</button>
+              <button class="api-cat-filter" data-cat="crm" onclick="setApiCatFilter('crm',this)">CRM</button>
+              <button class="api-cat-filter" data-cat="enrichment" onclick="setApiCatFilter('enrichment',this)">Enrichissement</button>
+              <button class="api-cat-filter" data-cat="outreach" onclick="setApiCatFilter('outreach',this)">Outreach</button>
+              <button class="api-cat-filter" data-cat="scraping" onclick="setApiCatFilter('scraping',this)">Scraping</button>
+              <button class="api-cat-filter" data-cat="calendar" onclick="setApiCatFilter('calendar',this)">Calendrier</button>
+              <button class="api-cat-filter" data-cat="deliverability" onclick="setApiCatFilter('deliverability',this)">Délivrabilité</button>
             </div>
           </div>
+
+          <!-- Cards Grid -->
+          <div class="api-catalog-grid" id="apiCatalogGrid">
+
+            <!-- ═══ CORE ═══ -->
+            <div class="api-card" data-cat="core" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">✉️</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Lemlist</div>
+                  <span class="api-card-badge core">Core</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-lemlist"></div>
+                  <span class="api-card-status-text" id="status-lemlist">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Envoi d'emails et messages LinkedIn automatisés. Gestion des séquences multi-canal, A/B testing, et suivi des performances.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-lemlist-key" type="password" placeholder="Copiez depuis Lemlist → Settings → Integrations → API" data-original-placeholder="Copiez depuis Lemlist → Settings → Integrations → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Lemlist → Settings → Integrations → API · <em>Chiffré côté serveur</em></div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="core" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🤖</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Claude (Anthropic)</div>
+                  <span class="api-card-badge core">Core</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-claude"></div>
+                  <span class="api-card-status-text" id="status-claude">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Intelligence artificielle pour la génération de copy personnalisé, l'analyse de performances et les recommandations d'optimisation.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-claude-key" type="password" placeholder="sk-ant-..." data-original-placeholder="sk-ant-..." onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">console.anthropic.com → Settings → API Keys</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="core" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📝</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Notion</div>
+                  <span class="api-card-badge core">Core</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-notion"></div>
+                  <span class="api-card-status-text" id="status-notion">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Hub centralisé pour vos données : gestion clients, suivi campagnes, base de connaissances et mémoire cross-campagne.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-notion-token" type="password" placeholder="Copiez depuis notion.so/my-integrations" data-original-placeholder="Copiez depuis notion.so/my-integrations" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">notion.so/my-integrations → Créer une intégration</div>
+              </div>
+            </div>
+
+            <!-- ═══ CRM ═══ -->
+            <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🟠</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">HubSpot</div>
+                  <span class="api-card-badge crm">CRM</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-hubspot"></div>
+                  <span class="api-card-status-text" id="status-hubspot">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Synchronisation automatique des leads, gestion du pipeline commercial et tracking des interactions prospects.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-hubspot-key" type="password" placeholder="pat-..." data-original-placeholder="pat-..." onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">HubSpot → Settings → Integrations → Private Apps</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🟢</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Pipedrive</div>
+                  <span class="api-card-badge crm">CRM</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-pipedrive"></div>
+                  <span class="api-card-status-text" id="status-pipedrive">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">CRM orienté vente avec pipeline visuel. Sync des deals et contacts générés par vos campagnes de prospection.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-pipedrive-key" type="password" placeholder="Copiez depuis Pipedrive → Settings → API" data-original-placeholder="Copiez depuis Pipedrive → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Pipedrive → Settings → Personal preferences → API</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">☁️</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Salesforce</div>
+                  <span class="api-card-badge crm">CRM</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-salesforce"></div>
+                  <span class="api-card-status-text" id="status-salesforce">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">CRM enterprise. Synchronisation bidirectionnelle des leads, contacts et opportunités avec vos campagnes.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-salesforce-key" type="password" placeholder="Connected App Consumer Key" data-original-placeholder="Connected App Consumer Key" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Salesforce → Setup → Apps → Connected Apps</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">👥</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Folk</div>
+                  <span class="api-card-badge crm">CRM</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-folk"></div>
+                  <span class="api-card-status-text" id="status-folk">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">CRM léger et collaboratif, idéal pour les équipes de prospection. Import/export automatique de contacts.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-folk-key" type="password" placeholder="Copiez depuis Folk → Settings → API" data-original-placeholder="Copiez depuis Folk → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Folk → Settings → Integrations → API Key</div>
+              </div>
+            </div>
+
+            <!-- ═══ ENRICHMENT ═══ -->
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📧</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Dropcontact</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-dropcontact"></div>
+                  <span class="api-card-status-text" id="status-dropcontact">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Enrichissement d'emails B2B conforme RGPD. Trouve et vérifie les adresses email professionnelles sans base de données.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-dropcontact-key" type="password" placeholder="Copiez depuis Dropcontact → API" data-original-placeholder="Copiez depuis Dropcontact → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Dropcontact → Dashboard → API · RGPD-compliant</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🚀</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Apollo.io</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-apollo"></div>
+                  <span class="api-card-status-text" id="status-apollo">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Base de données B2B massive. Enrichissement de contacts, recherche de prospects par critères, et vérification d'emails.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-apollo-key" type="password" placeholder="Copiez depuis Apollo → Settings → API" data-original-placeholder="Copiez depuis Apollo → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Apollo → Settings → Integrations → API Keys</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🔍</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Hunter.io</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-hunter"></div>
+                  <span class="api-card-status-text" id="status-hunter">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Recherche d'emails par nom de domaine. Vérifie la délivrabilité et trouve les bons contacts dans une entreprise.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-hunter-key" type="password" placeholder="Copiez depuis hunter.io → API" data-original-placeholder="Copiez depuis hunter.io → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Hunter → Dashboard → API → Your API Key</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📱</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Kaspr</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-kaspr"></div>
+                  <span class="api-card-status-text" id="status-kaspr">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Enrichissement spécialisé LinkedIn. Récupère emails et numéros de téléphone directement depuis les profils LinkedIn.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-kaspr-key" type="password" placeholder="Copiez depuis Kaspr → Settings → API" data-original-placeholder="Copiez depuis Kaspr → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Kaspr → Dashboard → Settings → API · Spécialisé LinkedIn</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🔮</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Lusha</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-lusha"></div>
+                  <span class="api-card-status-text" id="status-lusha">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Emails et numéros directs B2B. Enrichissement de masse avec données vérifiées et scoring de fiabilité.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-lusha-key" type="password" placeholder="Copiez depuis Lusha → Settings → API" data-original-placeholder="Copiez depuis Lusha → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Lusha → Settings → API · Emails & téléphones B2B</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="enrichment" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">❄️</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Snov.io</div>
+                  <span class="api-card-badge enrichment">Enrichissement</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-snov"></div>
+                  <span class="api-card-status-text" id="status-snov">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Recherche et vérification d'emails. Drip campaigns intégrées et enrichissement automatique de vos listes de prospection.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-snov-key" type="password" placeholder="Copiez depuis Snov → Settings → API" data-original-placeholder="Copiez depuis Snov → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Snov.io → Settings → API · Recherche & vérification email</div>
+              </div>
+            </div>
+
+            <!-- ═══ OUTREACH ═══ -->
+            <div class="api-card" data-cat="outreach" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">⚡</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Instantly</div>
+                  <span class="api-card-badge outreach">Outreach</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-instantly"></div>
+                  <span class="api-card-status-text" id="status-instantly">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Cold email à grande échelle avec warm-up intégré. Rotation de comptes email et optimisation de délivrabilité automatique.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-instantly-key" type="password" placeholder="Copiez depuis Instantly → Settings → API" data-original-placeholder="Copiez depuis Instantly → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Instantly → Settings → API · Cold email à grande échelle</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="outreach" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🚀</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">La Growth Machine</div>
+                  <span class="api-card-badge outreach">Outreach</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-lgm"></div>
+                  <span class="api-card-status-text" id="status-lgm">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Prospection multi-canal automatisée : email, LinkedIn et Twitter. Workflows visuels avec conditions et variables dynamiques.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-lgm-key" type="password" placeholder="Copiez depuis LGM → Settings → API" data-original-placeholder="Copiez depuis LGM → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">La Growth Machine → Settings → API · Multi-canal automatisé</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="outreach" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🌐</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Waalaxy</div>
+                  <span class="api-card-badge outreach">Outreach</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-waalaxy"></div>
+                  <span class="api-card-status-text" id="status-waalaxy">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Prospection LinkedIn + Email combinée. Séquences automatiques avec invitations LinkedIn, messages et follow-ups email.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-waalaxy-key" type="password" placeholder="Copiez depuis Waalaxy → Settings → API" data-original-placeholder="Copiez depuis Waalaxy → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Waalaxy → Settings → API · Prospection LinkedIn + Email</div>
+              </div>
+            </div>
+
+            <!-- ═══ SCRAPING ═══ -->
+            <div class="api-card" data-cat="scraping" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">👻</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">PhantomBuster</div>
+                  <span class="api-card-badge scraping">Scraping</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-phantombuster"></div>
+                  <span class="api-card-status-text" id="status-phantombuster">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Extraction de données LinkedIn, Sales Navigator et web. Automatisez le scraping de profils, recherches et listes de prospects.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-phantombuster-key" type="password" placeholder="Copiez depuis PhantomBuster → Settings → API" data-original-placeholder="Copiez depuis PhantomBuster → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">PhantomBuster → Dashboard → Settings → API</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="scraping" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🚢</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Captain Data</div>
+                  <span class="api-card-badge scraping">Scraping</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-captaindata"></div>
+                  <span class="api-card-status-text" id="status-captaindata">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Workflows d'extraction de données web avancés. Chaînez scraping, enrichissement et export vers vos outils en un seul flux.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-captaindata-key" type="password" placeholder="Copiez depuis Captain Data → Settings → API" data-original-placeholder="Copiez depuis Captain Data → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Captain Data → Settings → API · Workflows d'extraction</div>
+              </div>
+            </div>
+
+            <!-- ═══ CALENDAR ═══ -->
+            <div class="api-card" data-cat="calendar" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📅</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Calendly</div>
+                  <span class="api-card-badge calendar">Calendrier</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-calendly"></div>
+                  <span class="api-card-status-text" id="status-calendly">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Prise de rendez-vous automatisée. Insérez votre lien Calendly dans les séquences pour convertir les prospects intéressés.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-calendly-key" type="password" placeholder="Copiez depuis Calendly → Integrations → API" data-original-placeholder="Copiez depuis Calendly → Integrations → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Calendly → Integrations → API & Webhooks → Personal Access Token</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="calendar" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📆</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Cal.com</div>
+                  <span class="api-card-badge calendar">Calendrier</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-calcom"></div>
+                  <span class="api-card-status-text" id="status-calcom">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Alternative open-source à Calendly. Planification de rendez-vous flexible avec intégrations et personnalisation avancées.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-calcom-key" type="password" placeholder="Copiez depuis Cal.com → Settings → API Keys" data-original-placeholder="Copiez depuis Cal.com → Settings → API Keys" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Cal.com → Settings → Developer → API Keys · Open-source</div>
+              </div>
+            </div>
+
+            <!-- ═══ DELIVERABILITY ═══ -->
+            <div class="api-card" data-cat="deliverability" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">📬</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Mailreach</div>
+                  <span class="api-card-badge deliverability">Délivrabilité</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-mailreach"></div>
+                  <span class="api-card-status-text" id="status-mailreach">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Warm-up email et monitoring de délivrabilité. Protège votre réputation d'expéditeur et évite les dossiers spam.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-mailreach-key" type="password" placeholder="Copiez depuis Mailreach → Settings → API" data-original-placeholder="Copiez depuis Mailreach → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Mailreach → Dashboard → API · Warm-up & monitoring inbox</div>
+              </div>
+            </div>
+
+            <div class="api-card" data-cat="deliverability" onclick="toggleApiCard(this)">
+              <span class="api-card-chevron">▼</span>
+              <div class="api-card-top">
+                <div class="api-card-icon">🔥</div>
+                <div class="api-card-info">
+                  <div class="api-card-name">Warmbox</div>
+                  <span class="api-card-badge deliverability">Délivrabilité</span>
+                </div>
+                <div class="api-card-status">
+                  <div class="api-card-status-dot" id="dot-warmbox"></div>
+                  <span class="api-card-status-text" id="status-warmbox">Non connecté</span>
+                </div>
+              </div>
+              <div class="api-card-desc">Warm-up automatisé de vos adresses email. Améliore progressivement votre score d'expéditeur pour maximiser l'inbox rate.</div>
+              <div class="api-card-expand">
+                <div class="input-with-status">
+                  <input class="form-input mono" id="settings-warmbox-key" type="password" placeholder="Copiez depuis Warmbox → Settings → API" data-original-placeholder="Copiez depuis Warmbox → Settings → API" onclick="event.stopPropagation()">
+                </div>
+                <div class="form-hint">Warmbox → Settings → API · Warm-up automatisé</div>
+              </div>
+            </div>
+
+          </div><!-- /api-catalog-grid -->
         </div>
       </div>
-
-      <!-- API Keys — CRM -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">📊 CRM</div><span style="font-size:11px;color:var(--text-muted);">Connectez 1 CRM pour synchroniser vos leads</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">🟠 HubSpot API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-hubspot-key" type="password" placeholder="pat-..." data-original-placeholder="pat-...">
-                <span class="input-status" id="status-hubspot">Non connecté</span>
-              </div>
-              <div class="form-hint">HubSpot → Settings → Integrations → Private Apps</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🟢 Pipedrive API Token</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-pipedrive-key" type="password" placeholder="Copiez depuis Pipedrive → Settings → API" data-original-placeholder="Copiez depuis Pipedrive → Settings → API">
-                <span class="input-status" id="status-pipedrive">Non connecté</span>
-              </div>
-              <div class="form-hint">Pipedrive → Settings → Personal preferences → API</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">☁️ Salesforce Consumer Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-salesforce-key" type="password" placeholder="Connected App Consumer Key" data-original-placeholder="Connected App Consumer Key">
-                <span class="input-status" id="status-salesforce">Non connecté</span>
-              </div>
-              <div class="form-hint">Salesforce → Setup → Apps → Connected Apps</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">👥 Folk API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-folk-key" type="password" placeholder="Copiez depuis Folk → Settings → API" data-original-placeholder="Copiez depuis Folk → Settings → API">
-                <span class="input-status" id="status-folk">Non connecté</span>
-              </div>
-              <div class="form-hint">Folk → Settings → Integrations → API Key</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Keys — Enrichment -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">🔎 Enrichissement de données</div><span style="font-size:11px;color:var(--text-muted);">Trouvez et vérifiez les emails de vos prospects</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">📧 Dropcontact API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-dropcontact-key" type="password" placeholder="Copiez depuis Dropcontact → API" data-original-placeholder="Copiez depuis Dropcontact → API">
-                <span class="input-status" id="status-dropcontact">Non connecté</span>
-              </div>
-              <div class="form-hint">Dropcontact → Dashboard → API · RGPD-compliant</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🚀 Apollo.io API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-apollo-key" type="password" placeholder="Copiez depuis Apollo → Settings → API" data-original-placeholder="Copiez depuis Apollo → Settings → API">
-                <span class="input-status" id="status-apollo">Non connecté</span>
-              </div>
-              <div class="form-hint">Apollo → Settings → Integrations → API Keys</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🔍 Hunter.io API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-hunter-key" type="password" placeholder="Copiez depuis hunter.io → API" data-original-placeholder="Copiez depuis hunter.io → API">
-                <span class="input-status" id="status-hunter">Non connecté</span>
-              </div>
-              <div class="form-hint">Hunter → Dashboard → API → Your API Key</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">📱 Kaspr API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-kaspr-key" type="password" placeholder="Copiez depuis Kaspr → Settings → API" data-original-placeholder="Copiez depuis Kaspr → Settings → API">
-                <span class="input-status" id="status-kaspr">Non connecté</span>
-              </div>
-              <div class="form-hint">Kaspr → Dashboard → Settings → API · Spécialisé LinkedIn</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🔮 Lusha API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-lusha-key" type="password" placeholder="Copiez depuis Lusha → Settings → API" data-original-placeholder="Copiez depuis Lusha → Settings → API">
-                <span class="input-status" id="status-lusha">Non connecté</span>
-              </div>
-              <div class="form-hint">Lusha → Settings → API · Emails & téléphones B2B</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">❄️ Snov.io API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-snov-key" type="password" placeholder="Copiez depuis Snov → Settings → API" data-original-placeholder="Copiez depuis Snov → Settings → API">
-                <span class="input-status" id="status-snov">Non connecté</span>
-              </div>
-              <div class="form-hint">Snov.io → Settings → API · Recherche & vérification email</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Keys — Outreach -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">📤 Outreach & envoi</div><span style="font-size:11px;color:var(--text-muted);">Automatisez l'envoi d'emails et messages LinkedIn</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">⚡ Instantly API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-instantly-key" type="password" placeholder="Copiez depuis Instantly → Settings → API" data-original-placeholder="Copiez depuis Instantly → Settings → API">
-                <span class="input-status" id="status-instantly">Non connecté</span>
-              </div>
-              <div class="form-hint">Instantly → Settings → API · Cold email à grande échelle</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🚀 La Growth Machine API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-lgm-key" type="password" placeholder="Copiez depuis LGM → Settings → API" data-original-placeholder="Copiez depuis LGM → Settings → API">
-                <span class="input-status" id="status-lgm">Non connecté</span>
-              </div>
-              <div class="form-hint">La Growth Machine → Settings → API · Multi-canal automatisé</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🌐 Waalaxy API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-waalaxy-key" type="password" placeholder="Copiez depuis Waalaxy → Settings → API" data-original-placeholder="Copiez depuis Waalaxy → Settings → API">
-                <span class="input-status" id="status-waalaxy">Non connecté</span>
-              </div>
-              <div class="form-hint">Waalaxy → Settings → API · Prospection LinkedIn + Email</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Keys — LinkedIn / Scraping -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">🕷️ Scraping & extraction</div><span style="font-size:11px;color:var(--text-muted);">Extrayez des données LinkedIn et web</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">👻 PhantomBuster API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-phantombuster-key" type="password" placeholder="Copiez depuis PhantomBuster → Settings → API" data-original-placeholder="Copiez depuis PhantomBuster → Settings → API">
-                <span class="input-status" id="status-phantombuster">Non connecté</span>
-              </div>
-              <div class="form-hint">PhantomBuster → Dashboard → Settings → API · Scraping LinkedIn</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🚢 Captain Data API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-captaindata-key" type="password" placeholder="Copiez depuis Captain Data → Settings → API" data-original-placeholder="Copiez depuis Captain Data → Settings → API">
-                <span class="input-status" id="status-captaindata">Non connecté</span>
-              </div>
-              <div class="form-hint">Captain Data → Settings → API · Workflows d'extraction</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Keys — Calendar -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">📅 Calendrier</div><span style="font-size:11px;color:var(--text-muted);">Automatisez la prise de rendez-vous</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">📅 Calendly Personal Access Token</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-calendly-key" type="password" placeholder="Copiez depuis Calendly → Integrations → API" data-original-placeholder="Copiez depuis Calendly → Integrations → API">
-                <span class="input-status" id="status-calendly">Non connecté</span>
-              </div>
-              <div class="form-hint">Calendly → Integrations → API & Webhooks → Personal Access Token</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">📆 Cal.com API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-calcom-key" type="password" placeholder="Copiez depuis Cal.com → Settings → API Keys" data-original-placeholder="Copiez depuis Cal.com → Settings → API Keys">
-                <span class="input-status" id="status-calcom">Non connecté</span>
-              </div>
-              <div class="form-hint">Cal.com → Settings → Developer → API Keys · Open-source</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Keys — Deliverability -->
-      <div class="card">
-        <div class="card-header"><div class="card-title">📬 Délivrabilité</div><span style="font-size:11px;color:var(--text-muted);">Protégez votre réputation email et évitez les spams</span></div>
-        <div class="card-body">
-          <div class="form-stack">
-            <div class="form-group full">
-              <label class="form-label">📬 Mailreach API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-mailreach-key" type="password" placeholder="Copiez depuis Mailreach → Settings → API" data-original-placeholder="Copiez depuis Mailreach → Settings → API">
-                <span class="input-status" id="status-mailreach">Non connecté</span>
-              </div>
-              <div class="form-hint">Mailreach → Dashboard → API · Warm-up & monitoring inbox</div>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">🔥 Warmbox API Key</label>
-              <div class="input-with-status">
-                <input class="form-input mono" id="settings-warmbox-key" type="password" placeholder="Copiez depuis Warmbox → Settings → API" data-original-placeholder="Copiez depuis Warmbox → Settings → API">
-                <span class="input-status" id="status-warmbox">Non connecté</span>
-              </div>
-              <div class="form-hint">Warmbox → Settings → API · Warm-up automatisé</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn btn-ghost" style="align-self:flex-start;" onclick="testApiConnections()">🔄 Tester toutes les connexions</button>
 
       <!-- Lemlist Config -->
       <div class="card">

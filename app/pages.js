@@ -223,6 +223,8 @@ async function loadSettingsKeys() {
         status.style.color = '';
       }
     }
+    // Sync catalog card dots
+    if (typeof updateApiCatalogDots === 'function') setTimeout(updateApiCatalogDots, 100);
   } catch { /* backend not available */ }
 }
 
@@ -321,9 +323,12 @@ async function testApiConnections() {
         }
         el.style.color = '';
       }
-      // Sync connection status cards
+      // Sync connection status cards & catalog dots
       if (typeof updateSettingsConnectionStatus === 'function') {
         setTimeout(updateSettingsConnectionStatus, 200);
+      }
+      if (typeof updateApiCatalogDots === 'function') {
+        setTimeout(updateApiCatalogDots, 300);
       }
       return;
     } catch { /* backend not available, fall through */ }
@@ -374,9 +379,12 @@ async function testApiConnections() {
     status.style.color = '';
   }
 
-  // Sync connection status cards
+  // Sync connection status cards & catalog dots
   if (typeof updateSettingsConnectionStatus === 'function') {
     setTimeout(updateSettingsConnectionStatus, 500);
+  }
+  if (typeof updateApiCatalogDots === 'function') {
+    setTimeout(updateApiCatalogDots, 600);
   }
 }
 
@@ -722,6 +730,82 @@ async function deleteDocument(id) {
   }
 }
 
+/* ═══════════════════════════════════════════════
+   API Catalog — Card toggle, filter, search
+   ═══════════════════════════════════════════════ */
+
+let apiCatFilterActive = 'all';
+
+function toggleApiCard(card) {
+  card.classList.toggle('open');
+}
+
+function setApiCatFilter(cat, btn) {
+  apiCatFilterActive = cat;
+  document.querySelectorAll('.api-cat-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterApiCatalog();
+}
+
+function filterApiCatalog() {
+  const query = (document.getElementById('apiCatalogSearch')?.value || '').toLowerCase();
+  const cards = document.querySelectorAll('.api-card');
+  let visible = 0;
+
+  cards.forEach(card => {
+    const cat = card.dataset.cat;
+    const name = card.querySelector('.api-card-name')?.textContent?.toLowerCase() || '';
+    const desc = card.querySelector('.api-card-desc')?.textContent?.toLowerCase() || '';
+
+    const matchesCat = apiCatFilterActive === 'all' || cat === apiCatFilterActive;
+    const matchesSearch = !query || name.includes(query) || desc.includes(query);
+
+    if (matchesCat && matchesSearch) {
+      card.style.display = '';
+      visible++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const countEl = document.getElementById('apiCatalogCount');
+  if (countEl) countEl.textContent = `${visible} intégration${visible !== 1 ? 's' : ''}`;
+}
+
+function updateApiCatalogDots() {
+  // Sync status-dot colors with status text
+  const dotMap = {
+    'status-lemlist': 'dot-lemlist', 'status-claude': 'dot-claude', 'status-notion': 'dot-notion',
+    'status-hubspot': 'dot-hubspot', 'status-pipedrive': 'dot-pipedrive', 'status-salesforce': 'dot-salesforce',
+    'status-folk': 'dot-folk', 'status-dropcontact': 'dot-dropcontact', 'status-apollo': 'dot-apollo',
+    'status-hunter': 'dot-hunter', 'status-kaspr': 'dot-kaspr', 'status-lusha': 'dot-lusha',
+    'status-snov': 'dot-snov', 'status-instantly': 'dot-instantly', 'status-lgm': 'dot-lgm',
+    'status-waalaxy': 'dot-waalaxy', 'status-phantombuster': 'dot-phantombuster',
+    'status-captaindata': 'dot-captaindata', 'status-calendly': 'dot-calendly',
+    'status-calcom': 'dot-calcom', 'status-mailreach': 'dot-mailreach', 'status-warmbox': 'dot-warmbox',
+  };
+
+  for (const [statusId, dotId] of Object.entries(dotMap)) {
+    const status = document.getElementById(statusId);
+    const dot = document.getElementById(dotId);
+    if (!status || !dot) continue;
+
+    const card = dot.closest('.api-card');
+    if (status.classList.contains('connected')) {
+      dot.classList.add('online');
+      dot.classList.remove('error');
+      if (card) card.classList.add('connected');
+    } else if (status.classList.contains('error')) {
+      dot.classList.add('error');
+      dot.classList.remove('online');
+      if (card) card.classList.remove('connected');
+    } else {
+      dot.classList.remove('online', 'error');
+      if (card) card.classList.remove('connected');
+    }
+  }
+}
+
 /* ═══ Init — Load saved data on page load ═══ */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
@@ -730,4 +814,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSettingsKeys();
   initDocDropzone();
   loadDocuments();
+  filterApiCatalog();
 });
