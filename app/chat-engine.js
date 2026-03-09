@@ -1503,7 +1503,8 @@ function patchChatHybrid() {
         setTimeout(() => {
           const id = createCampaignLocally(lastMeta);
           if (id) {
-            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
+            const _aud = (lastMeta.planned || lastMeta.volume || 200);
+            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès — **${_aud} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
             setTimeout(() => showPage('copyeditor'), 1200);
           }
         }, 500);
@@ -1530,7 +1531,8 @@ function patchChatHybrid() {
 
         // Step 2: Generate AI sequence for this campaign
         if (backendId) {
-          appendMessage('assistant', `Campagne **"${campaignData.name}"** créée. Génération de la séquence par Claude en cours...`);
+          const _audSize = campaignData.planned || campaignData.volume || 200;
+          appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audSize} prospects** ciblés. Génération de la séquence par Claude en cours...`);
 
           try {
             const seqResult = await BakalAPI.generateSequence({
@@ -1553,7 +1555,7 @@ function patchChatHybrid() {
             }
 
             const id = createCampaignLocally(campaignData);
-            appendMessage('assistant', `Séquence de **${(seqResult.sequence || []).length} touchpoints** générée par Claude !\n\n${seqResult.strategy || ''}\n\nRedirection vers l'éditeur de séquences...`);
+            appendMessage('assistant', `Séquence de **${(seqResult.sequence || []).length} touchpoints** générée par Claude pour **${_audSize} prospects** !\n\n${seqResult.strategy || ''}\n\nRedirection vers l'éditeur de séquences...`);
             setTimeout(() => showPage('copyeditor'), 1500);
             return;
           } catch (aiErr) {
@@ -1563,7 +1565,8 @@ function patchChatHybrid() {
         }
 
         const id = createCampaignLocally(campaignData);
-        appendMessage('assistant', `Campagne **"${campaignData.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
+        const _audFb = campaignData.planned || campaignData.volume || 200;
+        appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audFb} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
         setTimeout(() => showPage('copyeditor'), 1200);
         return;
       } catch (err) {
@@ -1574,7 +1577,8 @@ function patchChatHybrid() {
     // Offline fallback → create locally
     const id = createCampaignLocally(campaignData);
     if (id) {
-      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée !\nRedirection vers l'éditeur de séquences...`);
+      const _audOff = campaignData.planned || campaignData.volume || 200;
+      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audOff} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
       setTimeout(() => showPage('copyeditor'), 1200);
     } else {
       appendMessage('assistant', 'Erreur lors de la création. Essayez via le bouton **+ Nouvelle campagne** du dashboard.');

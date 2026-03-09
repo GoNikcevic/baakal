@@ -534,8 +534,18 @@ function renderCampaignRow(c) {
 
   const dateLabel = isPrep ? 'Créée' : 'Lancée';
 
+  // Audience size: sent (active) or planned (prep)
+  const audienceCount = (c.volume && c.volume.sent > 0) ? c.volume.sent
+    : (c.volume && c.volume.planned > 0) ? c.volume.planned
+    : (c.kpis && c.kpis.contacts > 0) ? c.kpis.contacts
+    : 0;
+  const audienceLabel = (c.volume && c.volume.sent > 0) ? 'envoyés' : 'planifiés';
+  const audienceHtml = audienceCount > 0
+    ? `<span class="campaign-audience">${audienceCount} prospects</span>`
+    : '';
+
   return `<div class="campaign-row" onclick="showCampaignDetail('${c.id}')">
-    <div><div class="campaign-row-name">${c.name}</div><div class="campaign-row-meta">${c.sectorShort} · ${c.size} · ${c.angle} · ${dateLabel} ${c.startDate}</div></div>
+    <div><div class="campaign-row-name">${c.name}${audienceHtml}</div><div class="campaign-row-meta">${c.sectorShort} · ${c.size} · ${c.angle} · ${dateLabel} ${c.startDate}</div></div>
     <div class="campaign-row-channel"><span style="color:${c.channelColor}">${c.channelLabel}</span></div>
     <div class="campaign-row-stat">${statusHtml}</div>
     <div class="campaign-row-stat"><div class="campaign-row-stat-value" style="color:${stat1Color}">${stat1Value}</div><div class="campaign-row-stat-label">${stat1Label}</div></div>
