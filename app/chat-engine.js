@@ -679,7 +679,10 @@ function buildResponse(userText) {
 
   let response;
 
-  if (_conv.stage === 'init' && (lower.includes('optimi') || lower.includes('sous-performe') || lower.includes('améliorer'))) {
+  // Analyze / stats / diagnostic intent
+  if (_conv.stage === 'init' && lower.match(/\b(analy|stats?|statist|diagnostic|performance|résultat|rapport|kpi|tableau de bord|dashboard)\b/)) {
+    response = handleAnalyzeQuery(text);
+  } else if (_conv.stage === 'init' && (lower.includes('optimi') || lower.includes('sous-performe') || lower.includes('améliorer') || lower.includes('régénér'))) {
     response = handleOptimizationQuery(text);
   } else if (_conv.stage === 'init' && (lower.includes('angle') || lower.includes('approche')) && lower.includes('secteur')) {
     response = handleAngleQuery(text);
@@ -807,27 +810,265 @@ function handleConfirmation(text) {
   return { content: `Souhaitez-vous créer cette campagne telle quelle, ou préférez-vous modifier quelque chose ?` };
 }
 
+/* ═══ Benchmarks ═══ */
+
+const BENCHMARKS = {
+  email: { open: { bad: 35, ok: 50, good: 60 }, reply: { bad: 2, ok: 5, good: 8 }, stop: { bad: 3, ok: 1.5, good: 0.5 } },
+  linkedin: { accept: { bad: 20, ok: 30, good: 40 }, reply: { bad: 3, ok: 5, good: 8 } },
+};
+
+function rateMetric(value, thresholds) {
+  if (value == null) return { label: '—', emoji: '⬜', level: 'unknown' };
+  if (value >= thresholds.good) return { label: 'Excellent', emoji: '🟢', level: 'success' };
+  if (value >= thresholds.ok) return { label: 'Correct', emoji: '🟡', level: 'ok' };
+  return { label: 'À améliorer', emoji: '🔴', level: 'bad' };
+}
+
+/* ═══ Campaign analysis ═══ */
+
+function analyzeCampaignStats(c) {
+  const isLinkedIn = c.channel === 'linkedin';
+  const isMulti = c.channel === 'multi';
+  const results = { campaign: c, touchpoints: [], priorities: [], globalScore: 'unknown' };
+
+  if (!c.sequence || c.sequence.length === 0) return results;
+
+  let totalScore = 0;
+  let scoredSteps = 0;
+
+  c.sequence.forEach(step => {
+    if (!step.stats) return;
+    const tp = { id: step.id, type: step.type, label: step.label, metrics: [], issues: [], strengths: [] };
+
+    if (step.type === 'email') {
+      const bench = BENCHMARKS.email;
+      if (step.stats.open != null) {
+        const r = rateMetric(step.stats.open, bench.open);
+        tp.metrics.push({ name: 'Ouverture', value: step.stats.open + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux d'ouverture faible (${step.stats.open}%) — revoir l'objet et le nom d'expéditeur`);
+        if (r.level === 'success') tp.strengths.push(`Excellent taux d'ouverture (${step.stats.open}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.reply != null) {
+        const r = rateMetric(step.stats.reply, bench.reply);
+        tp.metrics.push({ name: 'Réponse', value: step.stats.reply + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux de réponse insuffisant (${step.stats.reply}%) — revoir le CTA et l'angle`);
+        if (r.level === 'success') tp.strengths.push(`Fort taux de réponse (${step.stats.reply}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.stop != null && step.stats.stop > BENCHMARKS.email.stop.ok) {
+        tp.issues.push(`Taux de désinscription élevé (${step.stats.stop}%) — message peut-être trop insistant`);
+      }
+    }
+
+    if (step.type === 'linkedin') {
+      const bench = BENCHMARKS.linkedin;
+      if (step.stats.accept != null) {
+        const r = rateMetric(step.stats.accept, bench.accept);
+        tp.metrics.push({ name: 'Acceptation', value: step.stats.accept + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux d'acceptation faible (${step.stats.accept}%) — revoir le profil et la note`);
+        if (r.level === 'success') tp.strengths.push(`Bon taux d'acceptation (${step.stats.accept}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.reply != null) {
+        const r = rateMetric(step.stats.reply, bench.reply);
+        tp.metrics.push({ name: 'Réponse', value: step.stats.reply + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Réponse LinkedIn faible (${step.stats.reply}%) — message trop long ou trop commercial`);
+        if (r.level === 'success') tp.strengths.push(`Bon engagement LinkedIn (${step.stats.reply}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+    }
+
+    results.touchpoints.push(tp);
+  });
+
+  // Global score
+  if (scoredSteps > 0) {
+    const avg = totalScore / scoredSteps;
+    results.globalScore = avg >= 2.5 ? 'excellent' : avg >= 1.8 ? 'good' : avg >= 1.3 ? 'ok' : 'bad';
+  }
+
+  // Priorities
+  const allIssues = results.touchpoints.flatMap(tp => tp.issues.map(i => ({ step: tp.id, issue: i })));
+  results.priorities = allIssues.slice(0, 3);
+
+  return results;
+}
+
+function formatAnalysisReport(analysis) {
+  const c = analysis.campaign;
+  const scoreEmoji = { excellent: '🚀', good: '🟢', ok: '🟡', bad: '🔴', unknown: '⬜' };
+  const scoreLabel = { excellent: 'Excellent', good: 'Performant', ok: 'Correct', bad: 'À optimiser', unknown: 'Pas encore de données' };
+
+  let msg = `## Diagnostic — ${c.name}\n\n`;
+  msg += `**Score global :** ${scoreEmoji[analysis.globalScore]} ${scoreLabel[analysis.globalScore]}\n`;
+  msg += `**Canal :** ${c.channelLabel} · **${c.kpis.contacts} contacts** · Itération ${c.iteration}\n\n`;
+
+  // Per-touchpoint breakdown
+  if (analysis.touchpoints.length > 0) {
+    msg += `### Détail par touchpoint\n\n`;
+    analysis.touchpoints.forEach(tp => {
+      const metricsStr = tp.metrics.map(m => `${m.rating.emoji} ${m.name}: **${m.value}** (${m.rating.label})`).join(' · ');
+      msg += `**${tp.id} — ${tp.label}**\n${metricsStr}\n`;
+      tp.strengths.forEach(s => { msg += `- ✅ ${s}\n`; });
+      tp.issues.forEach(i => { msg += `- ⚡ ${i}\n`; });
+      msg += '\n';
+    });
+  }
+
+  // Priorities
+  if (analysis.priorities.length > 0) {
+    msg += `### Priorités d'optimisation\n\n`;
+    analysis.priorities.forEach((p, i) => {
+      msg += `${i + 1}. **${p.step}** — ${p.issue}\n`;
+    });
+    msg += '\n';
+  }
+
+  // Existing diagnostics (from data)
+  if (c.diagnostics && c.diagnostics.length > 0) {
+    const warnings = c.diagnostics.filter(d => d.level === 'warning');
+    if (warnings.length > 0) {
+      msg += `### Recommandations IA\n\n`;
+      warnings.forEach(d => {
+        msg += `- ${d.text.replace(/<[^>]*>/g, '').replace(/Recommandation\s*:\s*/i, '**Recommandation :** ')}\n`;
+      });
+      msg += '\n';
+    }
+  }
+
+  // Next action
+  if (c.nextAction) {
+    msg += `**Prochaine action :** ${c.nextAction.text}\n\n`;
+  }
+
+  return msg;
+}
+
+function handleAnalyzeQuery(text) {
+  const campaigns = Object.values(typeof BAKAL !== 'undefined' ? BAKAL.campaigns : {});
+  if (campaigns.length === 0) {
+    return { content: `Vous n'avez pas encore de campagne. Voulez-vous en créer une ? Décrivez-moi votre cible idéale.` };
+  }
+
+  // Check if user mentions a specific campaign
+  const lower = text.toLowerCase();
+  const match = campaigns.find(c => lower.includes(c.name.toLowerCase()) || lower.includes(c.id));
+  if (match) {
+    return handleAnalyzeCampaign(match);
+  }
+
+  // Global analysis of all active campaigns
+  const active = campaigns.filter(c => c.status === 'active');
+  const prep = campaigns.filter(c => c.status === 'prep');
+
+  if (active.length === 0) {
+    let msg = `Aucune campagne active pour le moment.\n\n`;
+    if (prep.length > 0) {
+      msg += `Vous avez **${prep.length} campagne(s) en préparation** :\n`;
+      prep.forEach(c => { msg += `- **${c.name}** (${c.channelLabel}) — ${c.kpis.contacts} prospects\n`; });
+      msg += `\nLancez-les pour commencer à collecter des stats !`;
+    }
+    return { content: msg };
+  }
+
+  // Multi-campaign dashboard
+  let msg = `## Analyse globale — ${active.length} campagne(s) active(s)\n\n`;
+
+  // Global KPIs
+  const globalKpis = typeof BAKAL !== 'undefined' ? BAKAL.globalKpis : {};
+  if (globalKpis.contacts) {
+    msg += `### KPIs consolidés\n`;
+    msg += `- **Contacts :** ${globalKpis.contacts.value} ${globalKpis.contacts.trend ? `(${globalKpis.contacts.trend})` : ''}\n`;
+    if (globalKpis.openRate) msg += `- **Ouverture :** ${globalKpis.openRate.value} ${globalKpis.openRate.trend ? `(${globalKpis.openRate.trend})` : ''}\n`;
+    if (globalKpis.replyRate) msg += `- **Réponse :** ${globalKpis.replyRate.value} ${globalKpis.replyRate.trend ? `(${globalKpis.replyRate.trend})` : ''}\n`;
+    if (globalKpis.meetings) msg += `- **RDV :** ${globalKpis.meetings.value} ${globalKpis.meetings.trend ? `(${globalKpis.meetings.trend})` : ''}\n`;
+    msg += '\n';
+  }
+
+  // Per-campaign summary
+  msg += `### Par campagne\n\n`;
+  active.forEach(c => {
+    const analysis = analyzeCampaignStats(c);
+    const scoreEmoji = { excellent: '🚀', good: '🟢', ok: '🟡', bad: '🔴', unknown: '⬜' };
+    const mainMetric = c.channel === 'linkedin'
+      ? (c.kpis.acceptRate ? `Accept: ${c.kpis.acceptRate}%` : '—')
+      : (c.kpis.openRate ? `Open: ${c.kpis.openRate}%` : '—');
+    const replyMetric = c.kpis.replyRate ? `Reply: ${c.kpis.replyRate}%` : '';
+
+    msg += `${scoreEmoji[analysis.globalScore]} **${c.name}** (${c.channelLabel})\n`;
+    msg += `- ${c.kpis.contacts} contacts · ${mainMetric}${replyMetric ? ` · ${replyMetric}` : ''}\n`;
+    if (analysis.priorities.length > 0) {
+      msg += `- ⚡ ${analysis.priorities[0].issue}\n`;
+    }
+    msg += '\n';
+  });
+
+  // Recommendations
+  const recos = typeof BAKAL !== 'undefined' ? BAKAL.recommendations : [];
+  if (recos.length > 0) {
+    msg += `### Recommandations\n\n`;
+    recos.forEach(r => {
+      msg += `- ${r.label} : ${r.text}\n`;
+    });
+    msg += '\n';
+  }
+
+  msg += `Pour un diagnostic détaillé, dites-moi le nom de la campagne (ex: *"Analyse DAF Île-de-France"*).`;
+
+  return { content: msg };
+}
+
+function handleAnalyzeCampaign(campaign) {
+  const analysis = analyzeCampaignStats(campaign);
+  const msg = formatAnalysisReport(analysis);
+  return { content: msg + `Voulez-vous que je **régénère les messages sous-performants** ou que j'analyse une autre campagne ?` };
+}
+
 function handleOptimizationQuery(text) {
   const campaigns = Object.values(typeof BAKAL !== 'undefined' ? BAKAL.campaigns : {});
   if (campaigns.length === 0) {
     return { content: `Vous n'avez pas encore de campagne active. Voulez-vous en créer une ? Décrivez-moi votre cible idéale.` };
   }
 
-  const active = campaigns.filter(c => c.status === 'active');
-  let response = `Voici un résumé de vos campagnes actives :\n\n`;
-  active.forEach(c => {
-    const open = c.kpis.openRate || c.kpis.acceptRate || '—';
-    const reply = c.kpis.replyRate || '—';
-    response += `**${c.name}** (${c.channelLabel})\n`;
-    response += `- ${c.kpis.contacts} contacts · Ouverture: ${open}% · Réponse: ${reply}%\n`;
-    if (c.diagnostics && c.diagnostics.length > 0) {
-      const warning = c.diagnostics.find(d => d.level === 'warning');
-      if (warning) response += `- Point d'attention : ${warning.text.replace(/<[^>]*>/g, '').slice(0, 120)}...\n`;
+  // Check for specific campaign
+  const lower = text.toLowerCase();
+  const match = campaigns.find(c => lower.includes(c.name.toLowerCase()) || lower.includes(c.id));
+  if (match) {
+    const analysis = analyzeCampaignStats(match);
+    let msg = formatAnalysisReport(analysis);
+    msg += `\n### Que faire maintenant ?\n\n`;
+    if (analysis.priorities.length > 0) {
+      msg += `Je recommande de **régénérer ${analysis.priorities[0].step}** en priorité. `;
     }
-    response += '\n';
+    msg += `Dites "optimise" pour que je propose de nouvelles versions des messages sous-performants.`;
+    return { content: msg };
+  }
+
+  // List campaigns that need optimization
+  const active = campaigns.filter(c => c.status === 'active');
+  const needsWork = active.filter(c => {
+    const a = analyzeCampaignStats(c);
+    return a.priorities.length > 0;
   });
-  response += `Pour optimiser une campagne spécifique, allez dans **Recommandations** depuis le menu, ou dites-moi laquelle vous intéresse.`;
-  return { content: response };
+
+  if (needsWork.length === 0) {
+    return { content: `Toutes vos campagnes actives performent bien ! Pas d'optimisation urgente à faire.\n\nVoulez-vous créer une nouvelle campagne ou analyser les stats en détail ?` };
+  }
+
+  let msg = `Voici les campagnes qui pourraient être optimisées :\n\n`;
+  needsWork.forEach(c => {
+    const a = analyzeCampaignStats(c);
+    msg += `**${c.name}** — ${a.priorities.length} point(s) à améliorer\n`;
+    a.priorities.forEach(p => { msg += `  - ⚡ ${p.step} : ${p.issue}\n`; });
+    msg += '\n';
+  });
+  msg += `Quelle campagne voulez-vous optimiser ?`;
+  return { content: msg };
 }
 
 function handleAngleQuery(text) {
@@ -936,6 +1177,20 @@ function getSuggestionsForContext(metadata) {
       'Modifier la cible',
       'Changer l\'angle d\'approche',
     ];
+  }
+
+  // After analysis/optimization response — detect by checking last assistant message
+  const lastMsg = _conv.history.filter(h => h.role === 'assistant').slice(-1)[0];
+  if (lastMsg && lastMsg.content && lastMsg.content.includes('Diagnostic —')) {
+    const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns).filter(c => c.status === 'active') : [];
+    const suggestions = ['Régénérer les messages sous-performants'];
+    if (campaigns.length > 1) suggestions.push('Analyser une autre campagne');
+    suggestions.push('Créer une nouvelle campagne');
+    return suggestions;
+  }
+  if (lastMsg && lastMsg.content && lastMsg.content.includes('Analyse globale')) {
+    const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns).filter(c => c.status === 'active') : [];
+    return campaigns.slice(0, 3).map(c => `Détail "${c.name}"`).concat(['Créer une nouvelle campagne']);
   }
 
   // Campaign confirmed and being created
