@@ -14,7 +14,12 @@ const BAKAL_DEMO_DATA = {
       description: 'Prospection multi-cible pour cabinet de formation professionnelle',
       color: 'var(--blue)',
       createdDate: '20 jan. 2026',
-      campaignIds: ['daf-idf', 'dirigeants-formation', 'drh-lyon']
+      campaignIds: ['daf-idf', 'dirigeants-formation', 'drh-lyon'],
+      files: [
+        { id: 'f1', name: 'brief-formapro.pdf', type: 'application/pdf', size: 245000, uploadedAt: '2026-01-20T10:30:00Z', category: 'brief' },
+        { id: 'f2', name: 'personas-cibles.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', size: 89000, uploadedAt: '2026-01-21T14:15:00Z', category: 'persona' },
+        { id: 'f3', name: 'ton-de-voix.md', type: 'text/markdown', size: 12400, uploadedAt: '2026-01-22T09:00:00Z', category: 'guidelines' }
+      ]
     },
     'techvision': {
       id: 'techvision',
@@ -23,7 +28,8 @@ const BAKAL_DEMO_DATA = {
       description: 'Lancement produit SaaS — acquisition early adopters B2B',
       color: 'var(--purple)',
       createdDate: '5 fév. 2026',
-      campaignIds: []
+      campaignIds: [],
+      files: []
     }
   },
   campaigns: {
@@ -552,6 +558,8 @@ function renderCampaignsList() {
       const activeCount = projectCampaigns.filter(c => c.status === 'active').length;
       const totalCount = projectCampaigns.length;
 
+      const filesCount = (p.files || []).length;
+
       html += `<div class="project-group">
         <div class="project-header" onclick="toggleProjectGroup('${p.id}')">
           <div class="project-header-left">
@@ -563,11 +571,13 @@ function renderCampaignsList() {
             </div>
           </div>
           <div class="project-header-right">
+            ${filesCount > 0 ? `<span class="project-badge project-badge-files">${filesCount} fichier${filesCount > 1 ? 's' : ''}</span>` : ''}
             <span class="project-badge">${totalCount} campagne${totalCount > 1 ? 's' : ''}</span>
             ${activeCount > 0 ? `<span class="project-badge project-badge-active">${activeCount} active${activeCount > 1 ? 's' : ''}</span>` : ''}
           </div>
         </div>
         <div class="project-campaigns" id="project-campaigns-${p.id}">
+          ${renderProjectFiles(p)}
           ${projectCampaigns.length > 0
             ? projectCampaigns.map(c => renderCampaignRow(c)).join('')
             : '<div class="project-empty">Aucune campagne dans ce projet. <a href="#" onclick="event.preventDefault();toggleCreator()">Créer une campagne</a></div>'}
@@ -613,6 +623,258 @@ function toggleProjectGroup(projectId) {
   const collapsed = container.style.display === 'none';
   container.style.display = collapsed ? '' : 'none';
   if (chevron) chevron.textContent = collapsed ? '▾' : '▸';
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROJECT FILES — Drop zone, file list, upload & delete
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const FILE_ICONS = {
+  'application/pdf': '📄',
+  'text/markdown': '📝',
+  'text/plain': '📝',
+  'image/png': '🖼️',
+  'image/jpeg': '🖼️',
+  'image/svg+xml': '🖼️',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📃',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📊',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📊',
+};
+
+const CATEGORY_LABELS = {
+  brief: 'Brief',
+  persona: 'Persona',
+  guidelines: 'Guidelines',
+  data: 'Données',
+  other: 'Autre',
+};
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' o';
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' Ko';
+  return (bytes / 1048576).toFixed(1) + ' Mo';
+}
+
+function getFileIcon(mimeType) {
+  return FILE_ICONS[mimeType] || '📎';
+}
+
+function renderProjectFiles(project) {
+  const files = project.files || [];
+  const pid = project.id;
+
+  const filesListHtml = files.map(f => `
+    <div class="pf-file-row" id="pf-file-${f.id}">
+      <div class="pf-file-icon">${getFileIcon(f.type)}</div>
+      <div class="pf-file-info">
+        <div class="pf-file-name">${f.name}</div>
+        <div class="pf-file-meta">${formatFileSize(f.size)} · ${CATEGORY_LABELS[f.category] || f.category}</div>
+      </div>
+      <button class="pf-file-delete" onclick="event.stopPropagation();deleteProjectFile('${pid}','${f.id}')" title="Supprimer">×</button>
+    </div>
+  `).join('');
+
+  return `<div class="pf-section">
+    <div class="pf-files-header">
+      <span class="pf-files-title">Contexte projet</span>
+      <span class="pf-files-count">${files.length} fichier${files.length !== 1 ? 's' : ''}</span>
+    </div>
+    ${files.length > 0 ? `<div class="pf-file-list" id="pf-list-${pid}">${filesListHtml}</div>` : ''}
+    <div class="pf-dropzone"
+         id="pf-dropzone-${pid}"
+         ondragover="handleDragOver(event,'${pid}')"
+         ondragleave="handleDragLeave(event,'${pid}')"
+         ondrop="handleDrop(event,'${pid}')">
+      <div class="pf-dropzone-content">
+        <div class="pf-dropzone-icon">+</div>
+        <div class="pf-dropzone-text">Glissez vos fichiers ici</div>
+        <div class="pf-dropzone-hint">ou <a href="#" onclick="event.preventDefault();triggerFileInput('${pid}')">parcourir</a> · PDF, DOCX, MD, images — max 10 Mo</div>
+      </div>
+      <input type="file" id="pf-input-${pid}" multiple accept=".pdf,.docx,.doc,.md,.txt,.png,.jpg,.jpeg,.svg,.xlsx,.pptx" style="display:none" onchange="handleFileSelect(event,'${pid}')">
+    </div>
+    <div class="pf-upload-status" id="pf-status-${pid}"></div>
+  </div>`;
+}
+
+function handleDragOver(e, projectId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById('pf-dropzone-' + projectId);
+  if (dz) dz.classList.add('pf-dropzone-active');
+}
+
+function handleDragLeave(e, projectId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById('pf-dropzone-' + projectId);
+  if (dz) dz.classList.remove('pf-dropzone-active');
+}
+
+function handleDrop(e, projectId) {
+  e.preventDefault();
+  e.stopPropagation();
+  const dz = document.getElementById('pf-dropzone-' + projectId);
+  if (dz) dz.classList.remove('pf-dropzone-active');
+  const files = Array.from(e.dataTransfer.files);
+  if (files.length > 0) uploadProjectFiles(projectId, files);
+}
+
+function triggerFileInput(projectId) {
+  const input = document.getElementById('pf-input-' + projectId);
+  if (input) input.click();
+}
+
+function handleFileSelect(e, projectId) {
+  const files = Array.from(e.target.files);
+  if (files.length > 0) uploadProjectFiles(projectId, files);
+  e.target.value = '';
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/markdown', 'text/plain',
+  'image/png', 'image/jpeg', 'image/svg+xml',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+
+function guessCategory(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return 'brief';
+  if (['png', 'jpg', 'jpeg', 'svg'].includes(ext)) return 'guidelines';
+  if (['md', 'txt'].includes(ext)) return 'guidelines';
+  if (['xlsx', 'csv'].includes(ext)) return 'data';
+  if (['docx', 'doc'].includes(ext)) return 'persona';
+  return 'other';
+}
+
+async function uploadProjectFiles(projectId, files) {
+  const status = document.getElementById('pf-status-' + projectId);
+  const project = BAKAL.projects[projectId];
+  if (!project) return;
+
+  // Validate files
+  const errors = [];
+  const valid = [];
+  for (const f of files) {
+    if (f.size > MAX_FILE_SIZE) {
+      errors.push(f.name + ' dépasse 10 Mo');
+    } else if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(f.type) && f.type !== '') {
+      errors.push(f.name + ' : type non supporté');
+    } else {
+      valid.push(f);
+    }
+  }
+
+  if (errors.length > 0 && status) {
+    status.innerHTML = '<div class="pf-status-error">' + errors.join('<br>') + '</div>';
+    setTimeout(() => { status.innerHTML = ''; }, 4000);
+  }
+
+  if (valid.length === 0) return;
+
+  // Show uploading state
+  if (status) {
+    status.innerHTML = '<div class="pf-status-uploading">Envoi de ' + valid.length + ' fichier' + (valid.length > 1 ? 's' : '') + '...</div>';
+  }
+
+  // Upload to backend (or local fallback)
+  for (const file of valid) {
+    try {
+      const uploaded = await uploadFileToBackend(projectId, file);
+      if (!project.files) project.files = [];
+      project.files.push(uploaded);
+    } catch (err) {
+      console.warn('Upload failed for', file.name, err);
+      if (status) {
+        status.innerHTML = '<div class="pf-status-error">Erreur : ' + (err.message || 'Upload échoué') + '</div>';
+        setTimeout(() => { status.innerHTML = ''; }, 4000);
+        return;
+      }
+    }
+  }
+
+  // Success
+  if (status) {
+    status.innerHTML = '<div class="pf-status-success">' + valid.length + ' fichier' + (valid.length > 1 ? 's' : '') + ' ajouté' + (valid.length > 1 ? 's' : '') + '</div>';
+    setTimeout(() => { status.innerHTML = ''; }, 3000);
+  }
+
+  // Re-render
+  renderCampaignsList();
+}
+
+async function uploadFileToBackend(projectId, file) {
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', guessCategory(file));
+
+    const token = typeof BakalAuth !== 'undefined' ? BakalAuth.getToken() : null;
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const base = (window.location.origin || 'http://localhost:3001') + '/api';
+    const res = await fetch(base + '/projects/' + projectId + '/files', {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'HTTP ' + res.status);
+    }
+    return res.json();
+  }
+
+  // Local fallback — store metadata only (no actual file persistence)
+  return {
+    id: 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    uploadedAt: new Date().toISOString(),
+    category: guessCategory(file),
+  };
+}
+
+async function deleteProjectFile(projectId, fileId) {
+  const project = BAKAL.projects[projectId];
+  if (!project || !project.files) return;
+
+  // Backend delete
+  if (typeof BakalAPI !== 'undefined' && _backendAvailable) {
+    try {
+      const base = (window.location.origin || 'http://localhost:3001') + '/api';
+      const token = typeof BakalAuth !== 'undefined' ? BakalAuth.getToken() : null;
+      const headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      await fetch(base + '/projects/' + projectId + '/files/' + fileId, {
+        method: 'DELETE',
+        headers,
+      });
+    } catch (err) {
+      console.warn('Backend file delete failed:', err.message);
+    }
+  }
+
+  // Remove from local data
+  project.files = project.files.filter(f => f.id !== fileId);
+
+  // Animate removal then re-render
+  const row = document.getElementById('pf-file-' + fileId);
+  if (row) {
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(10px)';
+    setTimeout(() => renderCampaignsList(), 200);
+  } else {
+    renderCampaignsList();
+  }
 }
 
 
