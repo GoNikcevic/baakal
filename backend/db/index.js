@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'bakal.db');
+const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '..', 'data', 'bakal.db');
 
 let db;
 
@@ -894,8 +894,16 @@ const projectFiles = {
   },
 };
 
+function closeDb() {
+  if (db) {
+    try { db.close(); } catch { /* ignore */ }
+    db = null;
+  }
+}
+
 module.exports = {
   getDb,
+  closeDb,
   campaigns,
   touchpoints,
   diagnostics,

@@ -18,6 +18,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts. Try again in 15 minutes.' },
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 router.use('/login', authLimiter);
