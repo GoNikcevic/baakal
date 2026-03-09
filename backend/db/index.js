@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'bakal.db');
+const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '..', 'data', 'bakal.db');
 
 let db;
 
@@ -173,6 +173,35 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 
+    CREATE TABLE IF NOT EXISTS projects (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name            TEXT NOT NULL,
+      client          TEXT,
+      description     TEXT,
+      color           TEXT DEFAULT 'var(--blue)',
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
+
+    CREATE TABLE IF NOT EXISTS project_files (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id      INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      filename        TEXT NOT NULL,
+      original_name   TEXT NOT NULL,
+      mime_type       TEXT,
+      file_size       INTEGER,
+      file_path       TEXT NOT NULL,
+      parsed_text     TEXT,
+      category        TEXT DEFAULT 'other',
+      created_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_project_files_project ON project_files(project_id);
+
     CREATE TABLE IF NOT EXISTS documents (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -216,6 +245,13 @@ function migrate(db) {
     db.prepare("SELECT user_id FROM campaigns LIMIT 1").get();
   } catch {
     db.exec("ALTER TABLE campaigns ADD COLUMN user_id INTEGER REFERENCES users(id)");
+  }
+
+  // Add project_id column to campaigns if not present
+  try {
+    db.prepare("SELECT project_id FROM campaigns LIMIT 1").get();
+  } catch {
+    db.exec("ALTER TABLE campaigns ADD COLUMN project_id INTEGER REFERENCES projects(id)");
   }
 
   // Add user_id column to chat_threads if not present
@@ -264,8 +300,8 @@ const campaigns = {
     const stmt = getDb().prepare(`
       INSERT INTO campaigns (name, client, status, channel, sector, sector_short, position, size,
         angle, zone, tone, formality, length, cta, start_date, lemlist_id, iteration,
-        nb_prospects, sent, planned, user_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        nb_prospects, sent, planned, user_id, project_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       data.name,
@@ -289,6 +325,7 @@ const campaigns = {
       data.sent || 0,
       data.planned || 0,
       data.userId || null,
+      data.projectId || null,
     );
     return { id: result.lastInsertRowid, ...data };
   },
@@ -314,6 +351,7 @@ const campaigns = {
       interested: 'interested', meetings: 'meetings', stops: 'stops',
       last_collected: 'last_collected', lastCollected: 'last_collected',
       notion_page_id: 'notion_page_id', notionPageId: 'notion_page_id',
+      project_id: 'project_id', projectId: 'project_id',
     };
 
     const seen = new Set();
@@ -770,8 +808,102 @@ const profiles = {
   },
 };
 
+// =============================================
+// Projects
+// =============================================
+
+const projects = {
+  list(userId) {
+    return getDb()
+      .prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC')
+      .all(userId);
+  },
+
+  get(id) {
+    return getDb().prepare('SELECT * FROM projects WHERE id = ?').get(id);
+  },
+
+  create(data) {
+    const stmt = getDb().prepare(
+      'INSERT INTO projects (user_id, name, client, description, color) VALUES (?, ?, ?, ?, ?)'
+    );
+    const result = stmt.run(
+      data.userId, data.name, data.client || null,
+      data.description || null, data.color || 'var(--blue)'
+    );
+    return { id: result.lastInsertRowid, ...data };
+  },
+
+  update(id, data) {
+    const sets = [];
+    const values = [];
+    const fields = ['name', 'client', 'description', 'color'];
+    for (const f of fields) {
+      if (data[f] !== undefined) {
+        sets.push(`${f} = ?`);
+        values.push(data[f]);
+      }
+    }
+    if (sets.length === 0) return this.get(id);
+    sets.push("updated_at = datetime('now')");
+    values.push(id);
+    getDb().prepare(`UPDATE projects SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+    return this.get(id);
+  },
+
+  delete(id) {
+    return getDb().prepare('DELETE FROM projects WHERE id = ?').run(id);
+  },
+};
+
+// =============================================
+// Project Files
+// =============================================
+
+const projectFiles = {
+  listByProject(projectId) {
+    return getDb()
+      .prepare('SELECT * FROM project_files WHERE project_id = ? ORDER BY created_at DESC')
+      .all(projectId);
+  },
+
+  get(id) {
+    return getDb().prepare('SELECT * FROM project_files WHERE id = ?').get(id);
+  },
+
+  create(data) {
+    const stmt = getDb().prepare(
+      'INSERT INTO project_files (project_id, user_id, filename, original_name, mime_type, file_size, file_path, parsed_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    const result = stmt.run(
+      data.projectId, data.userId, data.filename, data.originalName,
+      data.mimeType, data.fileSize, data.filePath, data.parsedText || null,
+      data.category || 'other'
+    );
+    return { id: result.lastInsertRowid, ...data };
+  },
+
+  delete(id) {
+    return getDb().prepare('DELETE FROM project_files WHERE id = ?').run(id);
+  },
+
+  getContextByProject(projectId) {
+    return getDb().prepare(
+      'SELECT original_name, parsed_text, category FROM project_files WHERE project_id = ? AND parsed_text IS NOT NULL ORDER BY created_at DESC'
+    ).all(projectId);
+  },
+};
+
+function closeDb() {
+  if (db) {
+    try { db.close(); } catch { /* ignore */ }
+    db = null;
+  }
+}
+
 module.exports = {
   getDb,
+  closeDb,
   campaigns,
   touchpoints,
   diagnostics,
@@ -785,4 +917,6 @@ module.exports = {
   refreshTokens,
   documents,
   profiles,
+  projects,
+  projectFiles,
 };

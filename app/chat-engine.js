@@ -679,10 +679,15 @@ function buildResponse(userText) {
 
   let response;
 
-  if (_conv.stage === 'init' && (lower.includes('optimi') || lower.includes('sous-performe') || lower.includes('améliorer'))) {
+  // Analyze / stats / diagnostic intent
+  if (_conv.stage === 'init' && lower.match(/\b(analy|stats?|statist|diagnostic|performance|résultat|rapport|kpi|tableau de bord|dashboard)\b/)) {
+    response = handleAnalyzeQuery(text);
+  } else if (_conv.stage === 'init' && (lower.includes('optimi') || lower.includes('sous-performe') || lower.includes('améliorer') || lower.includes('régénér'))) {
     response = handleOptimizationQuery(text);
   } else if (_conv.stage === 'init' && (lower.includes('angle') || lower.includes('approche')) && lower.includes('secteur')) {
     response = handleAngleQuery(text);
+  } else if (_conv.stage === 'init' && handleStrategicQuery(text)) {
+    response = handleStrategicQuery(text);
   } else if (_conv.stage === 'confirm') {
     response = handleConfirmation(text);
   } else {
@@ -807,27 +812,265 @@ function handleConfirmation(text) {
   return { content: `Souhaitez-vous créer cette campagne telle quelle, ou préférez-vous modifier quelque chose ?` };
 }
 
+/* ═══ Benchmarks ═══ */
+
+const BENCHMARKS = {
+  email: { open: { bad: 35, ok: 50, good: 60 }, reply: { bad: 2, ok: 5, good: 8 }, stop: { bad: 3, ok: 1.5, good: 0.5 } },
+  linkedin: { accept: { bad: 20, ok: 30, good: 40 }, reply: { bad: 3, ok: 5, good: 8 } },
+};
+
+function rateMetric(value, thresholds) {
+  if (value == null) return { label: '—', emoji: '⬜', level: 'unknown' };
+  if (value >= thresholds.good) return { label: 'Excellent', emoji: '🟢', level: 'success' };
+  if (value >= thresholds.ok) return { label: 'Correct', emoji: '🟡', level: 'ok' };
+  return { label: 'À améliorer', emoji: '🔴', level: 'bad' };
+}
+
+/* ═══ Campaign analysis ═══ */
+
+function analyzeCampaignStats(c) {
+  const isLinkedIn = c.channel === 'linkedin';
+  const isMulti = c.channel === 'multi';
+  const results = { campaign: c, touchpoints: [], priorities: [], globalScore: 'unknown' };
+
+  if (!c.sequence || c.sequence.length === 0) return results;
+
+  let totalScore = 0;
+  let scoredSteps = 0;
+
+  c.sequence.forEach(step => {
+    if (!step.stats) return;
+    const tp = { id: step.id, type: step.type, label: step.label, metrics: [], issues: [], strengths: [] };
+
+    if (step.type === 'email') {
+      const bench = BENCHMARKS.email;
+      if (step.stats.open != null) {
+        const r = rateMetric(step.stats.open, bench.open);
+        tp.metrics.push({ name: 'Ouverture', value: step.stats.open + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux d'ouverture faible (${step.stats.open}%) — revoir l'objet et le nom d'expéditeur`);
+        if (r.level === 'success') tp.strengths.push(`Excellent taux d'ouverture (${step.stats.open}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.reply != null) {
+        const r = rateMetric(step.stats.reply, bench.reply);
+        tp.metrics.push({ name: 'Réponse', value: step.stats.reply + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux de réponse insuffisant (${step.stats.reply}%) — revoir le CTA et l'angle`);
+        if (r.level === 'success') tp.strengths.push(`Fort taux de réponse (${step.stats.reply}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.stop != null && step.stats.stop > BENCHMARKS.email.stop.ok) {
+        tp.issues.push(`Taux de désinscription élevé (${step.stats.stop}%) — message peut-être trop insistant`);
+      }
+    }
+
+    if (step.type === 'linkedin') {
+      const bench = BENCHMARKS.linkedin;
+      if (step.stats.accept != null) {
+        const r = rateMetric(step.stats.accept, bench.accept);
+        tp.metrics.push({ name: 'Acceptation', value: step.stats.accept + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Taux d'acceptation faible (${step.stats.accept}%) — revoir le profil et la note`);
+        if (r.level === 'success') tp.strengths.push(`Bon taux d'acceptation (${step.stats.accept}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+      if (step.stats.reply != null) {
+        const r = rateMetric(step.stats.reply, bench.reply);
+        tp.metrics.push({ name: 'Réponse', value: step.stats.reply + '%', rating: r });
+        if (r.level === 'bad') tp.issues.push(`Réponse LinkedIn faible (${step.stats.reply}%) — message trop long ou trop commercial`);
+        if (r.level === 'success') tp.strengths.push(`Bon engagement LinkedIn (${step.stats.reply}%)`);
+        totalScore += r.level === 'success' ? 3 : r.level === 'ok' ? 2 : 1;
+        scoredSteps++;
+      }
+    }
+
+    results.touchpoints.push(tp);
+  });
+
+  // Global score
+  if (scoredSteps > 0) {
+    const avg = totalScore / scoredSteps;
+    results.globalScore = avg >= 2.5 ? 'excellent' : avg >= 1.8 ? 'good' : avg >= 1.3 ? 'ok' : 'bad';
+  }
+
+  // Priorities
+  const allIssues = results.touchpoints.flatMap(tp => tp.issues.map(i => ({ step: tp.id, issue: i })));
+  results.priorities = allIssues.slice(0, 3);
+
+  return results;
+}
+
+function formatAnalysisReport(analysis) {
+  const c = analysis.campaign;
+  const scoreEmoji = { excellent: '🚀', good: '🟢', ok: '🟡', bad: '🔴', unknown: '⬜' };
+  const scoreLabel = { excellent: 'Excellent', good: 'Performant', ok: 'Correct', bad: 'À optimiser', unknown: 'Pas encore de données' };
+
+  let msg = `## Diagnostic — ${c.name}\n\n`;
+  msg += `**Score global :** ${scoreEmoji[analysis.globalScore]} ${scoreLabel[analysis.globalScore]}\n`;
+  msg += `**Canal :** ${c.channelLabel} · **${c.kpis.contacts} contacts** · Itération ${c.iteration}\n\n`;
+
+  // Per-touchpoint breakdown
+  if (analysis.touchpoints.length > 0) {
+    msg += `### Détail par touchpoint\n\n`;
+    analysis.touchpoints.forEach(tp => {
+      const metricsStr = tp.metrics.map(m => `${m.rating.emoji} ${m.name}: **${m.value}** (${m.rating.label})`).join(' · ');
+      msg += `**${tp.id} — ${tp.label}**\n${metricsStr}\n`;
+      tp.strengths.forEach(s => { msg += `- ✅ ${s}\n`; });
+      tp.issues.forEach(i => { msg += `- ⚡ ${i}\n`; });
+      msg += '\n';
+    });
+  }
+
+  // Priorities
+  if (analysis.priorities.length > 0) {
+    msg += `### Priorités d'optimisation\n\n`;
+    analysis.priorities.forEach((p, i) => {
+      msg += `${i + 1}. **${p.step}** — ${p.issue}\n`;
+    });
+    msg += '\n';
+  }
+
+  // Existing diagnostics (from data)
+  if (c.diagnostics && c.diagnostics.length > 0) {
+    const warnings = c.diagnostics.filter(d => d.level === 'warning');
+    if (warnings.length > 0) {
+      msg += `### Recommandations IA\n\n`;
+      warnings.forEach(d => {
+        msg += `- ${d.text.replace(/<[^>]*>/g, '').replace(/Recommandation\s*:\s*/i, '**Recommandation :** ')}\n`;
+      });
+      msg += '\n';
+    }
+  }
+
+  // Next action
+  if (c.nextAction) {
+    msg += `**Prochaine action :** ${c.nextAction.text}\n\n`;
+  }
+
+  return msg;
+}
+
+function handleAnalyzeQuery(text) {
+  const campaigns = Object.values(typeof BAKAL !== 'undefined' ? BAKAL.campaigns : {});
+  if (campaigns.length === 0) {
+    return { content: `Vous n'avez pas encore de campagne. Voulez-vous en créer une ? Décrivez-moi votre cible idéale.` };
+  }
+
+  // Check if user mentions a specific campaign
+  const lower = text.toLowerCase();
+  const match = campaigns.find(c => lower.includes(c.name.toLowerCase()) || lower.includes(c.id));
+  if (match) {
+    return handleAnalyzeCampaign(match);
+  }
+
+  // Global analysis of all active campaigns
+  const active = campaigns.filter(c => c.status === 'active');
+  const prep = campaigns.filter(c => c.status === 'prep');
+
+  if (active.length === 0) {
+    let msg = `Aucune campagne active pour le moment.\n\n`;
+    if (prep.length > 0) {
+      msg += `Vous avez **${prep.length} campagne(s) en préparation** :\n`;
+      prep.forEach(c => { msg += `- **${c.name}** (${c.channelLabel}) — ${c.kpis.contacts} prospects\n`; });
+      msg += `\nLancez-les pour commencer à collecter des stats !`;
+    }
+    return { content: msg };
+  }
+
+  // Multi-campaign dashboard
+  let msg = `## Analyse globale — ${active.length} campagne(s) active(s)\n\n`;
+
+  // Global KPIs
+  const globalKpis = typeof BAKAL !== 'undefined' ? BAKAL.globalKpis : {};
+  if (globalKpis.contacts) {
+    msg += `### KPIs consolidés\n`;
+    msg += `- **Contacts :** ${globalKpis.contacts.value} ${globalKpis.contacts.trend ? `(${globalKpis.contacts.trend})` : ''}\n`;
+    if (globalKpis.openRate) msg += `- **Ouverture :** ${globalKpis.openRate.value} ${globalKpis.openRate.trend ? `(${globalKpis.openRate.trend})` : ''}\n`;
+    if (globalKpis.replyRate) msg += `- **Réponse :** ${globalKpis.replyRate.value} ${globalKpis.replyRate.trend ? `(${globalKpis.replyRate.trend})` : ''}\n`;
+    if (globalKpis.meetings) msg += `- **RDV :** ${globalKpis.meetings.value} ${globalKpis.meetings.trend ? `(${globalKpis.meetings.trend})` : ''}\n`;
+    msg += '\n';
+  }
+
+  // Per-campaign summary
+  msg += `### Par campagne\n\n`;
+  active.forEach(c => {
+    const analysis = analyzeCampaignStats(c);
+    const scoreEmoji = { excellent: '🚀', good: '🟢', ok: '🟡', bad: '🔴', unknown: '⬜' };
+    const mainMetric = c.channel === 'linkedin'
+      ? (c.kpis.acceptRate ? `Accept: ${c.kpis.acceptRate}%` : '—')
+      : (c.kpis.openRate ? `Open: ${c.kpis.openRate}%` : '—');
+    const replyMetric = c.kpis.replyRate ? `Reply: ${c.kpis.replyRate}%` : '';
+
+    msg += `${scoreEmoji[analysis.globalScore]} **${c.name}** (${c.channelLabel})\n`;
+    msg += `- ${c.kpis.contacts} contacts · ${mainMetric}${replyMetric ? ` · ${replyMetric}` : ''}\n`;
+    if (analysis.priorities.length > 0) {
+      msg += `- ⚡ ${analysis.priorities[0].issue}\n`;
+    }
+    msg += '\n';
+  });
+
+  // Recommendations
+  const recos = typeof BAKAL !== 'undefined' ? BAKAL.recommendations : [];
+  if (recos.length > 0) {
+    msg += `### Recommandations\n\n`;
+    recos.forEach(r => {
+      msg += `- ${r.label} : ${r.text}\n`;
+    });
+    msg += '\n';
+  }
+
+  msg += `Pour un diagnostic détaillé, dites-moi le nom de la campagne (ex: *"Analyse DAF Île-de-France"*).`;
+
+  return { content: msg };
+}
+
+function handleAnalyzeCampaign(campaign) {
+  const analysis = analyzeCampaignStats(campaign);
+  const msg = formatAnalysisReport(analysis);
+  return { content: msg + `Voulez-vous que je **régénère les messages sous-performants** ou que j'analyse une autre campagne ?` };
+}
+
 function handleOptimizationQuery(text) {
   const campaigns = Object.values(typeof BAKAL !== 'undefined' ? BAKAL.campaigns : {});
   if (campaigns.length === 0) {
     return { content: `Vous n'avez pas encore de campagne active. Voulez-vous en créer une ? Décrivez-moi votre cible idéale.` };
   }
 
-  const active = campaigns.filter(c => c.status === 'active');
-  let response = `Voici un résumé de vos campagnes actives :\n\n`;
-  active.forEach(c => {
-    const open = c.kpis.openRate || c.kpis.acceptRate || '—';
-    const reply = c.kpis.replyRate || '—';
-    response += `**${c.name}** (${c.channelLabel})\n`;
-    response += `- ${c.kpis.contacts} contacts · Ouverture: ${open}% · Réponse: ${reply}%\n`;
-    if (c.diagnostics && c.diagnostics.length > 0) {
-      const warning = c.diagnostics.find(d => d.level === 'warning');
-      if (warning) response += `- Point d'attention : ${warning.text.replace(/<[^>]*>/g, '').slice(0, 120)}...\n`;
+  // Check for specific campaign
+  const lower = text.toLowerCase();
+  const match = campaigns.find(c => lower.includes(c.name.toLowerCase()) || lower.includes(c.id));
+  if (match) {
+    const analysis = analyzeCampaignStats(match);
+    let msg = formatAnalysisReport(analysis);
+    msg += `\n### Que faire maintenant ?\n\n`;
+    if (analysis.priorities.length > 0) {
+      msg += `Je recommande de **régénérer ${analysis.priorities[0].step}** en priorité. `;
     }
-    response += '\n';
+    msg += `Dites "optimise" pour que je propose de nouvelles versions des messages sous-performants.`;
+    return { content: msg };
+  }
+
+  // List campaigns that need optimization
+  const active = campaigns.filter(c => c.status === 'active');
+  const needsWork = active.filter(c => {
+    const a = analyzeCampaignStats(c);
+    return a.priorities.length > 0;
   });
-  response += `Pour optimiser une campagne spécifique, allez dans **Recommandations** depuis le menu, ou dites-moi laquelle vous intéresse.`;
-  return { content: response };
+
+  if (needsWork.length === 0) {
+    return { content: `Toutes vos campagnes actives performent bien ! Pas d'optimisation urgente à faire.\n\nVoulez-vous créer une nouvelle campagne ou analyser les stats en détail ?` };
+  }
+
+  let msg = `Voici les campagnes qui pourraient être optimisées :\n\n`;
+  needsWork.forEach(c => {
+    const a = analyzeCampaignStats(c);
+    msg += `**${c.name}** — ${a.priorities.length} point(s) à améliorer\n`;
+    a.priorities.forEach(p => { msg += `  - ⚡ ${p.step} : ${p.issue}\n`; });
+    msg += '\n';
+  });
+  msg += `Quelle campagne voulez-vous optimiser ?`;
+  return { content: msg };
 }
 
 function handleAngleQuery(text) {
@@ -835,6 +1078,83 @@ function handleAngleQuery(text) {
   return {
     content: `Pour le secteur **${sector}**, voici les angles qui fonctionnent le mieux d'après nos données :\n\n1. **Douleur client** — Question directe sur un problème connu du secteur. Meilleur taux de réponse en général (+2-3pts vs moyenne).\n2. **Preuve sociale** — Case study d'un client similaire avec des chiffres concrets. Très efficace en follow-up.\n3. **Curiosité** — Question ouverte intrigante qui pousse à la réponse. Bon sur les profils senior.\n\nL'angle "proposition directe" est à éviter en premier contact — il fonctionne mieux après un échange.\n\nVoulez-vous que je crée une campagne avec un de ces angles ?`
   };
+}
+
+/* ═══ Strategic knowledge base ═══ */
+
+const KNOWLEDGE_BASE = [
+  {
+    triggers: ['meilleur moment', 'quand envoyer', 'heure', 'jour', 'timing', 'quel jour', 'quelle heure', 'horaire'],
+    answer: `### Meilleur timing d'envoi\n\n**Email B2B :**\n- **Mardi et jeudi matin (9h-10h30)** — meilleur taux d'ouverture (+15% vs moyenne)\n- Éviter le lundi matin (boîte saturée) et le vendredi après-midi\n- Les relances en milieu de semaine (mercredi) fonctionnent bien\n\n**LinkedIn :**\n- **Mardi-jeudi, 8h-9h ou 17h-18h** — pics de connexion\n- Les notes envoyées le week-end ont un taux d'acceptation plus bas (-8pts)\n\n**Espacement entre touchpoints :**\n- E1 → E2 : 3 jours (assez pour lire, pas assez pour oublier)\n- E2 → E3 : 4-5 jours (changement d'angle)\n- E3 → E4 (break-up) : 5-7 jours`,
+  },
+  {
+    triggers: ['combien touchpoint', 'combien email', 'combien de messages', 'nombre de relance', 'combien relance', 'trop de relance', 'nombre touchpoint', 'combien de mail'],
+    answer: `### Nombre optimal de touchpoints\n\n**Email seul :** 4 touchpoints est le sweet spot\n- E1 (initial) → E2 (valeur/preuve) → E3 (angle différent) → E4 (break-up)\n- Au-delà de 4, le taux de désinscription monte significativement\n- 80% des réponses arrivent sur E1 et E2\n\n**LinkedIn seul :** 2 touchpoints\n- Note de connexion (max 300 chars, pas de pitch)\n- Message post-connexion (conversationnel)\n\n**Multi-canal (recommandé) :** 5 touchpoints\n- Email + LinkedIn combinés → +40% de taux de réponse vs email seul\n- Le LinkedIn entre deux emails crée un "effet de présence"\n\n**Règle d'or :** Mieux vaut 4 messages bien écrits que 8 messages moyens.`,
+  },
+  {
+    triggers: ['tu ou vous', 'tutoyer', 'vouvoyer', 'tutoiement', 'vouvoiement', 'formel', 'informel', 'formalité'],
+    answer: `### Tu vs Vous en prospection B2B\n\n**Vous (défaut recommandé) :**\n- Secteurs traditionnels (finance, juridique, industrie, santé)\n- Cibles senior (DAF, DG, DRH)\n- Premier contact avec des grands comptes\n\n**Tu envisageable :**\n- Startups et scale-ups tech\n- Cibles junior-mid (Growth, Marketing, DevRel)\n- Si votre propre marque est très décontractée\n\n**Notre constat :** Le vouvoiement ne fait jamais perdre de deal. Le tutoiement peut en faire perdre. En cas de doute, vouvoyez.\n\n**Astuce :** Commencez en "vous" puis passez au "tu" naturellement si le prospect répond de manière informelle.`,
+  },
+  {
+    triggers: ['objet email', 'subject line', 'ligne objet', 'titre email', 'quel objet', 'objet efficace'],
+    answer: `### Rédiger des objets email efficaces\n\n**Ce qui fonctionne :**\n- **Personnalisation** : "{{firstName}}, une question rapide" (+12pts d'ouverture)\n- **Curiosité** : "Une idée pour {{companyName}}" \n- **Re:** en follow-up : crée un effet de thread (+15pts)\n- **Court** : 4-7 mots idéalement\n\n**Ce qui ne fonctionne pas :**\n- Majuscules ("URGENT", "OFFRE") → spam filter\n- Émojis en B2B (sauf secteur créatif) → -5pts d'ouverture\n- Trop générique ("Proposition de collaboration")\n- Mensonger ("Re:" sur un premier email → perte de confiance)\n\n**A/B testing :** Toujours tester 2 variantes d'objet. 200 envois minimum pour un résultat fiable.\n\n**Nos top performers :**\n1. "{{firstName}}, une question sur {{companyName}}"\n2. "Idée pour votre [problème spécifique]"\n3. "{{firstName}} — 15 min cette semaine ?"`,
+  },
+  {
+    triggers: ['longueur', 'combien de mots', 'email court', 'email long', 'taille du message', 'message court', 'message long'],
+    answer: `### Longueur idéale des messages\n\n**Email initial (E1) :** 3-5 phrases max\n- Hook (1 phrase) → Contexte (1-2 phrases) → CTA question (1 phrase)\n- Les emails de plus de 150 mots perdent 30% de réponses\n\n**Email valeur (E2) :** 4-6 phrases\n- Peut être un peu plus long car il apporte de la preuve\n- Mais toujours scannable (paragraphes courts)\n\n**Email break-up (E4) :** 2-3 phrases MAXIMUM\n- Le plus court de la séquence\n- Jamais de culpabilisation\n\n**Note LinkedIn :** Max 300 caractères (limite plateforme)\n- Pas de pitch, juste une raison de connecter\n\n**Message LinkedIn :** 3-4 phrases\n- Conversationnel, comme un message à un collègue`,
+  },
+  {
+    triggers: ['cta', 'call to action', 'appel à l\'action', 'question ouverte', 'proposition call', 'demander rdv', 'comment conclure'],
+    answer: `### Quel CTA utiliser ?\n\n**Question ouverte (recommandé en E1) :**\n- "C'est aussi un sujet chez {{companyName}} ?" → +3pts de réponse vs proposition de call\n- Moins engageant, plus naturel, ouvre la conversation\n\n**Proposition de call (E2 ou E3) :**\n- "15 minutes cette semaine pour en discuter ?" → bon en follow-up\n- Trop direct en premier contact (sauf secteurs transactionnels)\n\n**Lien Calendly :**\n- Uniquement après un échange positif ou en E3\n- En E1, ça fait spam\n\n**Soft close (E4 break-up) :**\n- "Mon offre reste ouverte" → crée la rareté sans pression\n- 5-10% des réponses arrivent sur le break-up\n\n**Nos données :** CTA question ouverte > proposition call > Calendly en premier contact.`,
+  },
+  {
+    triggers: ['délivrabilité', 'deliverability', 'spam', 'inbox', 'warm up', 'warmup', 'email en spam', 'boîte de réception'],
+    answer: `### Optimiser la délivrabilité\n\n**Les bases :**\n- **SPF, DKIM, DMARC** configurés sur votre domaine\n- **Warm-up** de 2-3 semaines avant d'envoyer en volume (Mailreach, Warmbox)\n- **Volume progressif** : commencer à 20-30/jour, monter à 50-80/jour max\n\n**Red flags à éviter :**\n- Plus de 80 emails/jour/boîte\n- Taux de bounce > 5% (nettoyez vos listes !)\n- Liens trackés en masse (1 lien max par email)\n- Pièces jointes en cold email\n- Mots spam : "gratuit", "offre limitée", "cliquez ici"\n\n**Monitoring :**\n- Vérifiez votre score expéditeur sur mail-tester.com\n- Un taux d'ouverture < 30% = problème de délivrabilité\n\n**Outils recommandés :** Mailreach ou Warmbox pour le warm-up, Dropcontact pour la vérification d'emails.`,
+  },
+  {
+    triggers: ['linkedin', 'note de connexion', 'linkedin message', 'profil linkedin', 'social selling', 'connection request'],
+    answer: `### Best practices LinkedIn\n\n**Note de connexion (max 300 chars) :**\n- JAMAIS de pitch commercial\n- Mentionnez un point commun (secteur, ville, connexion mutuelle)\n- "Ravi d'échanger" > "Je souhaiterais vous présenter"\n- Benchmark : 30-40% d'acceptation = bon\n\n**Message post-connexion :**\n- Attendre 2-3 jours après l'acceptation\n- Conversationnel, comme un message entre pairs\n- UNE question ouverte, pas un pavé\n- Benchmark : 5-8% de réponse = bon\n\n**Profil optimisé (indispensable) :**\n- Photo pro, bannière avec proposition de valeur\n- Titre orienté bénéfice ("J'aide les X à Y") pas titre de poste\n- 3+ posts récents pour crédibiliser\n\n**Multi-canal :** Le combo Email J+0 → LinkedIn J+2 → Email J+5 est le plus efficace.`,
+  },
+  {
+    triggers: ['taux', 'benchmark', 'bon taux', 'taux moyen', 'kpi', 'objectif', 'indicateur'],
+    answer: `### Benchmarks B2B (cold outreach)\n\n**Email :**\n| Métrique | 🔴 Faible | 🟡 Correct | 🟢 Bon | 🚀 Excellent |\n|----------|-----------|------------|--------|-------------|\n| Ouverture | <35% | 35-50% | 50-65% | >65% |\n| Réponse | <2% | 2-5% | 5-8% | >8% |\n| Désinscription | >3% | 1.5-3% | <1.5% | <0.5% |\n\n**LinkedIn :**\n| Métrique | 🔴 Faible | 🟡 Correct | 🟢 Bon |\n|----------|-----------|------------|--------|\n| Acceptation | <20% | 20-30% | >30% |\n| Réponse | <3% | 3-5% | >5% |\n\n**Conversion globale :**\n- Prospect → Réponse positive : 2-5%\n- Réponse positive → RDV : 30-50%\n- RDV → Client : 15-30%\n\n**Règle :** Il faut ~200 prospects contactés pour des stats fiables.`,
+  },
+  {
+    triggers: ['combien de prospect', 'volume', 'taille liste', 'combien envoyer', 'nombre prospect', 'liste prospect'],
+    answer: `### Volume et taille de liste\n\n**Volume recommandé par campagne :**\n- **Minimum :** 100 prospects (pour des stats exploitables)\n- **Idéal :** 200-500 prospects\n- **Maximum par boîte email :** 50-80/jour\n\n**Pour atteindre vos objectifs :**\n- Objectif 3 RDV/mois → ~300 prospects contactés\n- Objectif 5 RDV/mois → ~500 prospects contactés\n- Objectif 10 RDV/mois → ~1000 prospects (2 campagnes)\n\n**Qualité > Quantité :**\n- Une liste de 200 prospects ultra-ciblés > 1000 prospects vagues\n- Le ciblage précis (secteur + poste + taille + zone) multiplie par 2-3 le taux de réponse\n\n**Sources de prospects :** LinkedIn Sales Navigator, Apollo.io, Dropcontact, PhantomBuster.`,
+  },
+  {
+    triggers: ['a/b test', 'ab test', 'tester', 'variante', 'variant', 'split test', 'test ab'],
+    answer: `### A/B Testing en prospection\n\n**Quoi tester (par priorité) :**\n1. **Objet email** — impact le plus fort sur l'ouverture\n2. **CTA** — impact direct sur la réponse\n3. **Angle d'approche** — douleur vs preuve sociale vs curiosité\n4. **Longueur** — court vs détaillé\n\n**Méthodologie :**\n- **1 variable à la fois** — sinon impossible de savoir ce qui a marché\n- **200 prospects minimum** par variante (100+100)\n- **7 jours minimum** avant de conclure\n- **Mesurer le bon KPI** : ouverture pour les objets, réponse pour le corps\n\n**Piège courant :** Tester l'objet ET le corps en même temps. Si les résultats s'améliorent, vous ne savez pas pourquoi.\n\n**Comment Bakal gère ça :** Le système de régénération crée automatiquement des variantes A/B avec des hypothèses claires.`,
+  },
+];
+
+function matchKnowledge(text) {
+  const lower = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const entry of KNOWLEDGE_BASE) {
+    let score = 0;
+    for (const trigger of entry.triggers) {
+      const normalTrigger = trigger.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (lower.includes(normalTrigger)) score += normalTrigger.length;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = entry;
+    }
+  }
+
+  return bestScore >= 3 ? bestMatch : null;
+}
+
+function handleStrategicQuery(text) {
+  const kb = matchKnowledge(text);
+  if (kb) {
+    return { content: kb.answer + `\n\nUne autre question, ou voulez-vous **créer une campagne** avec ces principes ?` };
+  }
+  return null;
 }
 
 function buildCampaignName(p) {
@@ -921,10 +1241,170 @@ function createCampaignLocally(campaignData) {
   return id;
 }
 
-/* ═══ Thread management (local fallback) ═══ */
+/* ═══ Contextual suggestions ═══ */
+
+function getSuggestionsForContext(metadata) {
+  const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns) : [];
+  const activeCampaigns = campaigns.filter(c => c.status === 'active');
+  const hasCampaigns = campaigns.length > 0;
+
+  // After campaign creation
+  if (metadata && metadata.action === 'create_campaign') {
+    return [
+      'Créer cette campagne',
+      'Changer le canal',
+      'Modifier la cible',
+      'Changer l\'angle d\'approche',
+    ];
+  }
+
+  // After analysis/optimization response — detect by checking last assistant message
+  const lastMsg = _conv.history.filter(h => h.role === 'assistant').slice(-1)[0];
+  if (lastMsg && lastMsg.content && lastMsg.content.includes('Diagnostic —')) {
+    const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns).filter(c => c.status === 'active') : [];
+    const suggestions = ['Régénérer les messages sous-performants'];
+    if (campaigns.length > 1) suggestions.push('Analyser une autre campagne');
+    suggestions.push('Créer une nouvelle campagne');
+    return suggestions;
+  }
+  if (lastMsg && lastMsg.content && lastMsg.content.includes('Analyse globale')) {
+    const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns).filter(c => c.status === 'active') : [];
+    return campaigns.slice(0, 3).map(c => `Détail "${c.name}"`).concat(['Créer une nouvelle campagne']);
+  }
+
+  // Campaign confirmed and being created
+  if (_conv.stage === 'done') {
+    return [
+      'Créer une autre campagne',
+      'Analyser mes stats',
+      'Voir les intégrations disponibles',
+    ];
+  }
+
+  // Gathering params — suggest common values for what's missing
+  if (_conv.stage === 'gathering') {
+    const missing = getMissingParams();
+    if (missing.length > 0) {
+      const param = missing[0];
+      const quickSuggestions = {
+        sector: ['Tech & SaaS', 'Comptabilité & Finance', 'Conseil & Consulting'],
+        position: ['Dirigeant / CEO', 'DAF', 'DRH'],
+        channel: ['Email', 'LinkedIn', 'Multi (Email + LinkedIn)'],
+        zone: ['France entière', 'Île-de-France', 'Lyon / Rhône-Alpes'],
+        size: ['1-10 sal. (TPE)', '11-50 sal. (PME)', '50-200 sal. (ETI)'],
+      };
+      return quickSuggestions[param] || [];
+    }
+  }
+
+  // Waiting for confirmation
+  if (_conv.stage === 'confirm') {
+    return ['Oui, créer la campagne', 'Modifier quelque chose', 'Recommencer'];
+  }
+
+  // API keys flow
+  if (_conv.stage === 'api_keys') {
+    if (_conv.apiKeyField) {
+      return ['Passer', 'Voir un autre outil', 'Terminé'];
+    }
+    return ['Essentiels', 'CRM', 'Enrichissement', 'Terminé'];
+  }
+
+  // After strategic/knowledge response
+  if (lastMsg && lastMsg.content && lastMsg.content.includes('Une autre question')) {
+    return [
+      'Créer une campagne',
+      'Meilleur timing d\'envoi ?',
+      'Benchmarks B2B',
+      'Tu ou Vous ?',
+    ];
+  }
+
+  // Default — init stage
+  const suggestions = [];
+  if (hasCampaigns) {
+    suggestions.push('Créer une nouvelle campagne');
+    if (activeCampaigns.length > 0) {
+      suggestions.push('Analyser mes campagnes actives');
+      suggestions.push('Optimiser une campagne');
+    }
+  } else {
+    suggestions.push('Créer ma première campagne');
+    suggestions.push('Quel angle pour le secteur tech ?');
+  }
+  suggestions.push('Configurer mes intégrations');
+  return suggestions;
+}
+
+function getWelcomeSuggestions() {
+  const campaigns = typeof BAKAL !== 'undefined' ? Object.values(BAKAL.campaigns) : [];
+  const active = campaigns.filter(c => c.status === 'active');
+
+  if (active.length > 0) {
+    const c = active[0];
+    return [
+      `Analyser "${c.name}"`,
+      'Créer une nouvelle campagne',
+      'Optimiser une campagne qui sous-performe',
+    ];
+  }
+  if (campaigns.length > 0) {
+    return [
+      'Créer une nouvelle campagne',
+      'Analyser mes stats',
+      'Quel angle pour mon secteur ?',
+    ];
+  }
+  return [
+    'Cibler des DAF en Île-de-France',
+    'Quel angle pour le secteur tech ?',
+    'Configurer mes intégrations',
+  ];
+}
+
+/* ═══ Thread management (local fallback with localStorage persistence) ═══ */
+
+const STORAGE_KEY_THREADS = 'bakal_chat_threads';
+const STORAGE_KEY_MESSAGES = 'bakal_chat_messages';
+const STORAGE_KEY_COUNTER = 'bakal_chat_counter';
 
 let _localThreads = [];
 let _localThreadIdCounter = 1;
+let _localMessages = {}; // { threadId: [{ role, content, metadata, timestamp }] }
+
+function loadLocalHistory() {
+  try {
+    const threads = localStorage.getItem(STORAGE_KEY_THREADS);
+    if (threads) _localThreads = JSON.parse(threads);
+    const messages = localStorage.getItem(STORAGE_KEY_MESSAGES);
+    if (messages) _localMessages = JSON.parse(messages);
+    const counter = localStorage.getItem(STORAGE_KEY_COUNTER);
+    if (counter) _localThreadIdCounter = parseInt(counter, 10);
+  } catch { /* corrupt data — start fresh */ }
+}
+
+function saveLocalHistory() {
+  try {
+    localStorage.setItem(STORAGE_KEY_THREADS, JSON.stringify(_localThreads));
+    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(_localMessages));
+    localStorage.setItem(STORAGE_KEY_COUNTER, String(_localThreadIdCounter));
+  } catch { /* storage full — fail silently */ }
+}
+
+function addLocalMessage(threadId, role, content, metadata) {
+  if (!_localMessages[threadId]) _localMessages[threadId] = [];
+  _localMessages[threadId].push({
+    role,
+    content,
+    metadata: metadata || null,
+    timestamp: new Date().toISOString(),
+  });
+  saveLocalHistory();
+}
+
+function getLocalMessages(threadId) {
+  return _localMessages[threadId] || [];
+}
 
 function createLocalThread(title) {
   const thread = {
@@ -934,11 +1414,15 @@ function createLocalThread(title) {
     updated_at: new Date().toISOString(),
   };
   _localThreads.unshift(thread);
+  _localMessages[thread.id] = [];
+  saveLocalHistory();
   return thread;
 }
 
 function deleteLocalThread(id) {
   _localThreads = _localThreads.filter(t => t.id !== id);
+  delete _localMessages[id];
+  saveLocalHistory();
 }
 
 /* ═══ Hybrid integration with chat.js ═══ */
@@ -981,6 +1465,7 @@ function patchChatHybrid() {
     }
 
     appendMessage('user', text);
+    addLocalMessage(_chatThreadId, 'user', text);
     showTypingIndicator();
     _chatSending = true;
     updateSendButton();
@@ -993,12 +1478,12 @@ function patchChatHybrid() {
       _conv.history.push({ role: 'assistant', content: response.content });
     }
 
-    // Typing delay proportional to response length
-    const delay = Math.min(600 + response.content.length * 3, 2000);
-    await new Promise(r => setTimeout(r, delay));
+    // Short typing delay then stream the response
+    await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
 
     hideTypingIndicator();
-    appendMessage('assistant', response.content, response.metadata);
+    await streamMessage(response.content, response.metadata);
+    addLocalMessage(_chatThreadId, 'assistant', response.content, response.metadata);
 
     // Update thread title
     if (_conv.threadTitle) {
@@ -1006,6 +1491,7 @@ function patchChatHybrid() {
       if (thread) {
         thread.title = _conv.threadTitle;
         thread.updated_at = new Date().toISOString();
+        saveLocalHistory();
         renderChatThreadList();
       }
     }
@@ -1017,7 +1503,8 @@ function patchChatHybrid() {
         setTimeout(() => {
           const id = createCampaignLocally(lastMeta);
           if (id) {
-            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
+            const _aud = (lastMeta.planned || lastMeta.volume || 200);
+            appendMessage('assistant', `Campagne **"${lastMeta.name}"** créée avec succès — **${_aud} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
             setTimeout(() => showPage('copyeditor'), 1200);
           }
         }, 500);
@@ -1044,7 +1531,8 @@ function patchChatHybrid() {
 
         // Step 2: Generate AI sequence for this campaign
         if (backendId) {
-          appendMessage('assistant', `Campagne **"${campaignData.name}"** créée. Génération de la séquence par Claude en cours...`);
+          const _audSize = campaignData.planned || campaignData.volume || 200;
+          appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audSize} prospects** ciblés. Génération de la séquence par Claude en cours...`);
 
           try {
             const seqResult = await BakalAPI.generateSequence({
@@ -1067,7 +1555,7 @@ function patchChatHybrid() {
             }
 
             const id = createCampaignLocally(campaignData);
-            appendMessage('assistant', `Séquence de **${(seqResult.sequence || []).length} touchpoints** générée par Claude !\n\n${seqResult.strategy || ''}\n\nRedirection vers l'éditeur de séquences...`);
+            appendMessage('assistant', `Séquence de **${(seqResult.sequence || []).length} touchpoints** générée par Claude pour **${_audSize} prospects** !\n\n${seqResult.strategy || ''}\n\nRedirection vers l'éditeur de séquences...`);
             setTimeout(() => showPage('copyeditor'), 1500);
             return;
           } catch (aiErr) {
@@ -1077,7 +1565,8 @@ function patchChatHybrid() {
         }
 
         const id = createCampaignLocally(campaignData);
-        appendMessage('assistant', `Campagne **"${campaignData.name}"** créée avec succès !\nRedirection vers l'éditeur de séquences...`);
+        const _audFb = campaignData.planned || campaignData.volume || 200;
+        appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audFb} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
         setTimeout(() => showPage('copyeditor'), 1200);
         return;
       } catch (err) {
@@ -1088,7 +1577,8 @@ function patchChatHybrid() {
     // Offline fallback → create locally
     const id = createCampaignLocally(campaignData);
     if (id) {
-      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée !\nRedirection vers l'éditeur de séquences...`);
+      const _audOff = campaignData.planned || campaignData.volume || 200;
+      appendMessage('assistant', `Campagne **"${campaignData.name}"** créée — **${_audOff} prospects** ciblés !\nRedirection vers l'éditeur de séquences...`);
       setTimeout(() => showPage('copyeditor'), 1200);
     } else {
       appendMessage('assistant', 'Erreur lors de la création. Essayez via le bouton **+ Nouvelle campagne** du dashboard.');
@@ -1119,7 +1609,20 @@ function patchChatHybrid() {
     }
     _chatThreadId = threadId;
     renderChatThreadList();
-    showChatWelcome();
+
+    // Restore messages from localStorage
+    const messages = getLocalMessages(threadId);
+    if (messages.length === 0) {
+      showChatWelcome();
+    } else {
+      showChatMessages();
+      const inner = document.getElementById('chatMessagesInner');
+      inner.innerHTML = '';
+      messages.forEach(m => {
+        appendMessage(m.role, m.content, m.metadata, false);
+      });
+      scrollChatToBottom();
+    }
   };
 
   window.deleteChatThread = function(threadId, e) {
@@ -1162,9 +1665,11 @@ function getLastCampaignMetadata() {
 /* ═══ Init ═══ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadLocalHistory();
   patchChatHybrid();
 });
 
 if (document.readyState !== 'loading') {
+  loadLocalHistory();
   patchChatHybrid();
 }

@@ -112,6 +112,18 @@ function showChatWelcome() {
   document.getElementById('chatMessagesInner').innerHTML = '';
   document.getElementById('chatInput').value = '';
   document.getElementById('chatInput').focus();
+  renderWelcomeSuggestions();
+}
+
+function renderWelcomeSuggestions() {
+  const container = document.getElementById('chatWelcomeSuggestions');
+  if (!container) return;
+  const suggestions = typeof getWelcomeSuggestions === 'function'
+    ? getWelcomeSuggestions()
+    : ['Cibler des DAF en Île-de-France', 'Optimiser ma campagne', 'Quel angle pour le secteur tech ?'];
+  container.innerHTML = suggestions.map(s =>
+    `<button class="chat-suggestion" onclick="sendSuggestion(this)">${s}</button>`
+  ).join('');
 }
 
 function showChatMessages() {
@@ -148,6 +160,22 @@ function appendMessage(role, content, metadata, animate = true) {
     actionCardHtml = renderActionCard(metadata.campaign);
   }
 
+  // Remove previous inline suggestions
+  const prevSuggestions = inner.querySelectorAll('.chat-inline-suggestions');
+  prevSuggestions.forEach(el => el.remove());
+
+  // Build inline suggestions for assistant messages
+  let suggestionsHtml = '';
+  if (role === 'assistant' && animate && typeof getSuggestionsForContext === 'function') {
+    const suggestions = getSuggestionsForContext(metadata);
+    if (suggestions && suggestions.length > 0) {
+      const chips = suggestions.map(s =>
+        `<button class="chat-inline-chip" onclick="sendChatMessage('${escapeHtml(s.replace(/'/g, "\\'"))}')">${escapeHtml(s)}</button>`
+      ).join('');
+      suggestionsHtml = `<div class="chat-inline-suggestions">${chips}</div>`;
+    }
+  }
+
   const msgHtml = `
     <div class="chat-msg ${role}"${animate ? ' style="animation:chatFadeIn 0.25s ease"' : ''}>
       <div class="chat-msg-avatar">${avatar}</div>
@@ -156,7 +184,7 @@ function appendMessage(role, content, metadata, animate = true) {
         ${actionCardHtml}
         <div class="chat-msg-time">${timeStr}</div>
       </div>
-    </div>`;
+    </div>${suggestionsHtml}`;
 
   inner.insertAdjacentHTML('beforeend', msgHtml);
   scrollChatToBottom();
@@ -213,6 +241,79 @@ function showTypingIndicator() {
 
 function hideTypingIndicator() {
   document.getElementById('chatTyping')?.remove();
+}
+
+/* ═══ Streaming message display ═══ */
+
+async function streamMessage(content, metadata) {
+  showChatMessages();
+  const inner = document.getElementById('chatMessagesInner');
+
+  // Remove previous inline suggestions
+  const prevSuggestions = inner.querySelectorAll('.chat-inline-suggestions');
+  prevSuggestions.forEach(el => el.remove());
+
+  const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  // Build action card if present
+  let actionCardHtml = '';
+  if (metadata && metadata.action === 'create_campaign' && metadata.campaign) {
+    actionCardHtml = renderActionCard(metadata.campaign);
+  }
+
+  // Create the message shell with empty content
+  const msgId = 'stream-' + Date.now();
+  const msgHtml = `
+    <div class="chat-msg assistant" style="animation:chatFadeIn 0.25s ease" id="${msgId}">
+      <div class="chat-msg-avatar">b</div>
+      <div class="chat-msg-body">
+        <div class="chat-msg-content" id="${msgId}-content"></div>
+        <div id="${msgId}-action" style="display:none;">${actionCardHtml}</div>
+        <div class="chat-msg-time">${timeStr}</div>
+      </div>
+    </div>`;
+  inner.insertAdjacentHTML('beforeend', msgHtml);
+  scrollChatToBottom();
+
+  const contentEl = document.getElementById(`${msgId}-content`);
+  if (!contentEl) return;
+
+  // Strip JSON blocks for display (action cards handle them)
+  let displayContent = content.replace(/```json\s*[\s\S]*?```/g, '').trim();
+
+  // Stream by chunks (groups of words for natural feel)
+  const words = displayContent.split(/(\s+)/);
+  let buffer = '';
+  const chunkSize = 3; // words per chunk
+  const baseDelay = 18; // ms per chunk
+
+  for (let i = 0; i < words.length; i++) {
+    buffer += words[i];
+    if (i % chunkSize === chunkSize - 1 || i === words.length - 1) {
+      contentEl.innerHTML = formatMarkdown(buffer);
+      scrollChatToBottom();
+      await new Promise(r => setTimeout(r, baseDelay + Math.random() * 12));
+    }
+  }
+
+  // Show action card
+  const actionEl = document.getElementById(`${msgId}-action`);
+  if (actionEl && actionCardHtml) {
+    actionEl.style.display = '';
+  }
+
+  // Add inline suggestions
+  if (typeof getSuggestionsForContext === 'function') {
+    const suggestions = getSuggestionsForContext(metadata);
+    if (suggestions && suggestions.length > 0) {
+      const chips = suggestions.map(s =>
+        `<button class="chat-inline-chip" onclick="sendChatMessage('${escapeHtml(s.replace(/'/g, "\\'"))}')">${escapeHtml(s)}</button>`
+      ).join('');
+      inner.insertAdjacentHTML('beforeend', `<div class="chat-inline-suggestions">${chips}</div>`);
+    }
+  }
+
+  scrollChatToBottom();
 }
 
 /* ═══ Send messages ═══ */
@@ -424,15 +525,44 @@ function renderSidebarCampaigns() {
     return;
   }
   const campaigns = Object.values(BAKAL.campaigns);
-  if (campaigns.length === 0) {
+  const projects = Object.values(BAKAL.projects || {});
+  if (campaigns.length === 0 && projects.length === 0) {
     container.innerHTML = '';
     return;
   }
-  container.innerHTML = campaigns.slice(0, 6).map(c => {
-    const name = c.name || c.id;
-    const shortName = name.length > 22 ? name.slice(0, 22) + '…' : name;
-    return '<div class="nav-campaign-item" onclick="showPage(\'dashboard\',\'campaigns\')">' + shortName + '</div>';
-  }).join('');
+
+  let html = '';
+  if (projects.length > 0) {
+    projects.forEach(p => {
+      const pCampaigns = campaigns.filter(c => c.projectId === p.id);
+      const shortName = p.name.length > 20 ? p.name.slice(0, 20) + '…' : p.name;
+      html += '<div class="nav-project-group">';
+      html += '<div class="nav-project-label" onclick="showPage(\'dashboard\',\'campaigns\')">';
+      html += '<span class="nav-project-dot" style="background:' + p.color + '"></span>' + shortName;
+      html += '</div>';
+      pCampaigns.slice(0, 4).forEach(c => {
+        const cName = (c.name || c.id);
+        const cShort = cName.length > 20 ? cName.slice(0, 20) + '…' : cName;
+        html += '<div class="nav-campaign-item" onclick="showPage(\'dashboard\',\'campaigns\')">' + cShort + '</div>';
+      });
+      html += '</div>';
+    });
+    // Orphan campaigns
+    const orphans = campaigns.filter(c => !c.projectId);
+    orphans.slice(0, 3).forEach(c => {
+      const name = (c.name || c.id);
+      const shortName = name.length > 22 ? name.slice(0, 22) + '…' : name;
+      html += '<div class="nav-campaign-item" onclick="showPage(\'dashboard\',\'campaigns\')">' + shortName + '</div>';
+    });
+  } else {
+    // Fallback: flat list
+    campaigns.slice(0, 6).forEach(c => {
+      const name = c.name || c.id;
+      const shortName = name.length > 22 ? name.slice(0, 22) + '…' : name;
+      html += '<div class="nav-campaign-item" onclick="showPage(\'dashboard\',\'campaigns\')">' + shortName + '</div>';
+    });
+  }
+  container.innerHTML = html;
 }
 
 /* ═══ Stack status check ═══ */

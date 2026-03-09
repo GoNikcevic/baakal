@@ -844,7 +844,12 @@ body {
   cursor: pointer; transition: all var(--transition);
 }
 .campaign-row:hover { border-color: var(--border-light); background: var(--bg-card-hover); }
-.campaign-row-name { font-weight: 500; font-size: 14px; }
+.campaign-row-name { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.campaign-audience {
+  font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px;
+  background: var(--accent-glow); color: var(--text-secondary); border: 1px solid var(--border);
+  white-space: nowrap;
+}
 .campaign-row-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 .campaign-row-channel { font-size: 13px; font-weight: 500; }
 .campaign-row-stat { text-align: center; }
@@ -852,6 +857,91 @@ body {
 .campaign-row-stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .campaign-row-arrow { font-size: 16px; color: var(--text-muted); transition: color var(--transition); }
 .campaign-row:hover .campaign-row-arrow { color: var(--text-secondary); }
+
+/* ═══ Project grouping ═══ */
+.project-group { margin-bottom: 16px; }
+.project-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0; cursor: pointer;
+  transition: background var(--transition);
+}
+.project-header:hover { background: var(--bg-card-hover); }
+.project-header-left { display: flex; align-items: center; gap: 10px; }
+.project-header-right { display: flex; align-items: center; gap: 8px; }
+.project-chevron { font-size: 12px; color: var(--text-muted); width: 14px; text-align: center; transition: color var(--transition); }
+.project-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.project-header-name { font-weight: 600; font-size: 14px; }
+.project-header-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.project-badge {
+  font-size: 11px; font-weight: 500; padding: 3px 10px;
+  border-radius: 20px; background: var(--bg-elevated); color: var(--text-secondary);
+}
+.project-badge-active { background: var(--success-bg); color: var(--success); }
+.project-campaigns { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+.project-campaigns .campaign-row { border-radius: 0; border-left: none; border-right: none; border-bottom: 1px solid var(--border); margin: 0; }
+.project-campaigns .campaign-row:last-child { border-bottom: none; }
+.project-empty { padding: 20px; text-align: center; font-size: 13px; color: var(--text-muted); }
+.project-empty a { color: var(--blue); text-decoration: none; }
+.project-empty a:hover { text-decoration: underline; }
+.project-badge-files { background: var(--blue-bg); color: var(--blue); }
+
+/* ── Project files section ── */
+.pf-section { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+.pf-files-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.pf-files-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.pf-files-count { font-size: 11px; color: var(--text-muted); }
+
+.pf-file-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.pf-file-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 6px;
+  background: var(--bg-elevated); transition: all 0.2s ease;
+}
+.pf-file-row:hover { background: var(--bg-card-hover); }
+.pf-file-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
+.pf-file-info { flex: 1; min-width: 0; }
+.pf-file-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-file-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.pf-file-delete {
+  background: none; border: none; color: var(--text-muted); font-size: 16px;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px; opacity: 0;
+  transition: all 0.15s ease;
+}
+.pf-file-row:hover .pf-file-delete { opacity: 1; }
+.pf-file-delete:hover { color: var(--danger); background: var(--danger-bg); }
+
+.pf-dropzone {
+  border: 2px dashed var(--border); border-radius: 8px;
+  padding: 16px; text-align: center; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.pf-dropzone:hover { border-color: var(--border-light); background: var(--accent-glow); }
+.pf-dropzone-active { border-color: var(--blue); background: var(--blue-bg); }
+.pf-dropzone-active .pf-dropzone-icon { color: var(--blue); }
+.pf-dropzone-content { pointer-events: none; }
+.pf-dropzone-content a { pointer-events: auto; }
+.pf-dropzone-icon { font-size: 20px; color: var(--text-muted); margin-bottom: 4px; font-weight: 300; }
+.pf-dropzone-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.pf-dropzone-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.pf-dropzone-hint a { color: var(--blue); text-decoration: none; }
+.pf-dropzone-hint a:hover { text-decoration: underline; }
+
+.pf-upload-status { margin-top: 8px; }
+.pf-status-uploading { font-size: 12px; color: var(--blue); text-align: center; padding: 6px; }
+.pf-status-success { font-size: 12px; color: var(--success); text-align: center; padding: 6px; }
+.pf-status-error { font-size: 12px; color: var(--danger); text-align: center; padding: 6px; }
+
+/* ── Sidebar project labels ── */
+.nav-project-group { margin-bottom: 4px; }
+.nav-project-label {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 18px; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+  cursor: pointer; transition: color var(--transition);
+}
+.nav-project-label:hover { color: var(--text-secondary); }
+.nav-project-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* Campaign detail view */
 .campaign-detail { animation: fadeIn 0.3s ease; }
@@ -1697,6 +1787,22 @@ body {
   background: var(--accent-glow);
 }
 
+/* ── Inline suggestion chips (after assistant messages) ── */
+.chat-inline-suggestions {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; margin-bottom: 4px;
+  animation: chatFadeIn 0.3s ease 0.15s both;
+}
+.chat-inline-chip {
+  padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); font-size: 12px;
+  cursor: pointer; transition: all var(--transition); font-family: inherit;
+  white-space: nowrap;
+}
+.chat-inline-chip:hover {
+  border-color: var(--border-light); color: var(--text-secondary);
+  background: var(--accent-glow);
+}
+
 /* ── Message bubbles ── */
 .chat-msg { display: flex; gap: 12px; margin-bottom: 20px; animation: chatFadeIn 0.2s ease; }
 .chat-msg.user { flex-direction: row-reverse; }
@@ -2291,10 +2397,16 @@ body {
     <div class="logo-text">bakal<span>.ai</span></div>
   </div>
 
-  <button class="sidebar-create-btn" onclick="toggleCreator()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Nouvelle campagne
-  </button>
+  <div style="display:flex;flex-direction:column;gap:6px;padding:0 16px;">
+    <button class="sidebar-create-btn" onclick="toggleCreator()" style="margin:0;width:100%;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouvelle campagne
+    </button>
+    <button class="sidebar-create-btn" onclick="toggleProjectCreator()" style="margin:0;width:100%;background:transparent;border:1px solid var(--border);color:var(--text-secondary);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouveau projet
+    </button>
+  </div>
 
   <nav class="nav">
     <div class="nav-section">
@@ -3242,12 +3354,8 @@ body {
             </button>
           </div>
 
-          <!-- Suggestion chips -->
-          <div class="chat-suggestions">
-            <button class="chat-suggestion" onclick="sendSuggestion(this)">Cibler des DAF en &Icirc;le-de-France</button>
-            <button class="chat-suggestion" onclick="sendSuggestion(this)">Optimiser ma campagne qui sous-performe</button>
-            <button class="chat-suggestion" onclick="sendSuggestion(this)">Quel angle pour le secteur tech ?</button>
-          </div>
+          <!-- Suggestion chips (dynamic) -->
+          <div class="chat-suggestions" id="chatWelcomeSuggestions"></div>
         </div>
 
         <!-- Messages area (hidden until first message) -->
@@ -3492,24 +3600,7 @@ body {
         <div class="card-body">
           <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Connectez vos outils pour automatiser votre prospection. Cliquez sur une carte pour configurer la clé API.</p>
 
-          <!-- Search & Filters -->
-          <div class="api-catalog-toolbar">
-            <div class="api-catalog-search-wrap">
-              <input class="api-catalog-search" type="text" placeholder="Rechercher une intégration..." id="apiCatalogSearch" oninput="filterApiCatalog()">
-            </div>
-            <div class="api-catalog-filters" id="apiCatalogFilters">
-              <button class="api-cat-filter active" data-cat="all" onclick="setApiCatFilter('all',this)">Toutes</button>
-              <button class="api-cat-filter" data-cat="core" onclick="setApiCatFilter('core',this)">Core</button>
-              <button class="api-cat-filter" data-cat="crm" onclick="setApiCatFilter('crm',this)">CRM</button>
-              <button class="api-cat-filter" data-cat="enrichment" onclick="setApiCatFilter('enrichment',this)">Enrichissement</button>
-              <button class="api-cat-filter" data-cat="outreach" onclick="setApiCatFilter('outreach',this)">Outreach</button>
-              <button class="api-cat-filter" data-cat="scraping" onclick="setApiCatFilter('scraping',this)">Scraping</button>
-              <button class="api-cat-filter" data-cat="calendar" onclick="setApiCatFilter('calendar',this)">Calendrier</button>
-              <button class="api-cat-filter" data-cat="deliverability" onclick="setApiCatFilter('deliverability',this)">Délivrabilité</button>
-            </div>
-          </div>
-
-          <!-- Cards Grid -->
+          <!-- Core Cards Grid -->
           <div class="api-catalog-grid" id="apiCatalogGrid">
 
             <!-- ═══ CORE ═══ -->
@@ -3579,7 +3670,7 @@ body {
               </div>
             </div>
 
-            <!-- ═══ CRM ═══ -->
+            <!-- ═══ CRM (visible) ═══ -->
             <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
               <span class="api-card-chevron">▼</span>
               <div class="api-card-top">
@@ -3624,6 +3715,38 @@ body {
               </div>
             </div>
 
+          </div><!-- /api-catalog-grid (5 visible) -->
+
+          <!-- Voir plus toggle -->
+          <div id="apiShowMoreBtn" style="text-align:center;margin:16px 0 8px;">
+            <button class="btn btn-ghost" onclick="toggleMoreApis()" style="font-size:13px;padding:8px 20px;display:inline-flex;align-items:center;gap:6px;">
+              <span id="apiShowMoreLabel">Voir plus d'intégrations</span>
+              <span id="apiShowMoreChevron" style="font-size:10px;transition:transform 0.2s;">▼</span>
+              <span style="background:var(--bg-elevated);padding:2px 8px;border-radius:10px;font-size:11px;color:var(--text-muted);margin-left:4px;" id="apiMoreCount"></span>
+            </button>
+          </div>
+
+          <!-- Extended APIs (hidden by default) -->
+          <div id="apiExtendedSection" style="display:none;">
+            <!-- Search & Filters (moved here) -->
+            <div class="api-catalog-toolbar" style="margin-bottom:12px;">
+              <div class="api-catalog-search-wrap">
+                <input class="api-catalog-search" type="text" placeholder="Rechercher une intégration..." id="apiCatalogSearchExtended" oninput="filterApiCatalog()">
+              </div>
+              <div class="api-catalog-filters" id="apiCatalogFiltersExtended">
+                <button class="api-cat-filter active" data-cat="all" onclick="setApiCatFilter('all',this)">Toutes</button>
+                <button class="api-cat-filter" data-cat="crm" onclick="setApiCatFilter('crm',this)">CRM</button>
+                <button class="api-cat-filter" data-cat="enrichment" onclick="setApiCatFilter('enrichment',this)">Enrichissement</button>
+                <button class="api-cat-filter" data-cat="outreach" onclick="setApiCatFilter('outreach',this)">Outreach</button>
+                <button class="api-cat-filter" data-cat="scraping" onclick="setApiCatFilter('scraping',this)">Scraping</button>
+                <button class="api-cat-filter" data-cat="calendar" onclick="setApiCatFilter('calendar',this)">Calendrier</button>
+                <button class="api-cat-filter" data-cat="deliverability" onclick="setApiCatFilter('deliverability',this)">Délivrabilité</button>
+              </div>
+            </div>
+
+            <div class="api-catalog-grid" id="apiCatalogGridExtended">
+
+            <!-- ═══ CRM (extended) ═══ -->
             <div class="api-card" data-cat="crm" onclick="toggleApiCard(this)">
               <span class="api-card-chevron">▼</span>
               <div class="api-card-top">
@@ -4003,7 +4126,9 @@ body {
               </div>
             </div>
 
-          </div><!-- /api-catalog-grid -->
+            </div><!-- /api-catalog-grid-extended -->
+          </div><!-- /apiExtendedSection -->
+
         </div>
       </div>
 
@@ -4179,6 +4304,12 @@ body {
     <div class="creator-body">
       <div class="form-grid">
         <div class="form-group full">
+          <label class="form-label">Projet</label>
+          <select class="form-select" id="creator-project">
+            <option value="">— Aucun projet —</option>
+          </select>
+        </div>
+        <div class="form-group full">
           <label class="form-label">Nom de la campagne</label>
           <input class="form-input" id="creator-name" placeholder="Ex: DRH PME Lyon — Mars 2026">
         </div>
@@ -4273,6 +4404,46 @@ body {
     <div class="creator-footer" id="creatorFooter">
       <button class="btn btn-ghost" onclick="toggleCreator()">Annuler</button>
       <button class="btn btn-primary" onclick="createCampaign()">🚀 Créer la campagne</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PROJECT CREATOR MODAL ═══════════ -->
+<div class="creator-overlay" id="projectCreatorModal">
+  <div class="creator-modal" style="max-width:480px;">
+    <div class="creator-header">
+      <h2>📁 Nouveau projet</h2>
+      <button class="creator-close" onclick="toggleProjectCreator()">✕</button>
+    </div>
+    <div class="creator-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Nom du projet</label>
+          <input class="form-input" id="project-creator-name" placeholder="Ex: FormaPro Consulting — Q1 2026">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Client</label>
+          <input class="form-input" id="project-creator-client" placeholder="Nom du client">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <input class="form-input" id="project-creator-desc" placeholder="Ex: Prospection multi-cible pour cabinet de formation">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Couleur</label>
+          <select class="form-select" id="project-creator-color">
+            <option value="var(--blue)">Bleu</option>
+            <option value="var(--purple)">Violet</option>
+            <option value="var(--orange)">Orange</option>
+            <option value="var(--success)">Vert</option>
+            <option value="var(--danger)">Rouge</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="creator-footer" id="projectCreatorFooter">
+      <button class="btn btn-ghost" onclick="toggleProjectCreator()">Annuler</button>
+      <button class="btn btn-primary" onclick="createProject()">📁 Créer le projet</button>
     </div>
   </div>
 </div>
