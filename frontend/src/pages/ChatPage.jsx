@@ -5,7 +5,7 @@
    =============================================================================== */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import api from '../services/api-client';
 
 /* ─── Helpers ─── */
@@ -314,7 +314,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction }) {
 /* ═══ Main Component ═══ */
 
 export default function ChatPage() {
-  const { backendAvailable, campaigns, setCampaigns } = useApp();
+  const { backendAvailable, setCampaigns } = useApp();
 
   // Local state
   const [threads, setThreads] = useState([]);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useApp } from './context/AppContext'
+import { useApp } from './context/useApp'
 import { isLoggedIn, validateToken } from './services/auth'
 import AuthGate from './components/AuthGate'
+import OnboardingWizard from './components/OnboardingWizard'
 import Layout from './components/Layout'
 import ChatPage from './pages/ChatPage'
 import DashboardPage from './pages/DashboardPage'
@@ -14,6 +15,9 @@ import SettingsPage from './pages/SettingsPage'
 export default function App() {
   const { initData } = useApp()
   const [authed, setAuthed] = useState(null) // null = checking, true/false
+  const [onboarded, setOnboarded] = useState(() =>
+    localStorage.getItem('bakal_onboarding_complete') === 'true'
+  )
 
   useEffect(() => {
     async function checkAuth() {
@@ -49,6 +53,10 @@ export default function App() {
 
   if (!authed) {
     return <AuthGate onAuth={() => setAuthed(true)} />
+  }
+
+  if (!onboarded) {
+    return <OnboardingWizard onComplete={() => setOnboarded(true)} />
   }
 
   return (

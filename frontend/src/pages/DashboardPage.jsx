@@ -4,9 +4,10 @@
    Migrated from vanilla DOM manipulation in campaigns-data.js / nav.js / pages.js.
    =============================================================================== */
 
-import { useState, useEffect, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useMemo, useCallback } from 'react';
+import { useApp } from '../context/useApp';
 import CampaignsList from './CampaignsList';
+import VarGenerator from '../components/VarGenerator';
 
 const TABS = [
   { key: 'overview', label: 'Vue globale' },
@@ -26,13 +27,11 @@ const KPI_LABELS = {
 };
 
 export default function DashboardPage({ section, onNavigateCampaign }) {
-  const { campaigns, globalKpis, projects } = useApp();
+  const { campaigns, globalKpis } = useApp();
   const [tab, setTab] = useState(section || 'overview');
 
-  // Sync tab when `section` prop changes (e.g. from sidebar navigation)
-  useEffect(() => {
-    if (section) setTab(section);
-  }, [section]);
+  // Sync tab when `section` prop changes — derive from props directly
+  const currentTab = section || tab;
 
   const campaignsList = useMemo(() => Object.values(campaigns), [campaigns]);
   const isEmpty = campaignsList.length === 0;
@@ -74,7 +73,7 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
         {TABS.map((t) => (
           <button
             key={t.key}
-            className={`tab${tab === t.key ? ' active' : ''}`}
+            className={`tab${currentTab === t.key ? ' active' : ''}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -83,7 +82,7 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
       </div>
 
       {/* Tab content */}
-      {tab === 'overview' && (
+      {currentTab === 'overview' && (
         <OverviewSection
           isEmpty={isEmpty}
           globalKpis={globalKpis}
@@ -92,15 +91,15 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
         />
       )}
 
-      {tab === 'reports' && <ReportsSection isEmpty={isEmpty} />}
+      {currentTab === 'reports' && <ReportsSection isEmpty={isEmpty} />}
 
-      {tab === 'analytics' && <AnalyticsSection isEmpty={isEmpty} />}
+      {currentTab === 'analytics' && <AnalyticsSection isEmpty={isEmpty} />}
 
-      {tab === 'campaigns' && (
+      {currentTab === 'campaigns' && (
         <CampaignsList onNavigateCampaign={onNavigateCampaign} />
       )}
 
-      {tab === 'refinement' && <RefinementSection isEmpty={isEmpty} />}
+      {currentTab === 'refinement' && <RefinementSection isEmpty={isEmpty} />}
     </div>
   );
 }
@@ -607,6 +606,15 @@ function AnalyticsSection({ isEmpty }) {
    ═══════════════════════════════════════════════════ */
 
 function RefinementSection({ isEmpty }) {
+  const handleAcceptVariable = useCallback((key, varData) => {
+    // Future: integrate with VariableManager registry or backend
+    console.log('Variable accepted:', key, varData);
+  }, []);
+
+  const handleAcceptAll = useCallback((scenarioKey, chain) => {
+    console.log('All variables accepted for scenario:', scenarioKey, chain.length, 'variables');
+  }, []);
+
   if (isEmpty) {
     return (
       <div id="section-refinement">
@@ -627,16 +635,10 @@ function RefinementSection({ isEmpty }) {
 
   return (
     <div id="section-refinement">
-      <div
-        style={{
-          fontSize: '13px',
-          color: 'var(--text-muted)',
-          textAlign: 'center',
-          padding: '48px 0',
-        }}
-      >
-        Le module Refinement A/B sera rendu ici.
-      </div>
+      <VarGenerator
+        onAcceptVariable={handleAcceptVariable}
+        onAcceptAll={handleAcceptAll}
+      />
     </div>
   );
 }

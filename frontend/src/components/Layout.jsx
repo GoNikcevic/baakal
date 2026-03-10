@@ -4,8 +4,8 @@
    =============================================================================== */
 
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { NavLink, Outlet } from 'react-router-dom';
+import { useApp } from '../context/useApp';
 import { logout } from '../services/auth';
 
 /* ─── Sidebar nav items (mirrors vanilla app structure) ─── */
@@ -88,7 +88,6 @@ function NavIcon({ name }) {
 
 export default function Layout() {
   const { user, setUser } = useApp();
-  const navigate = useNavigate();
   const [showCreatorModal, setShowCreatorModal] = useState(false);
 
   async function handleLogout() {

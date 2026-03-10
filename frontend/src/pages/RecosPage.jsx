@@ -5,7 +5,7 @@
    =============================================================================== */
 
 import { useState, useMemo, useCallback } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 
 /* ─── Demo recommendation data ─── */
 
@@ -102,7 +102,7 @@ const PRIORITY_MAP = {
 /* ─── Component ─── */
 
 export default function RecosPage() {
-  const { campaigns } = useApp();
+  useApp();
 
   // Local state
   const [recos, setRecos] = useState(DEMO_RECOS);

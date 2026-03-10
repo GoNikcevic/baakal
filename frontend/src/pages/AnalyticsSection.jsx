@@ -6,8 +6,8 @@
    Used as a tab within the Dashboard page.
    =============================================================================== */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useMemo } from 'react';
+import { useApp } from '../context/useApp';
 
 /* ─── Chart data for different periods ─── */
 

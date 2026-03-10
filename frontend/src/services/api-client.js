@@ -159,7 +159,7 @@ export function transformVersion(v) {
   };
 }
 
-export function buildDefaultChecklist(c) {
+export function buildDefaultChecklist() {
   return [
     { icon: '✅', title: 'Paramètres de campagne configurés', desc: 'Cible, canal, angle, ton — tout est défini', status: 'Fait', statusColor: 'success', done: true },
     { icon: '⬜', title: 'Séquences à générer par Claude', desc: 'En attente de génération IA', status: 'À faire', statusColor: 'text-muted', done: false },

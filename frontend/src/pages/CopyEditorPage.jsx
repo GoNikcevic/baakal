@@ -4,9 +4,10 @@
    Ported from /app/copy-editor.js — full React hooks implementation.
    =============================================================================== */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useApp } from '../context/useApp';
 import api from '../services/api-client';
+import VariableManager from '../components/VariableManager';
 
 /* ─── Fallback data ─── */
 
@@ -172,15 +173,6 @@ const EDITOR_FALLBACK = {
 };
 
 /* ─── Helpers ─── */
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 /** Highlight {{varName}} in text by wrapping with styled spans */
 function highlightVars(text) {
@@ -404,7 +396,6 @@ function TouchpointCard({
   activeCampaignKey,
   onDuplicate,
   onDelete,
-  onTouchpointUpdate,
 }) {
   const isLinkedin = tp.type === 'linkedin';
   const [regenStatus, setRegenStatus] = useState(null); // null | 'loading' | 'done' | 'error' | 'offline'
@@ -673,36 +664,42 @@ function ParamsPanel({ params, onClose }) {
 export default function CopyEditorPage() {
   const { campaigns, backendAvailable, setCampaigns } = useApp();
 
-  // Local state
-  const [editorCampaigns, setEditorCampaigns] = useState({});
-  const [activeCampaign, setActiveCampaign] = useState(null);
+  // Derive base editor data from campaigns context
+  const baseEditorData = useMemo(() => {
+    let synced = {};
+    if (Object.keys(campaigns).length > 0) {
+      synced = syncCampaignsFromContext(campaigns);
+    }
+    if (Object.keys(synced).length === 0) {
+      synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
+    }
+    return synced;
+  }, [campaigns]);
+
+  // Local overrides state (for edits before save)
+  const [localOverrides, setLocalOverrides] = useState({});
+  const editorCampaigns = useMemo(() => ({ ...baseEditorData, ...localOverrides }), [baseEditorData, localOverrides]);
+  const setEditorCampaigns = useCallback((updater) => {
+    if (typeof updater === 'function') {
+      setLocalOverrides(prev => {
+        const merged = { ...baseEditorData, ...prev };
+        return updater(merged);
+      });
+    } else {
+      setLocalOverrides(updater);
+    }
+  }, [baseEditorData]);
+
+  const [activeCampaign, setActiveCampaign] = useState(() => {
+    const keys = Object.keys(baseEditorData);
+    return keys.length > 0 ? keys[0] : null;
+  });
   const [showParams, setShowParams] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saved' | 'error'
   const [saveMessage, setSaveMessage] = useState('');
   const [regenAllStatus, setRegenAllStatus] = useState(null); // null | 'loading' | 'done' | 'error'
   const [regenAllMessage, setRegenAllMessage] = useState('');
-
-  const touchpointRefs = useRef({});
-
-  /* ─── Init: sync campaigns from context or use fallback ─── */
-  useEffect(() => {
-    let synced = {};
-    if (Object.keys(campaigns).length > 0) {
-      synced = syncCampaignsFromContext(campaigns);
-    }
-
-    if (Object.keys(synced).length === 0) {
-      synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
-    }
-
-    setEditorCampaigns(synced);
-
-    // Set active campaign
-    const keys = Object.keys(synced);
-    if (keys.length > 0 && (!activeCampaign || !synced[activeCampaign])) {
-      setActiveCampaign(keys[0]);
-    }
-  }, [campaigns]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [varRegistry, setVarRegistry] = useState(null);
 
   /* ─── Select campaign ─── */
   const selectCampaign = useCallback((key) => {
@@ -710,6 +707,36 @@ export default function CopyEditorPage() {
     setShowParams(false);
     setSaveStatus(null);
     setRegenAllStatus(null);
+  }, []);
+
+  /* ─── Insert variable into the focused editable field ─── */
+  const handleInsertVariable = useCallback((key) => {
+    const tag = `{{${key}}}`;
+    // Find the currently focused editable in an editing touchpoint card
+    let target = document.querySelector('.touchpoint-card.editing .tp-editable:focus');
+    if (!target) {
+      target = document.querySelector('.touchpoint-card.editing .tp-editable[data-field="body"]');
+    }
+    if (!target) return; // No field focused
+
+    const sel = window.getSelection();
+    if (sel.rangeCount > 0 && target.contains(sel.anchorNode)) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const span = document.createElement('span');
+      span.className = 'var';
+      span.textContent = tag;
+      range.insertNode(span);
+      range.setStartAfter(span);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      const span = document.createElement('span');
+      span.className = 'var';
+      span.textContent = tag;
+      target.appendChild(span);
+    }
   }, []);
 
   /* ─── Current campaign data ─── */
@@ -749,7 +776,7 @@ export default function CopyEditorPage() {
         [activeCampaign]: { ...c, touchpoints: newTouchpoints },
       };
     });
-  }, [activeCampaign]);
+  }, [activeCampaign, setEditorCampaigns]);
 
   /* ─── Delete touchpoint ─── */
   const deleteTouchpoint = useCallback((tpId) => {
@@ -764,7 +791,7 @@ export default function CopyEditorPage() {
         },
       };
     });
-  }, [activeCampaign]);
+  }, [activeCampaign, setEditorCampaigns]);
 
   /* ─── Apply all suggestions ─── */
   const applyAllSuggestions = useCallback(() => {
@@ -862,7 +889,7 @@ export default function CopyEditorPage() {
       setSaveStatus(null);
       setSaveMessage(`Derniere sauvegarde : aujourd'hui a ${time}`);
     }, 3000);
-  }, [currentCampaign, activeCampaign, backendAvailable, campaigns, setCampaigns, collectEdits]);
+  }, [currentCampaign, activeCampaign, backendAvailable, campaigns, setCampaigns, collectEdits, setEditorCampaigns]);
 
   /* ─── Cancel changes (re-render from data) ─── */
   const cancelChanges = useCallback(() => {
@@ -875,7 +902,7 @@ export default function CopyEditorPage() {
       synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
     }
     setEditorCampaigns(synced);
-  }, [campaigns]);
+  }, [campaigns, setEditorCampaigns]);
 
   /* ─── Regenerate all ─── */
   const regenerateAll = useCallback(async () => {
@@ -941,7 +968,7 @@ export default function CopyEditorPage() {
         [activeCampaign]: { ...prev[activeCampaign], status: 'active' },
       }));
     }
-  }, [activeCampaign, campaigns, setCampaigns]);
+  }, [activeCampaign, campaigns, setCampaigns, setEditorCampaigns]);
 
   /* ─── Render ─── */
 
@@ -1096,6 +1123,19 @@ export default function CopyEditorPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ─── Variable Manager (right sidebar) ─── */}
+      <div className="editor-var-panel" style={{
+        width: 260, flexShrink: 0, borderLeft: '1px solid var(--border)',
+        overflow: 'auto', background: 'var(--bg-card)',
+      }}>
+        <VariableManager
+          onInsertVariable={handleInsertVariable}
+          initialRegistry={varRegistry}
+          defaultOpen
+          onRegistryChange={setVarRegistry}
+        />
       </div>
     </div>
   );

@@ -6,7 +6,7 @@
    =============================================================================== */
 
 import { useState, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 
 const FILTERS = [
   { key: '', label: 'Toutes' },
@@ -46,6 +46,16 @@ export default function CampaignsList({ onNavigateCampaign }) {
       return sortAsc ? ra - rb : rb - ra;
     });
   }, [filtered, sortByReply, sortAsc]);
+
+  /* ── Group campaigns by project ── */
+  const campaignsByProject = useMemo(() => {
+    const grouped = {};
+    projectsList.forEach((p) => {
+      grouped[p.id] = sorted.filter((c) => c.projectId === p.id);
+    });
+    grouped._orphans = sorted.filter((c) => !c.projectId);
+    return grouped;
+  }, [sorted, projectsList]);
 
   const handleSortToggle = () => {
     if (!sortByReply) {
@@ -89,16 +99,6 @@ export default function CampaignsList({ onNavigateCampaign }) {
   }
 
   const countText = `${campaignsList.length} campagne${campaignsList.length > 1 ? 's' : ''} \u00B7 ${projectsList.length} projet${projectsList.length > 1 ? 's' : ''}`;
-
-  /* ── Group campaigns by project ── */
-  const campaignsByProject = useMemo(() => {
-    const grouped = {};
-    projectsList.forEach((p) => {
-      grouped[p.id] = sorted.filter((c) => c.projectId === p.id);
-    });
-    grouped._orphans = sorted.filter((c) => !c.projectId);
-    return grouped;
-  }, [sorted, projectsList]);
 
   return (
     <div id="campaigns-list-view">

@@ -4,11 +4,10 @@
    Provides campaigns, projects, KPIs, backend status, and user state.
    =============================================================================== */
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import api from '../services/api-client';
 import { getUser, isLoggedIn } from '../services/auth';
-
-const AppContext = createContext(null);
+import { AppContext } from './appContextValue';
 
 export function AppProvider({ children }) {
   const [campaigns, setCampaigns] = useState({});
@@ -76,16 +75,4 @@ export function AppProvider({ children }) {
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-}
-
-/**
- * Hook to access the global app context.
- * Must be used within an <AppProvider>.
- */
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) {
-    throw new Error('useApp() must be used inside <AppProvider>');
-  }
-  return ctx;
 }

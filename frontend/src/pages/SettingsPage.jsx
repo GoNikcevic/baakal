@@ -4,8 +4,8 @@
    API key management, preferences, theme toggle, API catalog.
    =============================================================================== */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useCallback, useMemo } from 'react';
+import { useApp } from '../context/useApp';
 import BakalAPI from '../services/api-client';
 
 /* ─── API key definitions by category ─── */
@@ -69,7 +69,7 @@ const PREFS_CONFIG = [
 /* ─── Component ─── */
 
 export default function SettingsPage() {
-  const { backendAvailable } = useApp();
+  useApp();
 
   // API keys state
   const [apiKeys, setApiKeys] = useState(() => {
@@ -110,28 +110,24 @@ export default function SettingsPage() {
     document.documentElement.getAttribute('data-theme') || 'dark'
   );
 
-  /* ─── Load on mount ─── */
-
-  useEffect(() => {
-    loadSettingsKeys();
-    loadSettingsPrefs();
-  }, []);
+  /* ─── Load helpers ─── */
 
   const loadSettingsKeys = useCallback(async () => {
     try {
       const { keys } = await BakalAPI.getKeys();
-      const newStatuses = { ...keyStatuses };
-      for (const [field, info] of Object.entries(keys)) {
-        if (!newStatuses[field]) continue;
-        if (info.configured) {
-          newStatuses[field] = { configured: true, text: 'Configur\u00e9 (chiffr\u00e9)', className: 'input-status connected' };
-          // Clear input and set placeholder-like indication
-          setApiKeys(prev => ({ ...prev, [field]: '' }));
-        } else {
-          newStatuses[field] = { configured: false, text: 'Non configur\u00e9', className: 'input-status' };
+      setKeyStatuses(prev => {
+        const newStatuses = { ...prev };
+        for (const [field, info] of Object.entries(keys)) {
+          if (!newStatuses[field]) continue;
+          if (info.configured) {
+            newStatuses[field] = { configured: true, text: 'Configur\u00e9 (chiffr\u00e9)', className: 'input-status connected' };
+            setApiKeys(prevKeys => ({ ...prevKeys, [field]: '' }));
+          } else {
+            newStatuses[field] = { configured: false, text: 'Non configur\u00e9', className: 'input-status' };
+          }
         }
-      }
-      setKeyStatuses(newStatuses);
+        return newStatuses;
+      });
     } catch {
       /* backend not available */
     }
@@ -156,6 +152,14 @@ export default function SettingsPage() {
       /* ignore */
     }
   }, []);
+
+  /* ─── Load on mount ─── */
+
+  useState(() => {
+    loadSettingsKeys();
+    loadSettingsPrefs();
+  });
+
 
   /* ─── Save ─── */
 

@@ -5,7 +5,7 @@
    =============================================================================== */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { request } from '../services/api-client';
 
 /* ─── Default empty profile ─── */
@@ -34,17 +34,13 @@ const EMPTY_PROFILE = {
 /* ─── Component ─── */
 
 export default function ProfilePage() {
-  const { backendAvailable } = useApp();
+  useApp();
 
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
 
   /* ─── Load profile on mount ─── */
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
 
   const loadProfile = useCallback(async () => {
     // Try backend first
@@ -89,6 +85,10 @@ export default function ProfilePage() {
       /* ignore parse errors */
     }
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   /* ─── Save profile ─── */
 
