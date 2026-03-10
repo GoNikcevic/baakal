@@ -15,6 +15,7 @@ const documentsRouter = require('./routes/documents');
 const profileRouter = require('./routes/profile');
 const statsRouter = require('./routes/stats');
 const projectsRouter = require('./routes/projects');
+const orchestrator = require('./orchestrator');
 
 const app = express();
 
@@ -88,4 +89,7 @@ app.listen(config.port, '0.0.0.0', () => {
   setInterval(() => {
     try { db.refreshTokens.deleteExpired(); } catch { /* ignore */ }
   }, 60 * 60 * 1000);
+
+  // Start orchestrator (cron jobs) if enabled
+  orchestrator.start();
 });
