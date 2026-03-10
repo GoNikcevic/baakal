@@ -1,35 +1,81 @@
 /**
  * Job: Memory Consolidation (Workflow 3 replacement)
  *
- * Flow: Notion (all monthly diagnostics) → Claude (pattern extraction) → Notion (memory update)
+ * Flow: SQLite (all diagnostics) → Claude (pattern extraction) → SQLite + Notion sync
  *
- * Runs monthly. Builds the cross-campaign pattern library.
+ * Runs monthly (1st of month). Builds the cross-campaign pattern library.
  */
 
-// const notion = require('../../api/notion');
-// const claude = require('../../api/claude');
+const claude = require('../../api/claude');
+const notionSync = require('../../api/notion-sync');
+const db = require('../../db');
 
 async function run() {
   console.log('[consolidate] Starting monthly memory consolidation...');
 
-  // Step 1: Fetch all diagnostics from current month
-  // const diagnostics = await notion.getMonthlyDiagnostics();
+  try {
+    // Step 1: Fetch all diagnostics across all campaigns
+    const campaigns = db.campaigns.list({});
+    const allDiagnostics = [];
+    for (const campaign of campaigns) {
+      const diags = db.diagnostics.listByCampaign(campaign.id);
+      allDiagnostics.push(
+        ...diags.map((d) => ({ ...d, campaign: campaign.name, sector: campaign.sector }))
+      );
+    }
 
-  // Step 2: Fetch existing memory
-  // const existingMemory = await notion.getCrossCampaignMemory();
+    if (allDiagnostics.length === 0) {
+      console.log('[consolidate] No diagnostics found — skipping.');
+      return { patternsCreated: 0, patternsUpdated: 0, skipped: true };
+    }
 
-  // Step 3: Call Claude — extract patterns, merge with existing memory
-  // const updatedMemory = await claude.consolidateMemory({
-  //   diagnostics,
-  //   existingMemory,
-  // });
+    // Step 2: Fetch existing memory patterns
+    const existingMemory = db.memoryPatterns.list({});
 
-  // Step 4: Upsert patterns in Notion "Mémoire Cross-Campagne"
-  // for (const pattern of updatedMemory.patterns) {
-  //   await notion.upsertMemoryPattern(pattern);
-  // }
+    // Step 3: Call Claude — extract patterns, merge with existing memory
+    const result = await claude.consolidateMemory(allDiagnostics, existingMemory);
 
-  console.log('[consolidate] Done.');
+    // Step 4: Save new patterns to SQLite
+    const savedIds = [];
+    if (result.parsed?.patterns) {
+      for (const pattern of result.parsed.patterns) {
+        const created = db.memoryPatterns.create({
+          pattern: pattern.pattern,
+          category: pattern.categorie,
+          data: pattern.donnees,
+          confidence: pattern.confiance,
+          sectors: pattern.secteurs || [],
+          targets: pattern.cibles || [],
+        });
+        savedIds.push(created.id);
+
+        // Sync each pattern to Notion
+        notionSync.syncMemoryPattern(created.id).catch(console.error);
+      }
+    }
+
+    // Step 5: Update existing patterns confidence if instructed
+    let updatedCount = 0;
+    if (result.parsed?.updatedPatterns) {
+      for (const update of result.parsed.updatedPatterns) {
+        if (update.existingId && update.newConfidence) {
+          db.memoryPatterns.update(update.existingId, { confidence: update.newConfidence });
+          updatedCount++;
+        }
+      }
+    }
+
+    console.log(`[consolidate] Done. Created: ${savedIds.length}, Updated: ${updatedCount}`);
+    return {
+      patternsCreated: savedIds.length,
+      patternsUpdated: updatedCount,
+      contradictions: result.parsed?.contradictions || [],
+      summary: result.parsed?.summary || '',
+    };
+  } catch (err) {
+    console.error('[consolidate] Failed:', err.message);
+    return { patternsCreated: 0, patternsUpdated: 0, error: err.message };
+  }
 }
 
 module.exports = { run };
