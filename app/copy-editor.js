@@ -174,6 +174,28 @@ let editorCampaigns = {};
 /* ═══ State ═══ */
 let activeEditorCampaign = null;
 
+/* ═══ Preview Mode ═══ */
+let previewMode = false; // global toggle: false = edit, true = preview
+const sampleProspectData = {
+  firstName: 'Marie',
+  lastName: 'Dupont',
+  email: 'marie.dupont@acme.fr',
+  phone: '+33 6 12 34 56 78',
+  jobTitle: 'Directrice Financière',
+  linkedinUrl: 'linkedin.com/in/mariedupont',
+  companyName: 'Acme Conseil',
+  companyDomain: 'acme-conseil.fr',
+  industry: 'Conseil en gestion',
+  companySize: '35 employés',
+  city: 'Lyon',
+  country: 'France',
+  icebreaker: 'Votre article sur la transformation digitale des PME était passionnant',
+  painPoint: 'Perte de temps sur le reporting mensuel',
+  lastPost: 'Article sur les tendances RH 2026',
+  mutualConnection: 'Thomas Martin',
+  recentNews: 'Levée de fonds de 2M€ en janvier',
+};
+
 /* ═══ Register new campaign from chat ═══ */
 function registerCampaignInEditor(id, campaign) {
   const chIcons = { email: '~', linkedin: '~', multi: '~' };
@@ -236,6 +258,35 @@ function stripEditorHtml(html) {
   return tmp.value;
 }
 
+/* ═══ Preview: replace {{vars}} with sample values ═══ */
+function renderPreviewText(html) {
+  // Strip editor HTML to plain text first, then substitute variables
+  let text = stripEditorHtml(html);
+  text = text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    const val = sampleProspectData[key];
+    return val || match;
+  });
+  return text;
+}
+
+/* ═══ Toggle preview mode ═══ */
+function togglePreviewMode() {
+  previewMode = !previewMode;
+  if (!previewMode && sampleDataPanelOpen) {
+    sampleDataPanelOpen = false;
+    const panel = document.getElementById('sample-data-panel');
+    if (panel) panel.remove();
+  }
+  renderEditorMain();
+}
+
+/* ═══ Word & character count ═══ */
+function countWords(text) {
+  const clean = text.replace(/\{\{\w+\}\}/g, 'x').trim();
+  if (!clean) return 0;
+  return clean.split(/\s+/).length;
+}
+
 /* ═══ Character counter ═══ */
 function getPlainTextLength(html) {
   const tmp = document.createElement('div');
@@ -252,6 +303,123 @@ function updateCharCount(tpId) {
   const len = getPlainTextLength(el.innerHTML);
   counter.textContent = `${len} / ${max} caractères`;
   counter.className = 'tp-field-count' + (len > max ? ' over' : len > max * 0.9 ? ' warn' : '');
+}
+
+/* ═══ Live field count update (word + char) ═══ */
+function updateFieldCounts(tpId) {
+  // Update character count if max exists
+  updateCharCount(tpId);
+
+  // Update word count
+  const el = document.querySelector(`[data-tp="${tpId}"] .tp-editable[data-field="body"]`);
+  const wordBadge = document.querySelector(`[data-tp="${tpId}"] .tp-word-count`);
+  if (!el || !wordBadge) return;
+  const plain = stripEditorHtml(el.innerHTML);
+  wordBadge.textContent = `${countWords(plain)} mots`;
+}
+
+/* ═══ Sample Data Panel (sidebar toggle) ═══ */
+let sampleDataPanelOpen = false;
+
+function toggleSampleDataPanel() {
+  sampleDataPanelOpen = !sampleDataPanelOpen;
+  renderSampleDataPanel();
+}
+
+function renderSampleDataPanel() {
+  let panel = document.getElementById('sample-data-panel');
+
+  if (!sampleDataPanelOpen) {
+    if (panel) {
+      panel.style.transition = 'opacity 0.2s';
+      panel.style.opacity = '0';
+      setTimeout(() => panel.remove(), 200);
+    }
+    return;
+  }
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'sample-data-panel';
+    // Insert as a floating panel on the right side
+    document.body.appendChild(panel);
+  }
+
+  // Group variables by category
+  const groups = [
+    { label: 'Prospect', keys: ['firstName', 'lastName', 'jobTitle', 'email'] },
+    { label: 'Entreprise', keys: ['companyName', 'industry', 'companySize', 'city'] },
+    { label: 'Enrichissement', keys: ['icebreaker', 'painPoint', 'recentNews'] },
+  ];
+
+  let fieldsHtml = '';
+  groups.forEach(g => {
+    fieldsHtml += `<div class="sample-group-label">${g.label}</div>`;
+    g.keys.forEach(key => {
+      fieldsHtml += `
+        <div class="sample-field">
+          <label class="sample-field-key">{{${key}}}</label>
+          <input class="sample-field-input" type="text" value="${(sampleProspectData[key] || '').replace(/"/g, '&quot;')}" data-key="${key}" oninput="updateSampleData(this)">
+        </div>`;
+    });
+  });
+
+  panel.className = 'sample-data-panel';
+  panel.innerHTML = `
+    <div class="sample-data-header">
+      <div class="sample-data-title">Données prospect (aperçu)</div>
+      <button class="tp-action" style="font-size:11px;" onclick="toggleSampleDataPanel()">✕ Fermer</button>
+    </div>
+    <div class="sample-data-body">${fieldsHtml}</div>
+    <div class="sample-data-footer">
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 10px;width:100%;" onclick="resetSampleData()">↩️ Réinitialiser</button>
+    </div>
+  `;
+}
+
+function updateSampleData(input) {
+  const key = input.dataset.key;
+  sampleProspectData[key] = input.value;
+  // Re-render preview if in preview mode
+  if (previewMode) {
+    // Update preview content without full re-render (avoids losing panel state)
+    const c = editorCampaigns[activeEditorCampaign];
+    if (!c) return;
+    c.touchpoints.forEach(tp => {
+      const card = document.querySelector(`[data-tp="${tp.id}"]`);
+      if (!card) return;
+      const subjectEl = card.querySelector('.tp-subject .tp-preview-content');
+      const bodyEl = card.querySelector('.tp-field:not(.tp-subject) .tp-preview-content');
+      if (subjectEl && tp.subject !== null) {
+        subjectEl.textContent = renderPreviewText(tp.subject);
+      }
+      if (bodyEl) {
+        bodyEl.innerHTML = renderPreviewText(tp.body).replace(/\n/g, '<br>');
+      }
+    });
+    // Update banner name
+    const bannerTitle = document.querySelector('.preview-banner-title');
+    if (bannerTitle) {
+      bannerTitle.textContent = `Aperçu live — ${sampleProspectData.firstName} ${sampleProspectData.lastName} · ${sampleProspectData.companyName}`;
+    }
+  }
+}
+
+function resetSampleData() {
+  const defaults = {
+    firstName: 'Marie', lastName: 'Dupont', email: 'marie.dupont@acme.fr',
+    phone: '+33 6 12 34 56 78', jobTitle: 'Directrice Financière',
+    linkedinUrl: 'linkedin.com/in/mariedupont', companyName: 'Acme Conseil',
+    companyDomain: 'acme-conseil.fr', industry: 'Conseil en gestion',
+    companySize: '35 employés', city: 'Lyon', country: 'France',
+    icebreaker: 'Votre article sur la transformation digitale des PME était passionnant',
+    painPoint: 'Perte de temps sur le reporting mensuel',
+    lastPost: 'Article sur les tendances RH 2026',
+    mutualConnection: 'Thomas Martin', recentNews: 'Levée de fonds de 2M€ en janvier',
+  };
+  Object.assign(sampleProspectData, defaults);
+  renderSampleDataPanel();
+  if (previewMode) renderEditorMain();
 }
 
 /* ═══ Render Campaign List ═══ */
@@ -315,80 +483,148 @@ function renderEditorMain() {
   let tpHtml = '';
   c.touchpoints.forEach(tp => {
     const isLinkedin = tp.type === 'linkedin';
+    const plainBody = stripEditorHtml(tp.body);
+    const wordCount = countWords(plainBody);
+    const plainLen = getPlainTextLength(tp.body);
 
-    // Subject field (emails only)
-    let subjectField = '';
-    if (tp.subject !== null) {
-      subjectField = `
-        <div class="tp-field tp-subject">
-          <div class="tp-field-label">Objet</div>
-          <div class="tp-editable" contenteditable="true" data-field="subject">${tp.subject}</div>
-        </div>`;
-    }
+    if (previewMode) {
+      // ═══ PREVIEW MODE ═══
+      const previewSubject = tp.subject !== null ? renderPreviewText(tp.subject) : null;
+      const previewBody = renderPreviewText(tp.body).replace(/\n/g, '<br>');
 
-    // Body field
-    const bodyText = tp.body.replace(/\n/g, '<br>');
-    const charCounter = tp.maxChars
-      ? `<span class="tp-field-count" data-max="${tp.maxChars}">${getPlainTextLength(tp.body)} / ${tp.maxChars} caractères</span>`
-      : '';
+      let subjectPreview = '';
+      if (previewSubject !== null) {
+        subjectPreview = `
+          <div class="tp-field tp-subject">
+            <div class="tp-field-label">Objet</div>
+            <div class="tp-preview-content" style="font-weight:600;">${previewSubject}</div>
+          </div>`;
+      }
 
-    // AI suggestion
-    let suggestionHtml = '';
-    if (tp.suggestion) {
-      suggestionHtml = `
-        <div class="tp-ai-suggestion">
-          <div class="tp-ai-suggestion-label">${tp.suggestion.label}</div>
-          <div class="tp-ai-suggestion-text">${tp.suggestion.text}</div>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <button class="tp-action ai" style="font-size:11px;" onclick="applySuggestion('${tp.id}')">✅ Appliquer</button>
-            <button class="tp-action" style="font-size:11px;" onclick="dismissSuggestion('${tp.id}')">❌ Ignorer</button>
-          </div>
-        </div>`;
-    }
-
-    tpHtml += `
-      <div class="touchpoint-card" data-tp="${tp.id}">
-        <div class="tp-header">
-          <div class="tp-header-left">
-            <div class="tp-dot ${tp.type}">${tp.id}</div>
-            <div class="tp-info">
-              <div class="tp-name">${tp.label} — ${tp.subType}</div>
-              <div class="tp-timing">${tp.timing}</div>
+      tpHtml += `
+        <div class="touchpoint-card preview-mode" data-tp="${tp.id}">
+          <div class="tp-header">
+            <div class="tp-header-left">
+              <div class="tp-dot ${tp.type}">${tp.id}</div>
+              <div class="tp-info">
+                <div class="tp-name">${tp.label} — ${tp.subType}</div>
+                <div class="tp-timing">${tp.timing}</div>
+              </div>
+            </div>
+            <div class="tp-meta-counts">
+              <span class="tp-word-count">${wordCount} mots · ${plainLen} car.</span>
+              ${tp.maxChars ? `<span class="tp-field-count${plainLen > tp.maxChars ? ' over' : plainLen > tp.maxChars * 0.9 ? ' warn' : ''}">${plainLen} / ${tp.maxChars}</span>` : ''}
             </div>
           </div>
-          <div class="tp-actions">
-            <button class="tp-action ai" onclick="regenerateTouchpoint('${tp.id}')">🔄 Régénérer</button>
-            <button class="tp-action" onclick="duplicateTouchpoint('${tp.id}')">📋 Dupliquer</button>
-            <button class="tp-action" onclick="deleteTouchpoint('${tp.id}')">🗑️</button>
-          </div>
-        </div>
-        <div class="tp-body">
-          ${subjectField}
-          <div class="tp-field">
-            <div class="tp-field-label">
-              ${isLinkedin ? 'Message' : 'Corps du message'}
-              ${charCounter}
+          <div class="tp-body">
+            ${subjectPreview}
+            <div class="tp-field">
+              <div class="tp-field-label">${isLinkedin ? 'Message' : 'Corps du message'}</div>
+              <div class="tp-preview-content">${previewBody}</div>
             </div>
-            <div class="tp-editable" contenteditable="true" data-field="body" ${tp.maxChars ? `oninput="updateCharCount('${tp.id}')"` : ''}>${bodyText}</div>
           </div>
-          ${suggestionHtml}
-        </div>
-      </div>`;
+        </div>`;
+    } else {
+      // ═══ EDIT MODE ═══
+      // Subject field (emails only)
+      let subjectField = '';
+      if (tp.subject !== null) {
+        subjectField = `
+          <div class="tp-field tp-subject">
+            <div class="tp-field-label">Objet</div>
+            <div class="tp-editable" contenteditable="true" data-field="subject">${tp.subject}</div>
+          </div>`;
+      }
+
+      // Body field
+      const bodyText = tp.body.replace(/\n/g, '<br>');
+      const charCounter = tp.maxChars
+        ? `<span class="tp-field-count" data-max="${tp.maxChars}">${plainLen} / ${tp.maxChars} caractères</span>`
+        : '';
+
+      // Word count badge
+      const wordCountBadge = `<span class="tp-word-count">${wordCount} mots</span>`;
+
+      // AI suggestion
+      let suggestionHtml = '';
+      if (tp.suggestion) {
+        suggestionHtml = `
+          <div class="tp-ai-suggestion">
+            <div class="tp-ai-suggestion-label">${tp.suggestion.label}</div>
+            <div class="tp-ai-suggestion-text">${tp.suggestion.text}</div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+              <button class="tp-action ai" style="font-size:11px;" onclick="applySuggestion('${tp.id}')">✅ Appliquer</button>
+              <button class="tp-action" style="font-size:11px;" onclick="dismissSuggestion('${tp.id}')">❌ Ignorer</button>
+            </div>
+          </div>`;
+      }
+
+      tpHtml += `
+        <div class="touchpoint-card" data-tp="${tp.id}">
+          <div class="tp-header">
+            <div class="tp-header-left">
+              <div class="tp-dot ${tp.type}">${tp.id}</div>
+              <div class="tp-info">
+                <div class="tp-name">${tp.label} — ${tp.subType}</div>
+                <div class="tp-timing">${tp.timing}</div>
+              </div>
+            </div>
+            <div class="tp-actions">
+              <button class="tp-action ai" onclick="regenerateTouchpoint('${tp.id}')">🔄 Régénérer</button>
+              <button class="tp-action" onclick="duplicateTouchpoint('${tp.id}')">📋 Dupliquer</button>
+              <button class="tp-action" onclick="deleteTouchpoint('${tp.id}')">🗑️</button>
+            </div>
+          </div>
+          <div class="tp-body">
+            ${subjectField}
+            <div class="tp-field">
+              <div class="tp-field-label">
+                ${isLinkedin ? 'Message' : 'Corps du message'}
+                ${charCounter}
+                ${wordCountBadge}
+              </div>
+              <div class="tp-editable" contenteditable="true" data-field="body" oninput="updateFieldCounts('${tp.id}')">${bodyText}</div>
+            </div>
+            ${suggestionHtml}
+          </div>
+        </div>`;
+    }
   });
+
+  // Preview banner (shown above touchpoints in preview mode)
+  let previewBannerHtml = '';
+  if (previewMode) {
+    const prospectName = sampleProspectData.firstName + ' ' + sampleProspectData.lastName;
+    const prospectCompany = sampleProspectData.companyName;
+    previewBannerHtml = `
+      <div class="preview-banner">
+        <div class="preview-banner-left">
+          <span class="preview-banner-icon">👁️</span>
+          <div>
+            <div class="preview-banner-title">Aperçu live — ${prospectName} · ${prospectCompany}</div>
+            <div class="preview-banner-sub">Les variables sont remplacées par les données prospect ci-dessous. <a href="#" onclick="event.preventDefault();toggleSampleDataPanel()">Modifier les données</a></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px;" onclick="togglePreviewMode()">✏️ Retour à l'édition</button>
+      </div>`;
+  }
 
   // Bottom bar
   const statusText = c.status === 'prep'
     ? '⏳ Campagne en préparation — les modifications seront déployées au lancement'
     : '✅ Campagne active — les modifications seront appliquées à la prochaine itération';
 
-  const bottomHtml = `
-    <div class="editor-bottom-bar">
-      <div class="editor-bottom-info">${statusText}</div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="cancelEditorChanges()">↩️ Annuler les modifications</button>
-        <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="saveEditorChanges()">💾 Sauvegarder les séquences</button>
-      </div>
-    </div>`;
+  let bottomHtml = '';
+  if (!previewMode) {
+    bottomHtml = `
+      <div class="editor-bottom-bar">
+        <div class="editor-bottom-info">${statusText}</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="cancelEditorChanges()">↩️ Annuler les modifications</button>
+          <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="saveEditorChanges()">💾 Sauvegarder les séquences</button>
+        </div>
+      </div>`;
+  }
 
   main.innerHTML = `
     <div class="editor-header">
@@ -397,12 +633,14 @@ function renderEditorMain() {
         <div class="editor-header-params">${paramsHtml}</div>
       </div>
       <div style="display:flex;gap:8px;">
+        <button class="btn ${previewMode ? 'btn-primary' : 'btn-ghost'}" style="font-size:12px;padding:8px 14px;" onclick="togglePreviewMode()">${previewMode ? '✏️ Éditer' : '👁️ Aperçu live'}</button>
         <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;" onclick="showCampaignParams()">Paramètres</button>
         <button class="btn btn-primary" style="font-size:12px;padding:8px 14px;" onclick="regenerateAll()">Tout régénérer</button>
       </div>
     </div>
     ${launchBarHtml}
     ${aiBarHtml}
+    ${previewBannerHtml}
     ${tpHtml}
     ${bottomHtml}
   `;
