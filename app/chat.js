@@ -138,7 +138,7 @@ function scrollChatToBottom() {
 
 /* ═══ Message rendering ═══ */
 
-function appendMessage(role, content, metadata, animate = true) {
+function appendMessage(role, content, metadata, animate = true, files = []) {
   showChatMessages();
   const inner = document.getElementById('chatMessagesInner');
 
@@ -176,11 +176,13 @@ function appendMessage(role, content, metadata, animate = true) {
     }
   }
 
+  const filesHtml = (files && files.length > 0) ? buildFilesHtml(files) : '';
+
   const msgHtml = `
     <div class="chat-msg ${role}"${animate ? ' style="animation:chatFadeIn 0.25s ease"' : ''}>
       <div class="chat-msg-avatar">${avatar}</div>
       <div class="chat-msg-body">
-        <div class="chat-msg-content">${formattedContent}</div>
+        <div class="chat-msg-content">${formattedContent}${filesHtml}</div>
         ${actionCardHtml}
         <div class="chat-msg-time">${timeStr}</div>
       </div>
@@ -323,12 +325,15 @@ async function sendChatMessage(overrideText) {
 
   const input = document.getElementById('chatInput');
   const text = overrideText || input.value.trim();
-  if (!text) return;
+  const attachedFiles = overrideText ? [] : [..._chatAttachedFiles];
+  if (!text && attachedFiles.length === 0) return;
 
-  // Clear input
+  // Clear input and attached files
   if (!overrideText) {
     input.value = '';
     autoResizeChatInput(input);
+    _chatAttachedFiles = [];
+    renderChatFilePreview();
   }
 
   // If no thread, create one first
@@ -345,8 +350,8 @@ async function sendChatMessage(overrideText) {
     }
   }
 
-  // Show user message
-  appendMessage('user', text);
+  // Show user message with files
+  appendMessage('user', text || 'Fichier(s) joint(s)', null, true, attachedFiles);
   showTypingIndicator();
   _chatSending = true;
   updateSendButton();
@@ -354,9 +359,12 @@ async function sendChatMessage(overrideText) {
   // Try backend
   if (_chatThreadId && typeof BakalAPI !== 'undefined' && _backendAvailable) {
     try {
+      const fileNames = attachedFiles.map(f => f.name);
+      const payload = { message: text || '' };
+      if (fileNames.length > 0) payload.files = fileNames;
       const data = await BakalAPI.request('/chat/threads/' + _chatThreadId + '/messages', {
         method: 'POST',
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify(payload),
       });
       hideTypingIndicator();
       appendMessage('assistant', data.message.content, data.message.metadata);
@@ -628,3 +636,122 @@ function formatMarkdown(text) {
 
   return '<p>' + html + '</p>';
 }
+
+/* ═══ Chat File Attachments ═══ */
+
+let _chatAttachedFiles = [];
+const CHAT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+const CHAT_ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.md', '.txt', '.png', '.jpg', '.jpeg', '.svg', '.xlsx', '.csv'];
+
+function handleChatFileSelect(e) {
+  const files = Array.from(e.target.files);
+  addChatFiles(files);
+  e.target.value = '';
+}
+
+function addChatFiles(files) {
+  for (const file of files) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!CHAT_ALLOWED_EXTENSIONS.includes(ext)) {
+      appendMessage('assistant', `Le fichier **${escapeHtml(file.name)}** n'est pas supporté. Formats acceptés : ${CHAT_ALLOWED_EXTENSIONS.join(', ')}`);
+      continue;
+    }
+    if (file.size > CHAT_MAX_FILE_SIZE) {
+      appendMessage('assistant', `Le fichier **${escapeHtml(file.name)}** dépasse la limite de 10 Mo.`);
+      continue;
+    }
+    if (_chatAttachedFiles.some(f => f.name === file.name && f.size === file.size)) continue;
+    _chatAttachedFiles.push(file);
+  }
+  renderChatFilePreview();
+}
+
+function removeChatFile(index) {
+  _chatAttachedFiles.splice(index, 1);
+  renderChatFilePreview();
+}
+
+function renderChatFilePreview() {
+  const container = document.getElementById('chatFilesPreview');
+  if (!container) return;
+  if (_chatAttachedFiles.length === 0) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  container.style.display = 'flex';
+  container.innerHTML = _chatAttachedFiles.map((f, i) => {
+    const icon = getFileIcon(f.name);
+    const size = formatFileSize(f.size);
+    return `<div class="chat-file-chip">
+      <span>${icon}</span>
+      <span class="chat-file-chip-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+      <span style="color:var(--text-muted);font-size:11px;">${size}</span>
+      <span class="chat-file-chip-remove" onclick="removeChatFile(${i})">×</span>
+    </div>`;
+  }).join('');
+}
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = { pdf: '📄', docx: '📝', doc: '📝', md: '📋', txt: '📋', png: '🖼', jpg: '🖼', jpeg: '🖼', svg: '🖼', xlsx: '📊', csv: '📊' };
+  return icons[ext] || '📎';
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' o';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' Ko';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+}
+
+/* ── Drag & drop on chat area ── */
+
+function initChatDragDrop() {
+  const chatMain = document.querySelector('.chat-main');
+  if (!chatMain) return;
+  let dragCounter = 0;
+
+  chatMain.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragCounter++;
+    document.getElementById('chatDropOverlay').style.display = 'flex';
+  });
+
+  chatMain.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      document.getElementById('chatDropOverlay').style.display = 'none';
+    }
+  });
+
+  chatMain.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  chatMain.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    document.getElementById('chatDropOverlay').style.display = 'none';
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) addChatFiles(files);
+  });
+}
+
+/* ── Show files in sent message ── */
+
+function buildFilesHtml(files) {
+  if (!files || files.length === 0) return '';
+  const chips = files.map(f =>
+    `<div class="chat-msg-file">${getFileIcon(f.name)} <span>${escapeHtml(f.name)}</span> <span style="color:var(--text-muted);font-size:11px;">${formatFileSize(f.size)}</span></div>`
+  ).join('');
+  return `<div class="chat-msg-files">${chips}</div>`;
+}
+
+// Patch initChat to set up drag & drop
+const _origInitChat = initChat;
+initChat = function() {
+  _origInitChat();
+  initChatDragDrop();
+};

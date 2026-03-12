@@ -16,6 +16,13 @@ document.getElementById('creatorModal')?.addEventListener('click', (e) => {
 
 // ═══════════ AUTH GATE + INIT ═══════════
 document.addEventListener('DOMContentLoaded', async () => {
+  // Offline preview mode: file:// or no backend — skip auth, load demo data
+  if (window.location.protocol === 'file:') {
+    console.log('Preview mode (file://) — skipping auth, loading demo data');
+    bootApp();
+    return;
+  }
+
   // Check auth state
   if (typeof BakalAuth !== 'undefined') {
     if (BakalAuth.isLoggedIn()) {
