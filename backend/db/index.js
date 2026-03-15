@@ -1,12 +1,24 @@
-const { Pool } = require('pg');
+const useSqlite = !!process.env.DATABASE_PATH;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
-});
+let pool;
+if (!useSqlite) {
+  const { Pool } = require('pg');
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+  });
+}
+
+let sqliteAdapter;
+if (useSqlite) {
+  sqliteAdapter = require('./sqlite-adapter');
+}
 
 // Helper: run a query and return rows
 async function query(text, params) {
+  if (useSqlite) {
+    return sqliteAdapter.query(text, params);
+  }
   const result = await pool.query(text, params);
   return result;
 }
@@ -217,6 +229,16 @@ const diagnostics = {
     return result.rows;
   },
 
+  async listAll() {
+    const result = await query('SELECT * FROM diagnostics ORDER BY date_analyse DESC');
+    return result.rows;
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM diagnostics WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
   async create(campaignId, data) {
     const result = await query(`
       INSERT INTO diagnostics (campaign_id, date_analyse, diagnostic, priorities, nb_to_optimize)
@@ -231,6 +253,11 @@ const diagnostics = {
     ]);
     return result.rows[0];
   },
+
+  async delete(id) {
+    const result = await query('DELETE FROM diagnostics WHERE id = $1', [id]);
+    return { changes: result.rowCount };
+  },
 };
 
 // =============================================
@@ -244,6 +271,11 @@ const versions = {
       [campaignId]
     );
     return result.rows;
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM versions WHERE id = $1', [id]);
+    return result.rows[0] || null;
   },
 
   async create(campaignId, data) {
@@ -262,8 +294,40 @@ const versions = {
     return result.rows[0];
   },
 
+  async update(id, data) {
+    const sets = [];
+    const values = [];
+    let i = 1;
+    const mapping = {
+      version: 'version', date: 'date',
+      messages_modified: 'messages_modified', messagesModified: 'messages_modified',
+      hypotheses: 'hypotheses',
+      result: 'result',
+    };
+    const seen = new Set();
+    for (const [inputKey, col] of Object.entries(mapping)) {
+      if (data[inputKey] !== undefined && !seen.has(col)) {
+        seen.add(col);
+        sets.push(`${col} = $${i++}`);
+        values.push(data[inputKey]);
+      }
+    }
+    if (sets.length === 0) return null;
+    values.push(id);
+    const result = await query(
+      `UPDATE versions SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+
   async updateResult(id, resultVal) {
     await query('UPDATE versions SET result = $1 WHERE id = $2', [resultVal, id]);
+  },
+
+  async delete(id) {
+    const result = await query('DELETE FROM versions WHERE id = $1', [id]);
+    return { changes: result.rowCount };
   },
 };
 
@@ -291,6 +355,11 @@ const memoryPatterns = {
     return result.rows;
   },
 
+  async get(id) {
+    const result = await query('SELECT * FROM memory_patterns WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
   async create(data) {
     const result = await query(`
       INSERT INTO memory_patterns (pattern, category, data, confidence, date_discovered, sectors, targets)
@@ -312,12 +381,32 @@ const memoryPatterns = {
     const sets = [];
     const values = [];
     let i = 1;
-    if (data.confidence) { sets.push(`confidence = $${i++}`); values.push(data.confidence); }
-    if (data.sectors) { sets.push(`sectors = $${i++}`); values.push(data.sectors); }
-    if (data.targets) { sets.push(`targets = $${i++}`); values.push(data.targets); }
-    if (sets.length === 0) return;
+    const mapping = {
+      pattern: 'pattern', category: 'category', data: 'data',
+      confidence: 'confidence',
+      date_discovered: 'date_discovered', dateDiscovered: 'date_discovered',
+      sectors: 'sectors', targets: 'targets',
+    };
+    const seen = new Set();
+    for (const [inputKey, col] of Object.entries(mapping)) {
+      if (data[inputKey] !== undefined && !seen.has(col)) {
+        seen.add(col);
+        sets.push(`${col} = $${i++}`);
+        values.push(data[inputKey]);
+      }
+    }
+    if (sets.length === 0) return null;
     values.push(id);
-    await query(`UPDATE memory_patterns SET ${sets.join(', ')} WHERE id = $${i}`, values);
+    const result = await query(
+      `UPDATE memory_patterns SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+
+  async delete(id) {
+    const result = await query('DELETE FROM memory_patterns WHERE id = $1', [id]);
+    return { changes: result.rowCount };
   },
 };
 
@@ -735,12 +824,19 @@ const customVariables = {
 // =============================================
 
 async function rawQuery(text, params) {
+  if (useSqlite) {
+    return sqliteAdapter.query(text, params);
+  }
   const result = await pool.query(text, params);
   return result;
 }
 
 async function closeDb() {
-  await pool.end();
+  if (useSqlite && sqliteAdapter) {
+    sqliteAdapter.closeDb();
+  } else if (pool) {
+    await pool.end();
+  }
 }
 
 module.exports = {
