@@ -991,10 +991,23 @@ function initWizardDropzone() {
 }
 
 /* ═══════════════════════════════════════════════
-   Supabase Database — Settings
+   Supabase Database — Settings (Admin only)
    ═══════════════════════════════════════════════ */
 
+function isAdminUser() {
+  try {
+    const user = typeof BakalAuth !== 'undefined' ? BakalAuth.getUser() : JSON.parse(localStorage.getItem('bakal_user'));
+    return user && user.role === 'admin';
+  } catch { return false; }
+}
+
 function loadSupabaseSettings() {
+  // Only show Supabase config for admin users
+  const card = document.getElementById('supabase-settings-card');
+  if (card) {
+    card.style.display = isAdminUser() ? '' : 'none';
+  }
+  if (!isAdminUser()) return;
   if (typeof BakalSupabase === 'undefined') return;
   try {
     const config = JSON.parse(localStorage.getItem('bakal_supabase_config') || '{}');
@@ -1008,6 +1021,7 @@ function loadSupabaseSettings() {
 }
 
 function saveSupabaseConfig() {
+  if (!isAdminUser()) return;
   const url = document.getElementById('settings-supabase-url')?.value?.trim();
   const anonKey = document.getElementById('settings-supabase-anon-key')?.value?.trim();
 
@@ -1029,6 +1043,7 @@ function saveSupabaseConfig() {
 }
 
 function clearSupabaseConfig() {
+  if (!isAdminUser()) return;
   localStorage.removeItem('bakal_supabase_config');
   const urlInput = document.getElementById('settings-supabase-url');
   const keyInput = document.getElementById('settings-supabase-anon-key');
@@ -1039,6 +1054,7 @@ function clearSupabaseConfig() {
 }
 
 async function testSupabaseConnection() {
+  if (!isAdminUser()) return;
   const status = document.getElementById('supabase-status');
   if (!status) return;
 
