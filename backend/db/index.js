@@ -975,6 +975,76 @@ const chartData = {
 };
 
 // =============================================
+// User Integrations (per-user CRM tokens)
+// =============================================
+
+const userIntegrations = {
+  async get(userId, provider) {
+    const result = await query(
+      'SELECT * FROM user_integrations WHERE user_id = $1 AND provider = $2',
+      [userId, provider]
+    );
+    return result.rows[0] || null;
+  },
+
+  async listByUser(userId) {
+    const result = await query(
+      'SELECT * FROM user_integrations WHERE user_id = $1 ORDER BY provider',
+      [userId]
+    );
+    return result.rows;
+  },
+
+  async upsert(userId, provider, data) {
+    const existing = await this.get(userId, provider);
+    if (existing) {
+      const sets = ['access_token = $1', 'updated_at = now()'];
+      const values = [data.accessToken];
+      let i = 2;
+      if (data.refreshToken !== undefined) {
+        sets.push(`refresh_token = $${i++}`);
+        values.push(data.refreshToken);
+      }
+      if (data.metadata !== undefined) {
+        sets.push(`metadata = $${i++}`);
+        values.push(typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata));
+      }
+      if (data.expiresAt !== undefined) {
+        sets.push(`expires_at = $${i++}`);
+        values.push(data.expiresAt);
+      }
+      values.push(userId, provider);
+      const result = await query(
+        `UPDATE user_integrations SET ${sets.join(', ')} WHERE user_id = $${i++} AND provider = $${i} RETURNING *`,
+        values
+      );
+      return result.rows[0] || null;
+    }
+    const result = await query(`
+      INSERT INTO user_integrations (user_id, provider, access_token, refresh_token, metadata, expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [
+      userId,
+      provider,
+      data.accessToken,
+      data.refreshToken || null,
+      data.metadata ? (typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata)) : '{}',
+      data.expiresAt || null,
+    ]);
+    return result.rows[0];
+  },
+
+  async delete(userId, provider) {
+    const result = await query(
+      'DELETE FROM user_integrations WHERE user_id = $1 AND provider = $2',
+      [userId, provider]
+    );
+    return { changes: result.rowCount };
+  },
+};
+
+// =============================================
 // Raw query helper (for special cases in routes)
 // =============================================
 
@@ -1016,4 +1086,5 @@ module.exports = {
   opportunities,
   reports,
   chartData,
+  userIntegrations,
 };

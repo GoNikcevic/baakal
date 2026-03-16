@@ -2,20 +2,21 @@
  * HubSpot API Client
  *
  * Handles contacts, deals, and activities (notes/tasks) via HubSpot v3 API.
- * Used by CRM sync routes and the refinement loop.
+ * All API functions require an explicit accessToken parameter (per-user isolation).
  */
-
-const { config } = require('../config');
 
 const BASE_URL = 'https://api.hubapi.com';
 
-async function hubspotFetch(endpoint, options = {}) {
+async function hubspotFetch(accessToken, endpoint, options = {}) {
+  if (!accessToken) {
+    throw new Error('HubSpot access token is required');
+  }
   const url = `${BASE_URL}${endpoint}`;
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.hubspot.accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       ...options.headers,
     },
   });
@@ -37,26 +38,26 @@ async function hubspotFetch(endpoint, options = {}) {
 // Contacts
 // =============================================
 
-async function createContact(properties) {
-  return hubspotFetch('/crm/v3/objects/contacts', {
+async function createContact(accessToken, properties) {
+  return hubspotFetch(accessToken, '/crm/v3/objects/contacts', {
     method: 'POST',
     body: JSON.stringify({ properties }),
   });
 }
 
-async function updateContact(contactId, properties) {
-  return hubspotFetch(`/crm/v3/objects/contacts/${contactId}`, {
+async function updateContact(accessToken, contactId, properties) {
+  return hubspotFetch(accessToken, `/crm/v3/objects/contacts/${contactId}`, {
     method: 'PATCH',
     body: JSON.stringify({ properties }),
   });
 }
 
-async function getContact(contactId) {
-  return hubspotFetch(`/crm/v3/objects/contacts/${contactId}`);
+async function getContact(accessToken, contactId) {
+  return hubspotFetch(accessToken, `/crm/v3/objects/contacts/${contactId}`);
 }
 
-async function searchContacts(email) {
-  return hubspotFetch('/crm/v3/objects/contacts/search', {
+async function searchContacts(accessToken, email) {
+  return hubspotFetch(accessToken, '/crm/v3/objects/contacts/search', {
     method: 'POST',
     body: JSON.stringify({
       filterGroups: [{
@@ -74,30 +75,31 @@ async function searchContacts(email) {
 // Deals
 // =============================================
 
-async function createDeal(properties) {
-  return hubspotFetch('/crm/v3/objects/deals', {
+async function createDeal(accessToken, properties) {
+  return hubspotFetch(accessToken, '/crm/v3/objects/deals', {
     method: 'POST',
     body: JSON.stringify({ properties }),
   });
 }
 
-async function updateDeal(dealId, properties) {
-  return hubspotFetch(`/crm/v3/objects/deals/${dealId}`, {
+async function updateDeal(accessToken, dealId, properties) {
+  return hubspotFetch(accessToken, `/crm/v3/objects/deals/${dealId}`, {
     method: 'PATCH',
     body: JSON.stringify({ properties }),
   });
 }
 
-async function getDeal(dealId) {
-  return hubspotFetch(`/crm/v3/objects/deals/${dealId}`);
+async function getDeal(accessToken, dealId) {
+  return hubspotFetch(accessToken, `/crm/v3/objects/deals/${dealId}`);
 }
 
 // =============================================
 // Associations (link contact ↔ deal)
 // =============================================
 
-async function associateContactToDeal(contactId, dealId) {
+async function associateContactToDeal(accessToken, contactId, dealId) {
   return hubspotFetch(
+    accessToken,
     `/crm/v3/objects/contacts/${contactId}/associations/deals/${dealId}/contact_to_deal`,
     { method: 'PUT' }
   );
@@ -107,7 +109,7 @@ async function associateContactToDeal(contactId, dealId) {
 // Notes (engagements)
 // =============================================
 
-async function createNote(body, associations = {}) {
+async function createNote(accessToken, body, associations = {}) {
   const payload = {
     properties: {
       hs_note_body: body,
@@ -131,7 +133,7 @@ async function createNote(body, associations = {}) {
     }
   }
 
-  return hubspotFetch('/crm/v3/objects/notes', {
+  return hubspotFetch(accessToken, '/crm/v3/objects/notes', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

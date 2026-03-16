@@ -1,30 +1,45 @@
 /**
- * CRM Sync Routes
+ * CRM Sync Routes (per-user HubSpot)
  *
  * POST /api/crm/sync-opportunity   — Push a single opportunity to HubSpot (contact + deal)
  * POST /api/crm/push-contacts      — Bulk push opportunities to HubSpot
  * POST /api/crm/sync-patterns      — Push high-confidence memory patterns as HubSpot notes
- * GET  /api/crm/status              — Check HubSpot connection status
+ * GET  /api/crm/status              — Check HubSpot connection status for the current user
  */
 
 const { Router } = require('express');
 const db = require('../db');
 const hubspot = require('../api/hubspot');
-const { config } = require('../config');
+const { decrypt } = require('../config/crypto');
 
 const router = Router();
 
+/**
+ * Resolve the current user's decrypted HubSpot access token.
+ * Returns null if not configured.
+ */
+async function getUserHubspotToken(userId) {
+  const integration = await db.userIntegrations.get(userId, 'hubspot');
+  if (!integration) return null;
+  try {
+    return decrypt(integration.access_token);
+  } catch {
+    return null;
+  }
+}
+
 // =============================================
-// GET /api/crm/status — Check HubSpot connection
+// GET /api/crm/status — Check HubSpot connection for this user
 // =============================================
 
-router.get('/status', async (_req, res, next) => {
+router.get('/status', async (req, res, next) => {
   try {
-    if (!config.hubspot.accessToken) {
+    const token = await getUserHubspotToken(req.user.id);
+    if (!token) {
       return res.json({ connected: false, reason: 'No HubSpot access token configured' });
     }
-    // Verify the token works by fetching account info
-    const account = await hubspot.getContact('1').catch(() => null);
+    // Verify the token works by fetching a contact
+    await hubspot.getContact(token, '1').catch(() => null);
     // If we get a 404 that's fine — means the API is reachable
     res.json({ connected: true });
   } catch (err) {
@@ -53,7 +68,12 @@ router.post('/sync-opportunity', async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const result = await syncOpportunityToHubspot(opportunity);
+    const token = await getUserHubspotToken(req.user.id);
+    if (!token) {
+      return res.status(400).json({ error: 'HubSpot not configured. Add your token in Settings.' });
+    }
+
+    const result = await syncOpportunityToHubspot(token, opportunity);
     res.json(result);
   } catch (err) {
     next(err);
@@ -66,6 +86,11 @@ router.post('/sync-opportunity', async (req, res, next) => {
 
 router.post('/push-contacts', async (req, res, next) => {
   try {
+    const token = await getUserHubspotToken(req.user.id);
+    if (!token) {
+      return res.status(400).json({ error: 'HubSpot not configured. Add your token in Settings.' });
+    }
+
     const { opportunityIds } = req.body;
     const opportunities = opportunityIds
       ? await Promise.all(opportunityIds.map((id) => db.opportunities.get(id)))
@@ -79,7 +104,7 @@ router.post('/push-contacts', async (req, res, next) => {
       if (opp.user_id !== req.user.id && req.user.role !== 'admin') continue;
 
       try {
-        const result = await syncOpportunityToHubspot(opp);
+        const result = await syncOpportunityToHubspot(token, opp);
         results.push(result);
       } catch (err) {
         errors.push({ opportunityId: opp.id, name: opp.name, error: err.message });
@@ -103,6 +128,11 @@ router.post('/push-contacts', async (req, res, next) => {
 
 router.post('/sync-patterns', async (req, res, next) => {
   try {
+    const token = await getUserHubspotToken(req.user.id);
+    if (!token) {
+      return res.status(400).json({ error: 'HubSpot not configured. Add your token in Settings.' });
+    }
+
     const { dealId } = req.body;
 
     // Get high-confidence patterns
@@ -115,7 +145,7 @@ router.post('/sync-patterns', async (req, res, next) => {
     const associations = {};
     if (dealId) associations.dealId = dealId;
 
-    const note = await hubspot.createNote(noteBody, associations);
+    const note = await hubspot.createNote(token, noteBody, associations);
 
     res.json({ synced: true, noteId: note.id, patternsCount: allPatterns.length });
   } catch (err) {
@@ -127,7 +157,7 @@ router.post('/sync-patterns', async (req, res, next) => {
 // Shared sync logic
 // =============================================
 
-async function syncOpportunityToHubspot(opportunity) {
+async function syncOpportunityToHubspot(accessToken, opportunity) {
   const campaign = opportunity.campaign_id
     ? await db.campaigns.get(opportunity.campaign_id)
     : null;
@@ -138,7 +168,7 @@ async function syncOpportunityToHubspot(opportunity) {
   // --- Contact ---
   if (!contactId && opportunity.email) {
     // Search for existing contact by email
-    const search = await hubspot.searchContacts(opportunity.email);
+    const search = await hubspot.searchContacts(accessToken, opportunity.email);
     if (search.total > 0) {
       contactId = search.results[0].id;
     }
@@ -147,9 +177,9 @@ async function syncOpportunityToHubspot(opportunity) {
   const contactProps = hubspot.mapOpportunityToContact(opportunity);
 
   if (contactId) {
-    await hubspot.updateContact(contactId, contactProps);
+    await hubspot.updateContact(accessToken, contactId, contactProps);
   } else {
-    const created = await hubspot.createContact(contactProps);
+    const created = await hubspot.createContact(accessToken, contactProps);
     contactId = created.id;
   }
 
@@ -157,15 +187,15 @@ async function syncOpportunityToHubspot(opportunity) {
   const dealProps = hubspot.mapOpportunityToDeal(opportunity, campaign);
 
   if (dealId) {
-    await hubspot.updateDeal(dealId, dealProps);
+    await hubspot.updateDeal(accessToken, dealId, dealProps);
   } else {
-    const created = await hubspot.createDeal(dealProps);
+    const created = await hubspot.createDeal(accessToken, dealProps);
     dealId = created.id;
   }
 
   // --- Association ---
   if (contactId && dealId) {
-    await hubspot.associateContactToDeal(contactId, dealId).catch(() => {
+    await hubspot.associateContactToDeal(accessToken, contactId, dealId).catch(() => {
       // Association may already exist — non-blocking
     });
   }
@@ -187,3 +217,4 @@ async function syncOpportunityToHubspot(opportunity) {
 
 module.exports = router;
 module.exports.syncOpportunityToHubspot = syncOpportunityToHubspot;
+module.exports.getUserHubspotToken = getUserHubspotToken;

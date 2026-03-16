@@ -33,9 +33,8 @@ const config = {
     model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
   },
 
-  hubspot: {
-    accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
-  },
+  // HubSpot tokens are now stored per-user in user_integrations table.
+  // No global hubspot config needed.
 };
 
 /**
@@ -52,7 +51,7 @@ async function reloadKeys() {
       lemlist_api_key: (val) => { config.lemlist.apiKey = val; },
       notion_token: (val) => { config.notion.token = val; },
       anthropic_api_key: (val) => { config.claude.apiKey = val; },
-      hubspot_access_token: (val) => { config.hubspot.accessToken = val; },
+      // HubSpot tokens are per-user now (stored in user_integrations)
     };
 
     for (const [dbKey, setter] of Object.entries(keyMap)) {

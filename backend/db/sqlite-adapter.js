@@ -270,6 +270,19 @@ function initSchema() {
       week_start TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS user_integrations (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      provider TEXT NOT NULL,
+      access_token TEXT NOT NULL,
+      refresh_token TEXT,
+      metadata TEXT DEFAULT '{}',
+      expires_at TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, provider)
+    );
   `);
 }
 
