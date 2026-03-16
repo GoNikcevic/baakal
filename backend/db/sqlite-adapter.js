@@ -238,6 +238,9 @@ function initSchema() {
       status TEXT DEFAULT 'new',
       status_color TEXT,
       timing TEXT,
+      email TEXT,
+      hubspot_contact_id TEXT,
+      hubspot_deal_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
