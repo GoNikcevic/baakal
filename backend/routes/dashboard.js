@@ -27,4 +27,34 @@ router.get('/memory', async (req, res, next) => {
   }
 });
 
+// GET /api/dashboard/opportunities
+router.get('/opportunities', async (req, res, next) => {
+  try {
+    const opportunities = await db.opportunities.listByUser(req.user.id);
+    res.json({ opportunities });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/dashboard/reports
+router.get('/reports', async (req, res, next) => {
+  try {
+    const reports = await db.reports.listByUser(req.user.id);
+    res.json({ reports });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/dashboard/chart-data
+router.get('/chart-data', async (req, res, next) => {
+  try {
+    const data = await db.chartData.listByUser(req.user.id);
+    res.json({ chartData: data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

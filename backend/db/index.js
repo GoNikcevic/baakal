@@ -820,6 +820,156 @@ const customVariables = {
 };
 
 // =============================================
+// Opportunities
+// =============================================
+
+const opportunities = {
+  async listByUser(userId, limit = 10) {
+    const result = await query(
+      'SELECT * FROM opportunities WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [userId, limit]
+    );
+    return result.rows;
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM opportunities WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
+  async create(data) {
+    const result = await query(`
+      INSERT INTO opportunities (user_id, campaign_id, name, title, company, company_size, status, status_color, timing)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `, [
+      data.userId || null,
+      data.campaignId || null,
+      data.name,
+      data.title || null,
+      data.company || null,
+      data.companySize || null,
+      data.status || 'new',
+      data.statusColor || null,
+      data.timing || null,
+    ]);
+    return result.rows[0];
+  },
+
+  async update(id, data) {
+    const sets = [];
+    const values = [];
+    let i = 1;
+    const mapping = {
+      name: 'name', title: 'title', company: 'company',
+      company_size: 'company_size', companySize: 'company_size',
+      status: 'status', status_color: 'status_color', statusColor: 'status_color',
+      timing: 'timing',
+    };
+    const seen = new Set();
+    for (const [inputKey, col] of Object.entries(mapping)) {
+      if (data[inputKey] !== undefined && !seen.has(col)) {
+        seen.add(col);
+        sets.push(`${col} = $${i++}`);
+        values.push(data[inputKey]);
+      }
+    }
+    if (sets.length === 0) return null;
+    sets.push('updated_at = now()');
+    values.push(id);
+    const result = await query(
+      `UPDATE opportunities SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+
+  async delete(id) {
+    const result = await query('DELETE FROM opportunities WHERE id = $1', [id]);
+    return { changes: result.rowCount };
+  },
+};
+
+// =============================================
+// Reports
+// =============================================
+
+const reports = {
+  async listByUser(userId, limit = 10) {
+    const result = await query(
+      'SELECT * FROM reports WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [userId, limit]
+    );
+    return result.rows;
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM reports WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
+  async create(data) {
+    const result = await query(`
+      INSERT INTO reports (user_id, week, date_range, score, score_label, contacts, open_rate, reply_rate, interested, meetings, synthesis)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `, [
+      data.userId || null,
+      data.week,
+      data.dateRange || null,
+      data.score || 'ok',
+      data.scoreLabel || null,
+      data.contacts || 0,
+      data.openRate || null,
+      data.replyRate || null,
+      data.interested || 0,
+      data.meetings || 0,
+      data.synthesis || null,
+    ]);
+    return result.rows[0];
+  },
+
+  async delete(id) {
+    const result = await query('DELETE FROM reports WHERE id = $1', [id]);
+    return { changes: result.rowCount };
+  },
+};
+
+// =============================================
+// Chart Data
+// =============================================
+
+const chartData = {
+  async listByUser(userId, limit = 12) {
+    const result = await query(
+      'SELECT * FROM chart_data WHERE user_id = $1 ORDER BY week_start ASC LIMIT $2',
+      [userId, limit]
+    );
+    return result.rows;
+  },
+
+  async create(data) {
+    const result = await query(`
+      INSERT INTO chart_data (user_id, label, email_count, linkedin_count, week_start)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [
+      data.userId || null,
+      data.label,
+      data.emailCount || 0,
+      data.linkedinCount || 0,
+      data.weekStart || null,
+    ]);
+    return result.rows[0];
+  },
+
+  async deleteByUser(userId) {
+    const result = await query('DELETE FROM chart_data WHERE user_id = $1', [userId]);
+    return { changes: result.rowCount };
+  },
+};
+
+// =============================================
 // Raw query helper (for special cases in routes)
 // =============================================
 
@@ -858,4 +1008,7 @@ module.exports = {
   projects,
   projectFiles,
   customVariables,
+  opportunities,
+  reports,
+  chartData,
 };

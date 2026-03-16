@@ -226,6 +226,47 @@ function initSchema() {
       default_value TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS opportunities (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      user_id TEXT REFERENCES users(id),
+      campaign_id TEXT REFERENCES campaigns(id),
+      name TEXT NOT NULL,
+      title TEXT,
+      company TEXT,
+      company_size TEXT,
+      status TEXT DEFAULT 'new',
+      status_color TEXT,
+      timing TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS reports (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      user_id TEXT REFERENCES users(id),
+      week TEXT NOT NULL,
+      date_range TEXT,
+      score TEXT DEFAULT 'ok',
+      score_label TEXT,
+      contacts INTEGER DEFAULT 0,
+      open_rate REAL,
+      reply_rate REAL,
+      interested INTEGER DEFAULT 0,
+      meetings INTEGER DEFAULT 0,
+      synthesis TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS chart_data (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+      user_id TEXT REFERENCES users(id),
+      label TEXT NOT NULL,
+      email_count INTEGER DEFAULT 0,
+      linkedin_count INTEGER DEFAULT 0,
+      week_start TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 }
 
