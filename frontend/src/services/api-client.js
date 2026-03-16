@@ -213,6 +213,91 @@ export function sequenceToBackend(touchpoints) {
   }));
 }
 
+/* ─── Transform: backend report row → frontend shape ─── */
+
+const scoreEmojiMap = {
+  excellent: '🚀 Excellent',
+  good: '🟢 Performant',
+  ok: '🟡 Correct',
+  warning: '🔴 Attention',
+};
+
+export function transformReport(r) {
+  return {
+    week: r.week,
+    dateRange: r.date_range || r.dateRange || '',
+    score: r.score || 'ok',
+    scoreLabel: r.score_label || scoreEmojiMap[r.score] || r.score,
+    metrics: {
+      contacts: r.contacts || 0,
+      openRate: r.open_rate != null ? r.open_rate + '%' : '—',
+      replyRate: r.reply_rate != null ? r.reply_rate + '%' : '—',
+      interested: r.interested || 0,
+      meetings: r.meetings || 0,
+    },
+    synthesis: r.synthesis || '',
+  };
+}
+
+/* ─── Transform: backend opportunity row → frontend shape ─── */
+
+export function transformOpportunity(o) {
+  const statusColorMap = {
+    'Call planifié': 'var(--success)',
+    'Intéressé': 'var(--warning)',
+    'new': 'var(--blue)',
+    'lost': 'var(--text-muted)',
+  };
+  const statusBgMap = {
+    'Call planifié': 'rgba(0,214,143,0.1)',
+    'Intéressé': 'var(--warning-bg)',
+    'new': 'rgba(99,102,241,0.1)',
+    'lost': 'rgba(128,128,128,0.1)',
+  };
+
+  return {
+    name: o.name,
+    title: o.title || '',
+    company: o.company || '',
+    size: o.company_size || o.companySize || '',
+    status: o.status || 'new',
+    statusColor: o.status_color || statusColorMap[o.status] || 'var(--text-muted)',
+    statusBg: statusBgMap[o.status] || 'rgba(128,128,128,0.1)',
+    timing: o.timing || '',
+  };
+}
+
+/* ─── Transform: backend chart_data row → frontend shape ─── */
+
+export function transformChartData(d) {
+  return {
+    label: d.label,
+    email: d.email_count ?? d.emailCount ?? 0,
+    linkedin: d.linkedin_count ?? d.linkedinCount ?? 0,
+  };
+}
+
+/* ─── Transform: memory patterns → recommendations ─── */
+
+export function patternsToRecommendations(patterns) {
+  const levelMap = {
+    Haute: 'success',
+    Moyenne: 'warning',
+    Faible: 'blue',
+  };
+  const labelMap = {
+    Haute: '✅ Appliquer — Impact fort',
+    Moyenne: '💡 Tester — Opportunité',
+    Faible: '📊 Insight',
+  };
+
+  return (patterns || []).slice(0, 5).map((p) => ({
+    level: levelMap[p.confidence] || 'blue',
+    label: labelMap[p.confidence] || '📊 Insight',
+    text: p.pattern || '',
+  }));
+}
+
 /* ═══ Public API Methods ═══ */
 
 /** Check if the backend is reachable */
@@ -277,6 +362,30 @@ export async function fetchDashboard() {
     meetings: { value: kpis.total_meetings || 0, trend: '', direction: 'up' },
     stops: { value: '—', trend: '', direction: 'up' },
   };
+}
+
+/** Fetch opportunities for the current user */
+export async function fetchOpportunities() {
+  const data = await request('/dashboard/opportunities');
+  return (data.opportunities || []).map(transformOpportunity);
+}
+
+/** Fetch weekly reports for the current user */
+export async function fetchReports() {
+  const data = await request('/dashboard/reports');
+  return (data.reports || []).map(transformReport);
+}
+
+/** Fetch chart data for the current user */
+export async function fetchChartData() {
+  const data = await request('/dashboard/chart-data');
+  return (data.chartData || []).map(transformChartData);
+}
+
+/** Fetch AI recommendations (derived from memory patterns) */
+export async function fetchRecommendations() {
+  const data = await request('/dashboard/memory');
+  return patternsToRecommendations(data.patterns || []);
 }
 
 /** Create a new campaign */
@@ -513,6 +622,10 @@ const BakalAPI = {
   fetchProjects,
   fetchCampaignDetail,
   fetchDashboard,
+  fetchOpportunities,
+  fetchReports,
+  fetchChartData,
+  fetchRecommendations,
   createCampaign,
   updateCampaign,
   saveSequence,
@@ -544,6 +657,10 @@ const BakalAPI = {
   transformDiagnostic,
   transformVersion,
   buildDefaultChecklist,
+  transformReport,
+  transformOpportunity,
+  transformChartData,
+  patternsToRecommendations,
 };
 
 export default BakalAPI;

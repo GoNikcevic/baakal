@@ -38,15 +38,23 @@ export function AppProvider({ children }) {
         setBackendAvailable(true);
 
         // Fetch live data in parallel
-        const [campaignsData, kpisData, projectsData] = await Promise.all([
+        const [campaignsData, kpisData, projectsData, oppsData, reportsData, chartDataResult, recosData] = await Promise.all([
           api.fetchAllCampaigns(),
           api.fetchDashboard(),
           api.fetchProjects().catch(() => ({})),
+          api.fetchOpportunities().catch(() => []),
+          api.fetchReports().catch(() => []),
+          api.fetchChartData().catch(() => []),
+          api.fetchRecommendations().catch(() => []),
         ]);
 
         setCampaigns(campaignsData);
         setGlobalKpis(kpisData);
         setProjects(projectsData);
+        setOpportunities(oppsData);
+        setReports(reportsData);
+        setChartData(chartDataResult);
+        setRecommendations(recosData);
       } else {
         throw new Error('Backend unreachable');
       }
