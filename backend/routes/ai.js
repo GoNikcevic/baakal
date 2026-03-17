@@ -14,7 +14,12 @@ function isDryRun(req) {
 
 // Enrich params with user profile defaults and document context
 async function enrichWithProfile(params, userId) {
-  const profile = await db.profiles.get(userId);
+  // Load profile and docs in parallel
+  const [profile, docs] = await Promise.all([
+    db.profiles.get(userId),
+    db.documents.getParsedTextByUser(userId, 5),
+  ]);
+
   if (profile) {
     if (!params.companyName && profile.company) params.companyName = profile.company;
     if (!params.sector && profile.sector) params.sector = profile.sector;
@@ -31,7 +36,6 @@ async function enrichWithProfile(params, userId) {
     if (profile.objections) params.objections = profile.objections;
   }
 
-  const docs = await db.documents.getParsedTextByUser(userId);
   if (docs && docs.length > 0) {
     const docText = docs
       .map(d => `[${d.original_name}] ${(d.parsed_text || '').slice(0, 1500)}`)
@@ -149,12 +153,13 @@ router.post('/analyze', async (req, res, next) => {
   }
 });
 
-// POST /api/ai/regenerate
+// POST /api/ai/regenerate — bounded memory loading
 router.post('/regenerate', async (req, res, next) => {
   try {
     const { campaignId, diagnostic, originalMessages, clientParams, regenerationInstructions } = req.body;
 
-    const memory = await db.memoryPatterns.list({});
+    // Bounded: only load relevant patterns (limit 30)
+    const memory = await db.memoryPatterns.list({ limit: 30 });
 
     const result = isDryRun(req)
       ? dryRun.regenerateSequence({ diagnostic, originalMessages, memory, clientParams })
@@ -194,8 +199,10 @@ router.post('/run-refinement', async (req, res, next) => {
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
-    const sequence = await db.touchpoints.listByCampaign(campaignId);
-    const memory = await db.memoryPatterns.list({});
+    const [sequence, memory] = await Promise.all([
+      db.touchpoints.listByCampaign(campaignId),
+      db.memoryPatterns.list({ limit: 30 }),
+    ]);
 
     const originalMessages = sequence.map(tp => ({
       step: tp.step, subject: tp.subject, body: tp.body,
@@ -280,19 +287,12 @@ router.post('/generate-variables', async (req, res, next) => {
   }
 });
 
-// POST /api/ai/consolidate-memory
+// POST /api/ai/consolidate-memory — bounded loading with JOINs
 router.post('/consolidate-memory', async (req, res, next) => {
   try {
-    const campaigns = await db.campaigns.list({});
-    const allDiagnostics = [];
-    for (const campaign of campaigns) {
-      const diags = await db.diagnostics.listByCampaign(campaign.id);
-      allDiagnostics.push(
-        ...diags.map((d) => ({ ...d, campaign: campaign.name, sector: campaign.sector }))
-      );
-    }
-
-    const existingMemory = await db.memoryPatterns.list({});
+    // Use JOIN to load diagnostics with campaign info in a single query
+    const allDiagnostics = await db.diagnostics.listByUserCampaigns(req.user.id, 100);
+    const existingMemory = await db.memoryPatterns.list({ limit: 200 });
 
     const result = isDryRun(req)
       ? dryRun.consolidateMemory(allDiagnostics, existingMemory)
@@ -335,11 +335,16 @@ router.post('/consolidate-memory', async (req, res, next) => {
   }
 });
 
-// GET /api/ai/memory
-router.get('/memory', async (_req, res, next) => {
+// GET /api/ai/memory — paginated
+router.get('/memory', async (req, res, next) => {
   try {
-    const patterns = await db.memoryPatterns.list({});
-    res.json({ patterns, count: patterns.length });
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const [patterns, count] = await Promise.all([
+      db.memoryPatterns.list({ limit, offset }),
+      db.memoryPatterns.count(),
+    ]);
+    res.json({ patterns, count, limit, offset });
   } catch (err) {
     next(err);
   }
@@ -365,7 +370,7 @@ router.get('/versions/:campaignId', async (req, res, next) => {
   }
 });
 
-// POST /api/ai/deploy-to-lemlist — Deploy regenerated variants to Lemlist
+// POST /api/ai/deploy-to-lemlist
 router.post('/deploy-to-lemlist', async (req, res, next) => {
   try {
     const { campaignId, messages } = req.body;
@@ -383,7 +388,6 @@ router.post('/deploy-to-lemlist', async (req, res, next) => {
     const sequence = await db.touchpoints.listByCampaign(campaignId);
     const deployed = await regenerateJob.deployToLemlist(campaign.lemlist_id, messages, sequence);
 
-    // Update touchpoints with new content
     for (const msg of messages) {
       const variant = msg.variantA || msg;
       const tp = sequence.find(t => t.step === msg.step);

@@ -1,26 +1,41 @@
 const { Router } = require('express');
 const db = require('../db');
+const { kpiCache } = require('../lib/cache');
 const hubspotSync = require('../orchestrator/jobs/hubspot-sync');
 
 const router = Router();
 
-// GET /api/dashboard — Aggregated KPIs + active campaigns (scoped to user)
+// GET /api/dashboard — Aggregated KPIs + active campaigns (cached 5 min)
 router.get('/', async (req, res, next) => {
   try {
-    const kpis = await db.dashboardKpis(req.user.id);
-    const campaigns = await db.campaigns.list({ status: 'active', userId: req.user.id });
+    const userId = req.user.id;
+    const cacheKey = `kpis:${userId}`;
+    const cached = kpiCache.get(cacheKey);
 
-    res.json({ kpis, campaigns });
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const [kpis, campaigns] = await Promise.all([
+      db.dashboardKpis(userId),
+      db.campaigns.list({ status: 'active', userId, limit: 50 }),
+    ]);
+
+    const result = { kpis, campaigns };
+    kpiCache.set(cacheKey, result, 5 * 60 * 1000); // 5 min TTL
+    res.json(result);
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/dashboard/memory — Cross-campaign patterns
+// GET /api/dashboard/memory — Cross-campaign patterns (paginated)
 router.get('/memory', async (req, res, next) => {
   try {
     const { category, confidence } = req.query;
-    const patterns = await db.memoryPatterns.list({ category, confidence });
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const patterns = await db.memoryPatterns.list({ category, confidence, limit, offset });
 
     res.json({ patterns });
   } catch (err) {
@@ -28,20 +43,24 @@ router.get('/memory', async (req, res, next) => {
   }
 });
 
-// GET /api/dashboard/opportunities
+// GET /api/dashboard/opportunities (paginated)
 router.get('/opportunities', async (req, res, next) => {
   try {
-    const opportunities = await db.opportunities.listByUser(req.user.id);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const opportunities = await db.opportunities.listByUser(req.user.id, limit, offset);
     res.json({ opportunities });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/dashboard/reports
+// GET /api/dashboard/reports (paginated)
 router.get('/reports', async (req, res, next) => {
   try {
-    const reports = await db.reports.listByUser(req.user.id);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const reports = await db.reports.listByUser(req.user.id, limit, offset);
     res.json({ reports });
   } catch (err) {
     next(err);
@@ -58,12 +77,14 @@ router.get('/chart-data', async (req, res, next) => {
   }
 });
 
-// POST /api/dashboard/opportunities — Create opportunity
+// POST /api/dashboard/opportunities — Create opportunity (invalidates KPI cache)
 router.post('/opportunities', async (req, res, next) => {
   try {
     const opportunity = await db.opportunities.create({ ...req.body, userId: req.user.id });
 
-    // Auto-sync to HubSpot if status warrants it
+    // Invalidate KPI cache for this user
+    kpiCache.invalidate(`kpis:${req.user.id}`);
+
     hubspotSync.onStatusChange({
       opportunityId: opportunity.id,
       newStatus: opportunity.status,
@@ -75,7 +96,7 @@ router.post('/opportunities', async (req, res, next) => {
   }
 });
 
-// PATCH /api/dashboard/opportunities/:id — Update opportunity (triggers HubSpot sync on status change)
+// PATCH /api/dashboard/opportunities/:id
 router.patch('/opportunities/:id', async (req, res, next) => {
   try {
     const existing = await db.opportunities.get(req.params.id);
@@ -87,7 +108,6 @@ router.patch('/opportunities/:id', async (req, res, next) => {
     const updated = await db.opportunities.update(req.params.id, req.body);
     if (!updated) return res.status(404).json({ error: 'No changes' });
 
-    // Trigger HubSpot sync on status change
     const newStatus = req.body.status;
     if (newStatus && newStatus !== existing.status) {
       hubspotSync.onStatusChange({

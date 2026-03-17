@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 const crypto = require('crypto');
 const db = require('../db');
 
@@ -44,14 +45,16 @@ const upload = multer({
   },
 });
 
+// Async file parsing (non-blocking)
 async function parseFile(filePath, mimeType) {
   try {
     if (mimeType === 'text/plain' || mimeType === 'text/csv' || mimeType === 'text/markdown') {
-      return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
+      const content = await fsPromises.readFile(filePath, 'utf-8');
+      return content.slice(0, 100000);
     }
     if (mimeType === 'application/pdf') {
       const pdfParse = require('pdf-parse');
-      const buffer = fs.readFileSync(filePath);
+      const buffer = await fsPromises.readFile(filePath);
       const data = await pdfParse(buffer);
       return (data.text || '').slice(0, 100000);
     }
@@ -62,7 +65,8 @@ async function parseFile(filePath, mimeType) {
     }
     if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
       const XLSX = require('xlsx');
-      const workbook = XLSX.readFile(filePath);
+      const buffer = await fsPromises.readFile(filePath);
+      const workbook = XLSX.read(buffer);
       const sheets = workbook.SheetNames.map(name => {
         const sheet = workbook.Sheets[name];
         return `[${name}]\n${XLSX.utils.sheet_to_csv(sheet)}`;
@@ -90,38 +94,68 @@ async function getProjectOrFail(req, res) {
   return project;
 }
 
-// GET /api/projects
+// GET /api/projects — batch load with counts (no N+1)
 router.get('/', async (req, res, next) => {
   try {
-    const projects = await db.projects.list(req.user.id);
-
-    const result = [];
-    for (const p of projects) {
-      const files = await db.projectFiles.listByProject(p.id);
-      const countResult = await db.query(
-        'SELECT COUNT(*) as c FROM campaigns WHERE project_id = $1 AND user_id = $2',
-        [p.id, req.user.id]
-      );
-      const campaignCount = parseInt(countResult.rows[0].c, 10);
-
-      result.push({
-        id: p.id,
-        name: p.name,
-        client: p.client,
-        description: p.description,
-        color: p.color,
-        createdDate: p.created_at,
-        campaignCount,
-        files: files.map(f => ({
-          id: f.id,
-          name: f.original_name,
-          type: f.mime_type,
-          size: f.file_size,
-          uploadedAt: f.created_at,
-          category: f.category,
-        })),
-      });
+    let projects;
+    try {
+      // PostgreSQL: efficient batch query with counts
+      projects = await db.projects.listWithCounts(req.user.id);
+    } catch {
+      // SQLite fallback: simple list
+      const raw = await db.projects.list(req.user.id);
+      projects = raw.map(p => ({ ...p, file_count: 0, campaign_count: 0 }));
     }
+
+    // Batch load files for all projects in one query
+    const projectIds = projects.map(p => p.id);
+    let filesMap = {};
+    if (projectIds.length > 0) {
+      try {
+        const placeholders = projectIds.map((_, idx) => `$${idx + 1}`).join(',');
+        const filesResult = await db.query(
+          `SELECT id, project_id, original_name, mime_type, file_size, created_at, category
+           FROM project_files WHERE project_id IN (${placeholders})
+           ORDER BY created_at DESC`,
+          projectIds
+        );
+        for (const f of filesResult.rows) {
+          if (!filesMap[f.project_id]) filesMap[f.project_id] = [];
+          filesMap[f.project_id].push({
+            id: f.id,
+            name: f.original_name,
+            type: f.mime_type,
+            size: f.file_size,
+            uploadedAt: f.created_at,
+            category: f.category,
+          });
+        }
+      } catch {
+        // SQLite fallback: load files per project
+        for (const p of projects) {
+          const files = await db.projectFiles.listByProject(p.id);
+          filesMap[p.id] = files.map(f => ({
+            id: f.id,
+            name: f.original_name,
+            type: f.mime_type,
+            size: f.file_size,
+            uploadedAt: f.created_at,
+            category: f.category,
+          }));
+        }
+      }
+    }
+
+    const result = projects.map(p => ({
+      id: p.id,
+      name: p.name,
+      client: p.client,
+      description: p.description,
+      color: p.color,
+      createdDate: p.created_at,
+      campaignCount: p.campaign_count || 0,
+      files: filesMap[p.id] || [],
+    }));
 
     res.json({ projects: result });
   } catch (err) {
@@ -171,17 +205,12 @@ router.delete('/:id', async (req, res, next) => {
     if (!project) return;
 
     const files = await db.projectFiles.listByProject(project.id);
-    for (const f of files) {
-      try {
-        if (fs.existsSync(f.file_path)) fs.unlinkSync(f.file_path);
-      } catch (err) {
-        console.error('File cleanup error:', err.message);
-      }
-    }
+    // Async file cleanup
+    await Promise.allSettled(
+      files.map(f => fsPromises.unlink(f.file_path).catch(() => {}))
+    );
 
-    // Unlink campaigns from this project
     await db.query('UPDATE campaigns SET project_id = NULL WHERE project_id = $1', [project.id]);
-
     await db.projects.delete(project.id);
     res.json({ deleted: true });
   } catch (err) {
@@ -189,7 +218,7 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
-// POST /api/projects/:id/files
+// POST /api/projects/:id/files — async file parsing
 router.post('/:id/files', upload.single('file'), async (req, res, next) => {
   try {
     const project = await getProjectOrFail(req, res);
@@ -234,12 +263,7 @@ router.delete('/:id/files/:fileId', async (req, res, next) => {
     if (!file) return res.status(404).json({ error: 'File not found' });
     if (file.project_id !== project.id) return res.status(403).json({ error: 'File does not belong to this project' });
 
-    try {
-      if (fs.existsSync(file.file_path)) fs.unlinkSync(file.file_path);
-    } catch (err) {
-      console.error('File delete error:', err.message);
-    }
-
+    await fsPromises.unlink(file.file_path).catch(() => {});
     await db.projectFiles.delete(file.id);
     res.json({ deleted: true });
   } catch (err) {

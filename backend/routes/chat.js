@@ -5,6 +5,14 @@ const { emitToThread } = require('../socket');
 
 const router = Router();
 
+// Max context sizes to bound Claude payloads
+const MAX_CAMPAIGNS_IN_CONTEXT = 20;
+const MAX_PATTERNS_IN_CONTEXT = 10;
+const MAX_DIAGNOSTICS_IN_CONTEXT = 3;
+const MAX_VERSIONS_IN_CONTEXT = 5;
+const MAX_DOC_CHARS = 6000;
+const MAX_HISTORY_MESSAGES = 50;
+
 // GET /api/chat/threads
 router.get('/threads', async (req, res, next) => {
   try {
@@ -56,7 +64,7 @@ router.get('/threads/:id/messages', async (req, res, next) => {
   }
 });
 
-// POST /api/chat/threads/:id/messages
+// POST /api/chat/threads/:id/messages — bounded context building
 router.post('/threads/:id/messages', async (req, res, next) => {
   try {
     const thread = await db.chatThreads.get(req.params.id);
@@ -67,15 +75,26 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    await db.chatMessages.create(thread.id, 'user', message.trim());
+    // Limit message size (prevent abuse)
+    const trimmedMessage = message.trim().slice(0, 10000);
 
-    const history = await db.chatMessages.listByThread(thread.id);
+    await db.chatMessages.create(thread.id, 'user', trimmedMessage);
+
+    // Load history with limit
+    const history = await db.chatMessages.listByThread(thread.id, MAX_HISTORY_MESSAGES);
     const claudeMessages = history.map(m => ({ role: m.role, content: m.content }));
 
-    // Build rich context
+    // Build bounded context — all queries in parallel
+    const [profile, docs, campaigns, patterns] = await Promise.all([
+      db.profiles.get(req.user.id),
+      db.documents.getParsedTextByUser(req.user.id, 5),
+      db.campaigns.list({ userId: req.user.id, limit: MAX_CAMPAIGNS_IN_CONTEXT }),
+      db.memoryPatterns.list({ limit: MAX_PATTERNS_IN_CONTEXT }),
+    ]);
+
     const contextParts = [];
 
-    const profile = await db.profiles.get(req.user.id);
+    // Profile context
     if (profile) {
       const profileLines = [];
       if (profile.company) profileLines.push(`Entreprise: ${profile.company}`);
@@ -99,18 +118,17 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       }
     }
 
-    const docs = await db.documents.getParsedTextByUser(req.user.id);
+    // Documents context (bounded)
     if (docs && docs.length > 0) {
       const docContext = docs
-        .map(d => `--- ${d.original_name} ---\n${(d.parsed_text || '').slice(0, 2000)}`)
+        .map(d => `--- ${d.original_name} ---\n${(d.parsed_text || '').slice(0, 1500)}`)
         .join('\n\n');
       if (docContext.length > 0) {
-        contextParts.push(`DOCUMENTS BUSINESS (extraits):\n${docContext.slice(0, 8000)}`);
+        contextParts.push(`DOCUMENTS BUSINESS (extraits):\n${docContext.slice(0, MAX_DOC_CHARS)}`);
       }
     }
 
-    // --- Campaigns with real-time stats ---
-    const campaigns = await db.campaigns.list({ userId: req.user.id });
+    // Campaigns context (bounded, no extra queries)
     if (campaigns.length > 0) {
       const campaignLines = campaigns.map(c => {
         const parts = [`"${c.name}" (${c.status}, ${c.channel})`];
@@ -130,44 +148,42 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       contextParts.push('Aucune campagne créée pour le moment.');
     }
 
-    // --- Memory patterns (cross-campaign learnings) ---
-    const patterns = await db.memoryPatterns.list({});
+    // Memory patterns (already bounded by limit in query)
     if (patterns.length > 0) {
-      const patternLines = patterns.slice(0, 10).map(p =>
+      const patternLines = patterns.map(p =>
         `- [${p.confidence}] ${p.pattern} (catégorie: ${p.category})`
       );
       contextParts.push(`MEMORY PATTERNS (ce que l'IA a appris):\n${patternLines.join('\n')}`);
     }
 
-    // --- Recent diagnostics ---
-    const allDiagnostics = await db.diagnostics.listAll();
-    if (allDiagnostics.length > 0) {
-      const recentDiags = allDiagnostics.slice(0, 3);
-      const diagLines = [];
-      for (const d of recentDiags) {
-        const camp = campaigns.find(c => c.id === d.campaign_id);
-        const campName = camp ? camp.name : 'Campagne inconnue';
+    // Recent diagnostics — single query with JOIN (no N+1)
+    const recentDiags = await db.diagnostics.listByUserCampaigns(req.user.id, MAX_DIAGNOSTICS_IN_CONTEXT);
+    if (recentDiags.length > 0) {
+      const diagLines = recentDiags.map(d => {
         const priorities = d.priorities && d.priorities.length > 0
           ? ` | Priorités: ${d.priorities.join('; ')}`
           : '';
-        diagLines.push(`- ${campName} (${d.date_analyse}): ${(d.diagnostic || '').slice(0, 200)}...${priorities}`);
-      }
+        return `- ${d.campaign_name || 'Campagne'} (${d.date_analyse}): ${(d.diagnostic || '').slice(0, 200)}...${priorities}`;
+      });
       contextParts.push(`DIAGNOSTICS RÉCENTS:\n${diagLines.join('\n')}`);
     }
 
-    // --- Recent optimization history ---
-    const recentVersionLines = [];
-    for (const camp of campaigns.slice(0, 5)) {
-      const versions = await db.versions.listByCampaign(camp.id);
-      if (versions.length > 0) {
-        const latest = versions[0];
-        recentVersionLines.push(
-          `- "${camp.name}" v${latest.version}: ${latest.hypotheses || 'N/A'} → ${latest.result}`
-        );
+    // Recent optimization history — batch load (no N+1)
+    if (campaigns.length > 0) {
+      const campIds = campaigns.slice(0, MAX_VERSIONS_IN_CONTEXT).map(c => c.id);
+      const latestVersions = await db.versions.latestForCampaigns(campIds);
+      const versionLines = [];
+      for (const camp of campaigns.slice(0, MAX_VERSIONS_IN_CONTEXT)) {
+        const latest = latestVersions[camp.id];
+        if (latest) {
+          versionLines.push(
+            `- "${camp.name}" v${latest.version}: ${latest.hypotheses || 'N/A'} → ${latest.result}`
+          );
+        }
       }
-    }
-    if (recentVersionLines.length > 0) {
-      contextParts.push(`OPTIMISATIONS RÉCENTES:\n${recentVersionLines.join('\n')}`);
+      if (versionLines.length > 0) {
+        contextParts.push(`OPTIMISATIONS RÉCENTES:\n${versionLines.join('\n')}`);
+      }
     }
 
     const context = contextParts.join('\n\n');
@@ -182,7 +198,7 @@ router.post('/threads/:id/messages', async (req, res, next) => {
     const saved = await db.chatMessages.create(thread.id, 'assistant', aiResponse.content, metadata);
 
     if (history.length <= 1) {
-      const title = message.trim().slice(0, 60) + (message.length > 60 ? '...' : '');
+      const title = trimmedMessage.slice(0, 60) + (trimmedMessage.length > 60 ? '...' : '');
       await db.chatThreads.updateTitle(thread.id, title);
     }
 
@@ -194,7 +210,6 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       created_at: new Date().toISOString(),
     };
 
-    // Emit to all clients watching this thread (real-time)
     emitToThread(thread.id, 'chat:message', responseMsg);
 
     res.json({ message: responseMsg, usage: aiResponse.usage });

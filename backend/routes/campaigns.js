@@ -16,39 +16,34 @@ router.get('/lemlist/list', async (_req, res, next) => {
   }
 });
 
-// GET /api/campaigns
+// GET /api/campaigns — with batch touchpoint loading (no N+1)
 router.get('/', async (req, res, next) => {
   try {
-    const { status, channel } = req.query;
-    const campaigns = await db.campaigns.list({ status, channel, userId: req.user.id });
+    const { status, channel, limit, offset } = req.query;
+    const campaigns = await db.campaigns.listWithTouchpoints({
+      status,
+      channel,
+      userId: req.user.id,
+      limit: Math.min(parseInt(limit, 10) || 50, 200),
+      offset: parseInt(offset, 10) || 0,
+    });
 
-    const result = [];
-    for (const c of campaigns) {
-      const sequence = await db.touchpoints.listByCampaign(c.id);
-      result.push({ ...c, sequence });
-    }
-
-    res.json({ campaigns: result });
+    res.json({ campaigns });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/campaigns/:id
+// GET /api/campaigns/:id — batch load all relations (no N+1)
 router.get('/:id', async (req, res, next) => {
   try {
-    const campaign = await db.campaigns.get(req.params.id);
-    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-    if (campaign.user_id && campaign.user_id !== req.user.id && req.user.role !== 'admin') {
+    const data = await db.campaigns.getWithRelations(req.params.id);
+    if (!data) return res.status(404).json({ error: 'Campaign not found' });
+    if (data.campaign.user_id && data.campaign.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({
-      campaign,
-      sequence: await db.touchpoints.listByCampaign(campaign.id),
-      diagnostics: await db.diagnostics.listByCampaign(campaign.id),
-      history: await db.versions.listByCampaign(campaign.id),
-    });
+    res.json(data);
   } catch (err) {
     next(err);
   }
@@ -166,7 +161,7 @@ router.post('/:id/versions', async (req, res, next) => {
   }
 });
 
-// DELETE /api/campaigns/:id
+// DELETE /api/campaigns/:id — batch delete related data (no N+1)
 router.delete('/:id', async (req, res, next) => {
   try {
     const campaign = await db.campaigns.get(req.params.id);
@@ -175,16 +170,12 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Delete related data first
-    await db.touchpoints.deleteByCampaign(campaign.id);
-    const diagnostics = await db.diagnostics.listByCampaign(campaign.id);
-    for (const d of diagnostics) {
-      await db.diagnostics.delete(d.id);
-    }
-    const versions = await db.versions.listByCampaign(campaign.id);
-    for (const v of versions) {
-      await db.versions.delete(v.id);
-    }
+    // Batch delete related data (no N+1 loops)
+    await Promise.all([
+      db.touchpoints.deleteByCampaign(campaign.id),
+      db.diagnostics.deleteByCampaign(campaign.id),
+      db.versions.deleteByCampaign(campaign.id),
+    ]);
     await db.campaigns.delete(campaign.id);
 
     res.json({ ok: true });
