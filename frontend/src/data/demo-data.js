@@ -7,6 +7,7 @@ export const DEMO_DATA = {
       description: 'Prospection multi-cible pour cabinet de formation professionnelle',
       color: 'var(--blue)',
       createdDate: '20 jan. 2026',
+      campaignCount: 3,
       campaignIds: ['daf-idf', 'dirigeants-formation', 'drh-lyon'],
       files: [
         { id: 'f1', name: 'brief-formapro.pdf', type: 'application/pdf', size: 245000, uploadedAt: '2026-01-20T10:30:00Z', category: 'brief' },
@@ -21,6 +22,7 @@ export const DEMO_DATA = {
       description: 'Lancement produit SaaS — acquisition early adopters B2B',
       color: 'var(--purple)',
       createdDate: '5 fév. 2026',
+      campaignCount: 0,
       campaignIds: [],
       files: []
     }

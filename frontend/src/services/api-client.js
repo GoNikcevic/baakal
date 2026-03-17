@@ -73,6 +73,7 @@ export function transformCampaign(c, sequence, diagnostics, history) {
     id: slug,
     name: c.name,
     client: c.client,
+    projectId: c.project_id || null,
     status: c.status,
     channel: c.channel,
     channelLabel: ch.label,
@@ -96,9 +97,11 @@ export function transformCampaign(c, sequence, diagnostics, history) {
       contacts: c.nb_prospects || 0,
       openRate: c.open_rate ?? null,
       replyRate: c.reply_rate ?? null,
+      replyRateLk: c.reply_rate_lk ?? null,
       acceptRate: c.accept_rate_lk ?? null,
       interested: c.interested || 0,
       meetings: c.meetings || 0,
+      stops: c.stops ?? null,
     },
     sequence: (sequence || []).map(transformTouchpoint),
     diagnostics: (diagnostics || []).map(transformDiagnostic),
@@ -181,6 +184,7 @@ export function campaignToBackend(values) {
   return {
     name: values.name,
     client: values.client || 'FormaPro Consulting',
+    projectId: values.projectId || null,
     status: values.status || 'prep',
     channel: channelMap[values.channel] || values.channel || 'email',
     sector: values.sector || null,
@@ -193,6 +197,7 @@ export function campaignToBackend(values) {
     formality: values.formality || 'Vous',
     length: values.length || 'Standard',
     cta: values.cta || null,
+    lemlistId: values.lemlistId || null,
     startDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
     planned: values.volume === 'Agressif (~200/semaine)' ? 200
            : values.volume === 'Modéré (~50/semaine)' ? 50
@@ -314,17 +319,24 @@ export async function fetchAllCampaigns() {
   const data = await request('/campaigns');
   const result = {};
   for (const c of data.campaigns) {
-    const transformed = transformCampaign(c, c.sequence);
+    const transformed = transformCampaign(c, c.sequence, c.diagnostics, c.history);
     result[transformed.id] = transformed;
   }
   return result;
 }
 
 /** Fetch all projects and return keyed by ID */
-export async function fetchProjects() {
+export async function fetchProjects(campaignsMap) {
   const data = await request('/projects');
   const result = {};
   for (const p of data.projects) {
+    // Build campaignIds from the campaigns map if available
+    const campaignIds = [];
+    if (campaignsMap) {
+      for (const c of Object.values(campaignsMap)) {
+        if (c.projectId === p.id) campaignIds.push(c.id);
+      }
+    }
     result[p.id] = {
       id: String(p.id),
       name: p.name,
@@ -332,8 +344,8 @@ export async function fetchProjects() {
       description: p.description,
       color: p.color || 'var(--blue)',
       createdDate: p.createdDate,
-      campaignCount: p.campaignCount || 0,
-      campaignIds: [],
+      campaignCount: p.campaignCount || campaignIds.length,
+      campaignIds,
       files: p.files || [],
     };
   }

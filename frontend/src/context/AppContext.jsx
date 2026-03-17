@@ -37,16 +37,17 @@ export function AppProvider({ children }) {
       if (health) {
         setBackendAvailable(true);
 
-        // Fetch live data in parallel
-        const [campaignsData, kpisData, projectsData, oppsData, reportsData, chartDataResult, recosData] = await Promise.all([
+        // Fetch campaigns first, then projects (which needs campaign data for linking)
+        const [campaignsData, kpisData, oppsData, reportsData, chartDataResult, recosData] = await Promise.all([
           api.fetchAllCampaigns(),
           api.fetchDashboard(),
-          api.fetchProjects().catch(() => ({})),
           api.fetchOpportunities().catch(() => []),
           api.fetchReports().catch(() => []),
           api.fetchChartData().catch(() => []),
           api.fetchRecommendations().catch(() => []),
         ]);
+
+        const projectsData = await api.fetchProjects(campaignsData).catch(() => ({}));
 
         setCampaigns(campaignsData);
         setGlobalKpis(kpisData);
