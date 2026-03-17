@@ -2005,6 +2005,7 @@ body {
 .toast.warning .toast-progress { background: var(--warning); }
 .toast.danger .toast-progress { background: var(--danger); }
 .toast.info .toast-progress { background: var(--blue); }
+@keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
 
 /* Notification bell badge */
 .notif-bell {

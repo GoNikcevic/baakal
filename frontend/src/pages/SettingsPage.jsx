@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getKeys, saveKeys, testKeys } from '../services/api-client';
+import { useNotifications } from '../context/NotificationContext';
 
 /* ─── Key definitions grouped by category ─── */
 
@@ -107,8 +108,8 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState({});
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [toast, setToast] = useState(null);
   const [showExtended, setShowExtended] = useState(false);
+  const { showToast: notifyToast } = useNotifications();
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
     return saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : { ...DEFAULT_PREFERENCES };
@@ -133,9 +134,13 @@ export default function SettingsPage() {
   /* ─── Toast helper ─── */
 
   const showToast = useCallback((msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
+    notifyToast({
+      type: type === 'error' ? 'danger' : type,
+      title: type === 'error' ? 'Erreur' : 'Succes',
+      message: msg,
+      duration: 3000,
+    });
+  }, [notifyToast]);
 
   /* ─── Edit / cancel / save per-field ─── */
 
@@ -363,13 +368,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className={`settings-toast ${toast.type === 'error' ? 'settings-toast-err' : ''}`}>
-          {toast.msg}
-        </div>
-      )}
 
       {/* Core integrations */}
       <div className="card" style={{ marginBottom: 16 }}>
