@@ -48,10 +48,24 @@ const DEFAULT_SUGGESTIONS = [
   'Quel angle pour le secteur tech ?',
 ];
 
+const ONBOARDING_SUGGESTIONS = [
+  'Comment fonctionne Bakal ?',
+  'Quel secteur cibler en premier ?',
+  'Aide-moi a definir mon ICP',
+];
+
+const RETURNING_SUGGESTIONS = [
+  'Resume de mes campagnes',
+  'Quelle campagne optimiser en priorite ?',
+  'Creer une campagne similaire',
+];
+
 const ACTION_PROMPTS = {
   create: 'Je veux creer une nouvelle campagne de prospection. Guide-moi etape par etape.',
   optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je ameliorer ?',
   analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
+  setup_profile: 'Je viens de m\'inscrire. Aide-moi a configurer mon profil entreprise pour personnaliser mes campagnes.',
+  explore: 'Explique-moi les fonctionnalites de Bakal et comment tirer le meilleur parti de la plateforme.',
 };
 
 /* ─── Sub-components ─── */
@@ -109,38 +123,116 @@ function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
   );
 }
 
-function ActionCard({ campaign, onCreateCampaign, onModify }) {
-  const params = [campaign.sector, campaign.position, campaign.size, campaign.channel, campaign.angle, campaign.zone]
-    .filter(Boolean)
-    .map((p) => (
-      <span key={p} className="chat-action-param">{escapeHtml(p)}</span>
-    ));
+function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
+  const action = metadata?.action;
 
-  const steps = campaign.sequence && campaign.sequence.length > 0
-    ? campaign.sequence.map((s) => (
-        <div key={s.step} className="chat-action-step">
-          <div className={`chat-action-step-dot ${s.type}`}></div>
-          <span>{escapeHtml(s.step)} &mdash; {escapeHtml(s.label || s.type)}</span>
-          <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>{escapeHtml(s.timing || '')}</span>
+  // Create campaign card
+  if (action === 'create_campaign' && metadata.campaign) {
+    const campaign = metadata.campaign;
+    const params = [campaign.sector, campaign.position, campaign.size, campaign.channel, campaign.angle, campaign.zone]
+      .filter(Boolean)
+      .map((p) => (
+        <span key={p} className="chat-action-param">{escapeHtml(p)}</span>
+      ));
+
+    const steps = campaign.sequence && campaign.sequence.length > 0
+      ? campaign.sequence.map((s) => (
+          <div key={s.step} className="chat-action-step">
+            <div className={`chat-action-step-dot ${s.type}`}></div>
+            <span>{escapeHtml(s.step)} &mdash; {escapeHtml(s.label || s.type)}</span>
+            <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>{escapeHtml(s.timing || '')}</span>
+          </div>
+        ))
+      : null;
+
+    return (
+      <div className="chat-action-card">
+        <div className="chat-action-title">Campagne prete : {escapeHtml(campaign.name)}</div>
+        <div className="chat-action-params">{params}</div>
+        {steps && <div className="chat-action-sequence">{steps}</div>}
+        <div className="chat-action-buttons">
+          <button className="chat-action-btn primary" onClick={() => onCreateCampaign(campaign)}>
+            Creer et voir la sequence &rarr;
+          </button>
+          <button className="chat-action-btn ghost" onClick={onModify}>
+            Modifier
+          </button>
         </div>
-      ))
-    : null;
-
-  return (
-    <div className="chat-action-card">
-      <div className="chat-action-title">Campagne prete : {escapeHtml(campaign.name)}</div>
-      <div className="chat-action-params">{params}</div>
-      {steps && <div className="chat-action-sequence">{steps}</div>}
-      <div className="chat-action-buttons">
-        <button className="chat-action-btn primary" onClick={() => onCreateCampaign(campaign)}>
-          Creer et voir la sequence &rarr;
-        </button>
-        <button className="chat-action-btn ghost" onClick={onModify}>
-          Modifier
-        </button>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Update campaign card
+  if (action === 'update_campaign') {
+    const changes = metadata.changes || {};
+    const changeList = Object.entries(changes).map(([k, v]) => `${k}: ${v}`);
+    return (
+      <div className="chat-action-card">
+        <div className="chat-action-title">Modifier : {escapeHtml(metadata.campaignName || '')}</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0' }}>
+          {changeList.map((c, i) => <div key={i}>{escapeHtml(c)}</div>)}
+        </div>
+        <div className="chat-action-buttons">
+          <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
+            Appliquer les modifications
+          </button>
+          <button className="chat-action-btn ghost" onClick={onModify}>
+            Modifier
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Analyze campaign card
+  if (action === 'analyze_campaign') {
+    return (
+      <div className="chat-action-card">
+        <div className="chat-action-title">Analyser : {escapeHtml(metadata.campaignName || '')}</div>
+        <div className="chat-action-buttons">
+          <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
+            Lancer l'analyse
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Regenerate touchpoints card
+  if (action === 'regenerate_touchpoints') {
+    return (
+      <div className="chat-action-card">
+        <div className="chat-action-title">Regenerer : {escapeHtml(metadata.campaignName || '')}</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0' }}>
+          Touchpoints : {(metadata.steps || []).join(', ')}
+        </div>
+        <div className="chat-action-buttons">
+          <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
+            Regenerer les touchpoints
+          </button>
+          <button className="chat-action-btn ghost" onClick={onModify}>
+            Modifier
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show diagnostic card
+  if (action === 'show_diagnostic') {
+    return (
+      <div className="chat-action-card">
+        <div className="chat-action-title">Diagnostic : {escapeHtml(metadata.campaignName || '')}</div>
+        <div className="chat-action-buttons">
+          <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
+            Voir le diagnostic complet
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function TypingIndicator() {
@@ -173,7 +265,7 @@ function TypingIndicator() {
   );
 }
 
-function ChatMessage({ role, content, metadata, animate, onCreateCampaign, onSendMessage }) {
+function ChatMessage({ role, content, metadata, animate, onCreateCampaign, onSendMessage, onActionExecute }) {
   const avatar = role === 'assistant' ? 'b' : '~';
   const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -186,7 +278,7 @@ function ChatMessage({ role, content, metadata, animate, onCreateCampaign, onSen
     formattedContent = escapeHtml(formattedContent);
   }
 
-  const hasActionCard = metadata && metadata.action === 'create_campaign' && metadata.campaign;
+  const hasActionCard = metadata && metadata.action;
 
   return (
     <div
@@ -201,9 +293,10 @@ function ChatMessage({ role, content, metadata, animate, onCreateCampaign, onSen
         />
         {hasActionCard && (
           <ActionCard
-            campaign={metadata.campaign}
+            metadata={metadata}
             onCreateCampaign={onCreateCampaign}
             onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
+            onActionExecute={onActionExecute}
           />
         )}
         <div className="chat-msg-time">{timeStr}</div>
@@ -212,7 +305,7 @@ function ChatMessage({ role, content, metadata, animate, onCreateCampaign, onSen
   );
 }
 
-function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage }) {
+function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage, onActionExecute }) {
   const [displayedContent, setDisplayedContent] = useState('');
   const [showAction, setShowAction] = useState(false);
   const contentRef = useRef(content);
@@ -244,7 +337,7 @@ function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage }
   }, [content]);
 
   const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  const hasActionCard = metadata && metadata.action === 'create_campaign' && metadata.campaign;
+  const hasActionCard = metadata && metadata.action;
 
   return (
     <div className="chat-msg assistant" style={{ animation: 'chatFadeIn 0.25s ease' }}>
@@ -256,9 +349,10 @@ function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage }
         />
         {showAction && hasActionCard && (
           <ActionCard
-            campaign={metadata.campaign}
+            metadata={metadata}
             onCreateCampaign={onCreateCampaign}
             onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
+            onActionExecute={onActionExecute}
           />
         )}
         <div className="chat-msg-time">{timeStr}</div>
@@ -280,15 +374,60 @@ function InlineSuggestions({ suggestions, onSend }) {
   );
 }
 
-function WelcomeScreen({ suggestions, onSuggestionClick, onAction }) {
+function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) {
+  const { userName, campaignCount, hasProfile, activeCampaigns, topCampaign } = userState || {};
+
+  // Contextual greeting based on user state
+  let title = 'Assistant Bakal';
+  let subtitle = 'Je peux vous aider a creer des campagnes, optimiser vos sequences et analyser vos performances.';
+  let actions = [
+    { key: 'create', label: 'Creer une campagne' },
+    { key: 'optimize', label: 'Optimiser' },
+    { key: 'analyze', label: 'Analyser' },
+  ];
+
+  if (!hasProfile && campaignCount === 0) {
+    // Brand new user — onboarding
+    title = userName ? `Bienvenue ${userName} !` : 'Bienvenue sur Bakal !';
+    subtitle = 'Commencez par configurer votre profil entreprise, puis creez votre premiere campagne de prospection. Je vous guide etape par etape.';
+    actions = [
+      { key: 'setup_profile', label: 'Configurer mon profil' },
+      { key: 'create', label: 'Creer ma premiere campagne' },
+    ];
+  } else if (hasProfile && campaignCount === 0) {
+    // Profile done but no campaigns yet
+    title = userName ? `Pret a prospecter, ${userName} ?` : 'Pret a prospecter ?';
+    subtitle = 'Votre profil est configure. Creez votre premiere campagne et je genere vos sequences personnalisees.';
+    actions = [
+      { key: 'create', label: 'Creer ma premiere campagne' },
+      { key: 'explore', label: 'Explorer les fonctionnalites' },
+    ];
+  } else if (campaignCount > 0 && activeCampaigns === 0) {
+    // Has campaigns but none active
+    title = userName ? `Bon retour, ${userName} !` : 'Bon retour !';
+    subtitle = `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en preparation. Lancez-en une ou creez-en une nouvelle.`;
+    actions = [
+      { key: 'create', label: 'Nouvelle campagne' },
+      { key: 'analyze', label: 'Voir mes campagnes' },
+    ];
+  } else if (activeCampaigns > 0) {
+    // Active campaigns — show stats context
+    title = userName ? `Bonjour ${userName} !` : 'Bonjour !';
+    const topInfo = topCampaign ? ` "${topCampaign.name}" a un taux d'ouverture de ${topCampaign.openRate || '—'}%.` : '';
+    subtitle = `${activeCampaigns} campagne${activeCampaigns > 1 ? 's' : ''} active${activeCampaigns > 1 ? 's' : ''}.${topInfo} Que puis-je faire pour vous ?`;
+    actions = [
+      { key: 'optimize', label: 'Optimiser mes campagnes' },
+      { key: 'analyze', label: 'Analyser les performances' },
+      { key: 'create', label: 'Nouvelle campagne' },
+    ];
+  }
+
   return (
     <div className="chat-welcome" id="chatWelcome" style={{ display: 'flex' }}>
       <div className="chat-welcome-inner">
         <div className="chat-welcome-icon">b</div>
-        <h2 className="chat-welcome-title">Assistant Bakal</h2>
-        <p className="chat-welcome-text">
-          Je peux vous aider a creer des campagnes, optimiser vos sequences et analyser vos performances.
-        </p>
+        <h2 className="chat-welcome-title">{title}</h2>
+        <p className="chat-welcome-text">{subtitle}</p>
         <div className="chat-welcome-suggestions" id="chatWelcomeSuggestions">
           {suggestions.map((s) => (
             <button key={s} className="chat-suggestion" onClick={() => onSuggestionClick(s)}>
@@ -297,15 +436,11 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction }) {
           ))}
         </div>
         <div className="chat-welcome-actions" style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => onAction('create')}>
-            Creer une campagne
-          </button>
-          <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => onAction('optimize')}>
-            Optimiser
-          </button>
-          <button className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => onAction('analyze')}>
-            Analyser
-          </button>
+          {actions.map((a) => (
+            <button key={a.key} className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => onAction(a.key)}>
+              {a.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -315,7 +450,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction }) {
 /* ═══ Main Component ═══ */
 
 export default function ChatPage() {
-  const { backendAvailable, setCampaigns } = useApp();
+  const { backendAvailable, setCampaigns, campaigns, user } = useApp();
 
   // Local state
   const [threads, setThreads] = useState([]);
@@ -438,8 +573,20 @@ export default function ChatPage() {
 
   /* ─── Get context suggestions ─── */
   const getSuggestions = useCallback((metadata) => {
-    if (metadata && metadata.action === 'create_campaign') {
+    if (!metadata || !metadata.action) {
+      return ['Creer une campagne', 'Voir mes stats', 'Optimiser mes sequences'];
+    }
+    if (metadata.action === 'create_campaign') {
       return ['Modifier les parametres', 'Ajouter un touchpoint LinkedIn', 'Changer le ton'];
+    }
+    if (metadata.action === 'update_campaign') {
+      return ['Voir la campagne', 'Lancer une analyse', 'Autre modification'];
+    }
+    if (metadata.action === 'analyze_campaign' || metadata.action === 'show_diagnostic') {
+      return ['Regenerer les touchpoints faibles', 'Comparer avec les autres campagnes', 'Proposer des optimisations'];
+    }
+    if (metadata.action === 'regenerate_touchpoints') {
+      return ['Voir les nouvelles versions', 'Deployer les modifications', 'Modifier l\'approche'];
     }
     return ['Creer une campagne', 'Voir mes stats', 'Optimiser mes sequences'];
   }, []);
@@ -670,6 +817,36 @@ export default function ChatPage() {
     if (inputRef.current) inputRef.current.focus();
   }, [sending, inputValue, attachedFiles, currentThreadId, backendAvailable, loadThreads, scrollToBottom]);
 
+  /* ─── Execute structured action from chat ─── */
+  const executeAction = useCallback((metadata) => {
+    const action = metadata?.action;
+    if (!action) return;
+
+    if (action === 'update_campaign') {
+      const campName = metadata.campaignName || '';
+      const changes = metadata.changes || {};
+      const changeDesc = Object.entries(changes).map(([k, v]) => `${k}: ${v}`).join(', ');
+      sendMessage(`Applique les modifications sur "${campName}" : ${changeDesc}`);
+      return;
+    }
+
+    if (action === 'analyze_campaign') {
+      sendMessage(`Lance l'analyse de performance de la campagne "${metadata.campaignName || ''}"`);
+      return;
+    }
+
+    if (action === 'regenerate_touchpoints') {
+      const steps = (metadata.steps || []).join(', ');
+      sendMessage(`Regenere les touchpoints ${steps} de la campagne "${metadata.campaignName || ''}"`);
+      return;
+    }
+
+    if (action === 'show_diagnostic') {
+      sendMessage(`Montre le diagnostic complet de la campagne "${metadata.campaignName || ''}"`);
+      return;
+    }
+  }, [sendMessage]);
+
   /* ─── Action button starters ─── */
   const startAction = useCallback((action) => {
     const text = ACTION_PROMPTS[action];
@@ -763,6 +940,20 @@ export default function ChatPage() {
     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   }, []);
 
+  /* ─── Compute user state for onboarding ─── */
+  const campaignList = Object.values(campaigns);
+  const activeCampaignsList = campaignList.filter(c => c.status === 'active');
+  const topCampaign = activeCampaignsList.length > 0
+    ? activeCampaignsList.reduce((best, c) => (c.kpis?.openRate || 0) > (best.kpis?.openRate || 0) ? c : best, activeCampaignsList[0])
+    : null;
+  const userState = {
+    userName: user?.name?.split(' ')[0] || '',
+    campaignCount: campaignList.length,
+    hasProfile: !!(user?.company),
+    activeCampaigns: activeCampaignsList.length,
+    topCampaign: topCampaign ? { name: topCampaign.name, openRate: topCampaign.kpis?.openRate } : null,
+  };
+
   /* ─── Compute last assistant metadata for suggestions ─── */
   const lastAssistantMsg = messages.length > 0
     ? [...messages].reverse().find((m) => m.role === 'assistant')
@@ -772,8 +963,8 @@ export default function ChatPage() {
   return (
     <div className="chat-page" style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* ─── Sidebar: Thread List ─── */}
-      <div className="chat-sidebar" style={{ width: '260px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div className="chat-sidebar-header" style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="chat-sidebar">
+        <div className="chat-sidebar-header">
           <span style={{ fontWeight: 600, fontSize: '14px' }}>Conversations</span>
           <AiStatusBadge online={backendAvailable} />
         </div>
@@ -789,7 +980,6 @@ export default function ChatPage() {
       {/* ─── Main Chat Area ─── */}
       <div
         className="chat-main"
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -820,9 +1010,14 @@ export default function ChatPage() {
         {/* Welcome screen or messages */}
         {showWelcome && messages.length === 0 ? (
           <WelcomeScreen
-            suggestions={DEFAULT_SUGGESTIONS}
+            suggestions={
+              userState.campaignCount === 0 ? ONBOARDING_SUGGESTIONS
+              : userState.activeCampaigns > 0 ? RETURNING_SUGGESTIONS
+              : DEFAULT_SUGGESTIONS
+            }
             onSuggestionClick={(s) => sendMessage(s)}
             onAction={startAction}
+            userState={userState}
           />
         ) : (
           <div
@@ -841,6 +1036,7 @@ export default function ChatPage() {
                   animate={msg.animate}
                   onCreateCampaign={createCampaignFromChat}
                   onSendMessage={sendMessage}
+                  onActionExecute={executeAction}
                 />
               ))}
 
@@ -851,6 +1047,7 @@ export default function ChatPage() {
                   metadata={streamingMsg.metadata}
                   onCreateCampaign={createCampaignFromChat}
                   onSendMessage={sendMessage}
+                  onActionExecute={executeAction}
                 />
               )}
 

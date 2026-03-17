@@ -106,20 +106,13 @@ describe('notifications service', () => {
     expect(toasts[0].id).not.toBe(toasts[1].id);
   });
 
-  it('uses setToastContainer to override container', () => {
-    const customContainer = document.createElement('div');
-    document.body.appendChild(customContainer);
+  it('setToastContainer is a no-op (React context handles rendering)', () => {
+    // setToastContainer is kept for backwards compat but is a no-op
+    expect(() => setToastContainer(document.createElement('div'))).not.toThrow();
 
-    setToastContainer(customContainer);
-
+    // Toast still goes to the default #toastContainer
     showToast({ title: 'Custom', message: 'Container' });
-
-    expect(customContainer.children.length).toBe(1);
-    expect(container.children.length).toBe(0);
-
-    // Reset
-    setToastContainer(null);
-    document.body.removeChild(customContainer);
+    expect(container.children.length).toBe(1);
   });
 
   it('does nothing if no container exists', () => {

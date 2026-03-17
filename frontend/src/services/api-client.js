@@ -73,6 +73,7 @@ export function transformCampaign(c, sequence, diagnostics, history) {
     id: slug,
     name: c.name,
     client: c.client,
+    projectId: c.project_id || null,
     status: c.status,
     channel: c.channel,
     channelLabel: ch.label,
@@ -96,9 +97,11 @@ export function transformCampaign(c, sequence, diagnostics, history) {
       contacts: c.nb_prospects || 0,
       openRate: c.open_rate ?? null,
       replyRate: c.reply_rate ?? null,
+      replyRateLk: c.reply_rate_lk ?? null,
       acceptRate: c.accept_rate_lk ?? null,
       interested: c.interested || 0,
       meetings: c.meetings || 0,
+      stops: c.stops ?? null,
     },
     sequence: (sequence || []).map(transformTouchpoint),
     diagnostics: (diagnostics || []).map(transformDiagnostic),
@@ -181,6 +184,7 @@ export function campaignToBackend(values) {
   return {
     name: values.name,
     client: values.client || 'FormaPro Consulting',
+    projectId: values.projectId || null,
     status: values.status || 'prep',
     channel: channelMap[values.channel] || values.channel || 'email',
     sector: values.sector || null,
@@ -193,6 +197,7 @@ export function campaignToBackend(values) {
     formality: values.formality || 'Vous',
     length: values.length || 'Standard',
     cta: values.cta || null,
+    lemlistId: values.lemlistId || null,
     startDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
     planned: values.volume === 'Agressif (~200/semaine)' ? 200
            : values.volume === 'Modéré (~50/semaine)' ? 50
@@ -213,6 +218,91 @@ export function sequenceToBackend(touchpoints) {
   }));
 }
 
+/* ─── Transform: backend report row → frontend shape ─── */
+
+const scoreEmojiMap = {
+  excellent: '🚀 Excellent',
+  good: '🟢 Performant',
+  ok: '🟡 Correct',
+  warning: '🔴 Attention',
+};
+
+export function transformReport(r) {
+  return {
+    week: r.week,
+    dateRange: r.date_range || r.dateRange || '',
+    score: r.score || 'ok',
+    scoreLabel: r.score_label || scoreEmojiMap[r.score] || r.score,
+    metrics: {
+      contacts: r.contacts || 0,
+      openRate: r.open_rate != null ? r.open_rate + '%' : '—',
+      replyRate: r.reply_rate != null ? r.reply_rate + '%' : '—',
+      interested: r.interested || 0,
+      meetings: r.meetings || 0,
+    },
+    synthesis: r.synthesis || '',
+  };
+}
+
+/* ─── Transform: backend opportunity row → frontend shape ─── */
+
+export function transformOpportunity(o) {
+  const statusColorMap = {
+    'Call planifié': 'var(--success)',
+    'Intéressé': 'var(--warning)',
+    'new': 'var(--blue)',
+    'lost': 'var(--text-muted)',
+  };
+  const statusBgMap = {
+    'Call planifié': 'rgba(0,214,143,0.1)',
+    'Intéressé': 'var(--warning-bg)',
+    'new': 'rgba(99,102,241,0.1)',
+    'lost': 'rgba(128,128,128,0.1)',
+  };
+
+  return {
+    name: o.name,
+    title: o.title || '',
+    company: o.company || '',
+    size: o.company_size || o.companySize || '',
+    status: o.status || 'new',
+    statusColor: o.status_color || statusColorMap[o.status] || 'var(--text-muted)',
+    statusBg: statusBgMap[o.status] || 'rgba(128,128,128,0.1)',
+    timing: o.timing || '',
+  };
+}
+
+/* ─── Transform: backend chart_data row → frontend shape ─── */
+
+export function transformChartData(d) {
+  return {
+    label: d.label,
+    email: d.email_count ?? d.emailCount ?? 0,
+    linkedin: d.linkedin_count ?? d.linkedinCount ?? 0,
+  };
+}
+
+/* ─── Transform: memory patterns → recommendations ─── */
+
+export function patternsToRecommendations(patterns) {
+  const levelMap = {
+    Haute: 'success',
+    Moyenne: 'warning',
+    Faible: 'blue',
+  };
+  const labelMap = {
+    Haute: '✅ Appliquer — Impact fort',
+    Moyenne: '💡 Tester — Opportunité',
+    Faible: '📊 Insight',
+  };
+
+  return (patterns || []).slice(0, 5).map((p) => ({
+    level: levelMap[p.confidence] || 'blue',
+    label: labelMap[p.confidence] || '📊 Insight',
+    text: p.pattern || '',
+  }));
+}
+
 /* ═══ Public API Methods ═══ */
 
 /** Check if the backend is reachable */
@@ -229,17 +319,24 @@ export async function fetchAllCampaigns() {
   const data = await request('/campaigns');
   const result = {};
   for (const c of data.campaigns) {
-    const transformed = transformCampaign(c, c.sequence);
+    const transformed = transformCampaign(c, c.sequence, c.diagnostics, c.history);
     result[transformed.id] = transformed;
   }
   return result;
 }
 
 /** Fetch all projects and return keyed by ID */
-export async function fetchProjects() {
+export async function fetchProjects(campaignsMap) {
   const data = await request('/projects');
   const result = {};
   for (const p of data.projects) {
+    // Build campaignIds from the campaigns map if available
+    const campaignIds = [];
+    if (campaignsMap) {
+      for (const c of Object.values(campaignsMap)) {
+        if (c.projectId === p.id) campaignIds.push(c.id);
+      }
+    }
     result[p.id] = {
       id: String(p.id),
       name: p.name,
@@ -247,8 +344,8 @@ export async function fetchProjects() {
       description: p.description,
       color: p.color || 'var(--blue)',
       createdDate: p.createdDate,
-      campaignCount: p.campaignCount || 0,
-      campaignIds: [],
+      campaignCount: p.campaignCount || campaignIds.length,
+      campaignIds,
       files: p.files || [],
     };
   }
@@ -277,6 +374,30 @@ export async function fetchDashboard() {
     meetings: { value: kpis.total_meetings || 0, trend: '', direction: 'up' },
     stops: { value: '—', trend: '', direction: 'up' },
   };
+}
+
+/** Fetch opportunities for the current user */
+export async function fetchOpportunities() {
+  const data = await request('/dashboard/opportunities');
+  return (data.opportunities || []).map(transformOpportunity);
+}
+
+/** Fetch weekly reports for the current user */
+export async function fetchReports() {
+  const data = await request('/dashboard/reports');
+  return (data.reports || []).map(transformReport);
+}
+
+/** Fetch chart data for the current user */
+export async function fetchChartData() {
+  const data = await request('/dashboard/chart-data');
+  return (data.chartData || []).map(transformChartData);
+}
+
+/** Fetch AI recommendations (derived from memory patterns) */
+export async function fetchRecommendations() {
+  const data = await request('/dashboard/memory');
+  return patternsToRecommendations(data.patterns || []);
 }
 
 /** Create a new campaign */
@@ -513,6 +634,10 @@ const BakalAPI = {
   fetchProjects,
   fetchCampaignDetail,
   fetchDashboard,
+  fetchOpportunities,
+  fetchReports,
+  fetchChartData,
+  fetchRecommendations,
   createCampaign,
   updateCampaign,
   saveSequence,
@@ -544,6 +669,10 @@ const BakalAPI = {
   transformDiagnostic,
   transformVersion,
   buildDefaultChecklist,
+  transformReport,
+  transformOpportunity,
+  transformChartData,
+  patternsToRecommendations,
 };
 
 export default BakalAPI;
