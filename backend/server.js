@@ -48,8 +48,8 @@ window.BAKAL_SUPABASE_ANON_KEY = ${JSON.stringify(supabase.anonKey)};
 `);
 });
 
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, '..', 'app')));
+// Serve frontend static files (React build)
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 app.use('/landing', express.static(path.join(__dirname, '..', 'landing')));
 
 // Health check (public)
@@ -87,6 +87,12 @@ app.use('/api/projects', requireAuth, projectsRouter);
 app.use('/api/variables', requireAuth, variablesRouter);
 app.use('/api/export', requireAuth, exportRouter);
 app.use('/api/crm', requireAuth, crmRouter);
+
+// SPA catch-all — serve React index.html for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/landing/')) return next();
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
+});
 
 // Error handling
 app.use(errorHandler);

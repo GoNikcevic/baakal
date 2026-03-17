@@ -6,13 +6,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install deps first for layer caching
+# Install backend deps first for layer caching
 COPY backend/package.json backend/package-lock.json* ./backend/
 RUN cd backend && npm ci --omit=dev
 
-# Copy source
+# Install frontend deps and build
+COPY frontend/package.json frontend/package-lock.json* ./frontend/
+RUN cd frontend && npm ci
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+# Copy backend source and landing
 COPY backend/ ./backend/
-COPY app/ ./app/
 COPY landing/ ./landing/
 
 # Create data + uploads dirs
