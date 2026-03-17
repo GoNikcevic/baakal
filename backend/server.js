@@ -5,6 +5,7 @@ const cors = require('cors');
 const { config, validateConfig } = require('./config');
 const errorHandler = require('./middleware/error-handler');
 const { requireAuth } = require('./middleware/auth');
+const { apiLimiter, aiLimiter, chatLimiter, statsLimiter } = require('./middleware/rate-limit');
 const socketServer = require('./socket');
 
 const authRouter = require('./routes/auth');
@@ -24,6 +25,9 @@ const orchestrator = require('./orchestrator');
 
 const app = express();
 
+// Trust proxy (Railway, Render, etc.)
+app.set('trust proxy', 1);
+
 // CORS — restrict origins in production, allow localhost in dev
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
@@ -31,14 +35,18 @@ const allowedOrigins = process.env.CORS_ORIGINS
 
 app.use(cors({
   origin(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
 }));
-app.use(express.json());
+
+// Limit request body size
+app.use(express.json({ limit: '2mb' }));
+
+// Global API rate limiter
+app.use('/api/', apiLimiter);
 
 // Inject Supabase config into frontend (before static serving)
 app.get('/supabase-config.js', (_req, res) => {
@@ -54,21 +62,25 @@ window.BAKAL_SUPABASE_ANON_KEY = ${JSON.stringify(supabase.anonKey)};
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 app.use('/landing', express.static(path.join(__dirname, '..', 'landing')));
 
-// Health check (public)
-app.get('/api/health', (_req, res) => {
+// Health check (public) — includes DB pool stats
+app.get('/api/health', async (_req, res) => {
+  const db = require('./db');
+  const dbHealth = await db.healthCheck();
   const configOk = validateConfig([
     'lemlist.apiKey',
     'notion.token',
     'claude.apiKey',
   ]);
   res.json({
-    status: 'ok',
+    status: dbHealth.ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     services: {
       lemlist: !!config.lemlist.apiKey,
       notion: !!config.notion.token,
       claude: !!config.claude.apiKey,
     },
+    database: dbHealth,
+    sockets: socketServer.getConnectedUserCount(),
     configComplete: configOk,
   });
 });
@@ -76,15 +88,15 @@ app.get('/api/health', (_req, res) => {
 // Auth routes (public)
 app.use('/api/auth', authRouter);
 
-// Protected routes (require JWT)
+// Protected routes (require JWT) with specific rate limiters
 app.use('/api/campaigns', requireAuth, campaignsRouter);
 app.use('/api/dashboard', requireAuth, dashboardRouter);
-app.use('/api/ai', requireAuth, aiRouter);
-app.use('/api/chat', requireAuth, chatRouter);
+app.use('/api/ai', requireAuth, aiLimiter, aiRouter);
+app.use('/api/chat', requireAuth, chatLimiter, chatRouter);
 app.use('/api/settings', requireAuth, settingsRouter);
 app.use('/api/documents', requireAuth, documentsRouter);
 app.use('/api/profile', requireAuth, profileRouter);
-app.use('/api/stats', requireAuth, statsRouter);
+app.use('/api/stats', requireAuth, statsLimiter, statsRouter);
 app.use('/api/projects', requireAuth, projectsRouter);
 app.use('/api/variables', requireAuth, variablesRouter);
 app.use('/api/export', requireAuth, exportRouter);
@@ -120,10 +132,55 @@ server.listen(config.port, '0.0.0.0', () => {
 
   // Clean up expired refresh tokens every hour
   const db = require('./db');
-  setInterval(async () => {
+  const tokenCleanupInterval = setInterval(async () => {
     try { await db.refreshTokens.deleteExpired(); } catch { /* ignore */ }
   }, 60 * 60 * 1000);
 
+  // Clean up completed jobs every 6 hours
+  const jobCleanupInterval = setInterval(async () => {
+    try { await db.jobQueue.cleanup(7); } catch { /* ignore */ }
+  }, 6 * 60 * 60 * 1000);
+
   // Start orchestrator (cron jobs) if enabled
   orchestrator.start();
+
+  // ── Graceful Shutdown ──
+  let shuttingDown = false;
+  async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`\n🛑 ${signal} received — graceful shutdown starting...`);
+
+    clearInterval(tokenCleanupInterval);
+    clearInterval(jobCleanupInterval);
+
+    // Stop accepting new connections
+    server.close(async () => {
+      console.log('   HTTP server closed');
+
+      // Close socket connections
+      socketServer.close();
+      console.log('   Socket.io closed');
+
+      // Close database pool
+      try {
+        await db.closeDb();
+        console.log('   Database pool closed');
+      } catch (err) {
+        console.error('   DB close error:', err.message);
+      }
+
+      console.log('✅ Graceful shutdown complete');
+      process.exit(0);
+    });
+
+    // Force exit after 30 seconds if graceful shutdown hangs
+    setTimeout(() => {
+      console.error('⚠️  Forced exit after 30s timeout');
+      process.exit(1);
+    }, 30000).unref();
+  }
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 });

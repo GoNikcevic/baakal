@@ -6,7 +6,30 @@ const { decrypt } = require('../config/crypto');
 
 const router = Router();
 
-// POST /api/stats/collect
+// Concurrency limiter for Lemlist API calls
+const LEMLIST_CONCURRENCY = 3;
+const LEMLIST_DELAY_MS = 500; // Delay between batches to respect rate limits
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url, options, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const resp = await fetch(url, options);
+    if (resp.status === 429) {
+      // Rate limited — exponential backoff
+      const backoff = Math.pow(2, attempt + 1) * 1000;
+      console.warn(`[stats] Lemlist rate limited, backing off ${backoff}ms`);
+      await sleep(backoff);
+      continue;
+    }
+    return resp;
+  }
+  return null;
+}
+
+// POST /api/stats/collect — with rate limiting and concurrency control
 router.post('/collect', async (req, res, next) => {
   try {
     const keyRow = await db.userIntegrations.get(req.user.id, 'lemlist');
@@ -17,87 +40,105 @@ router.post('/collect', async (req, res, next) => {
     catch { return res.status(500).json({ error: 'Could not decrypt Lemlist key' }); }
 
     const basic = Buffer.from(':' + apiKey).toString('base64');
-    const campaignsResp = await fetch('https://api.lemlist.com/api/campaigns', {
-      headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/json' },
-    });
+    const headers = { Authorization: `Basic ${basic}`, 'Content-Type': 'application/json' };
 
-    if (!campaignsResp.ok) {
-      return res.status(502).json({ error: `Lemlist API error: ${campaignsResp.status}` });
+    const campaignsResp = await fetchWithRetry('https://api.lemlist.com/api/campaigns', { headers });
+    if (!campaignsResp || !campaignsResp.ok) {
+      return res.status(502).json({ error: `Lemlist API error: ${campaignsResp?.status || 'timeout'}` });
     }
 
     const lemlistCampaigns = await campaignsResp.json();
     const results = [];
 
-    for (const lc of lemlistCampaigns) {
-      const statsResp = await fetch(`https://api.lemlist.com/api/campaigns/${lc._id}/export`, {
-        headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/json' },
-      });
+    // Process campaigns in batches to control concurrency
+    for (let batch = 0; batch < lemlistCampaigns.length; batch += LEMLIST_CONCURRENCY) {
+      const batchCampaigns = lemlistCampaigns.slice(batch, batch + LEMLIST_CONCURRENCY);
 
-      if (!statsResp.ok) continue;
+      const batchResults = await Promise.allSettled(
+        batchCampaigns.map(async (lc) => {
+          const statsResp = await fetchWithRetry(
+            `https://api.lemlist.com/api/campaigns/${lc._id}/export`,
+            { headers }
+          );
 
-      const rawStats = await statsResp.json();
-      const stats = lemlist.transformCampaignStats(rawStats);
+          if (!statsResp || !statsResp.ok) return null;
 
-      let campaign = await db.campaigns.getByLemlistId(lc._id);
-      if (!campaign) {
-        campaign = await db.campaigns.create({
-          name: lc.name,
-          client: 'Lemlist Import',
-          status: 'active',
-          channel: 'email',
-          lemlistId: lc._id,
-          nbProspects: stats.contacts,
-          userId: req.user.id,
-        });
-      } else {
-        await db.campaigns.update(campaign.id, {
-          nb_prospects: stats.contacts,
-          open_rate: stats.openRate,
-          reply_rate: stats.replyRate,
-          accept_rate_lk: stats.acceptRate,
-          interested: stats.interested,
-          meetings: stats.meetings,
-          status: 'active',
-        });
-      }
+          const rawStats = await statsResp.json();
+          const stats = lemlist.transformCampaignStats(rawStats);
 
-      const isEligible = stats.contacts > 50;
-      let diagnostic = null;
-
-      if (isEligible) {
-        try {
-          const stepStats = {};
-          for (let i = 0; i < 6; i++) {
-            const ss = lemlist.transformStepStats(rawStats, i);
-            if (ss) stepStats[`E${i + 1}`] = ss;
+          let campaign = await db.campaigns.getByLemlistId(lc._id);
+          if (!campaign) {
+            campaign = await db.campaigns.create({
+              name: lc.name,
+              client: 'Lemlist Import',
+              status: 'active',
+              channel: 'email',
+              lemlistId: lc._id,
+              nbProspects: stats.contacts,
+              userId: req.user.id,
+            });
+          } else {
+            await db.campaigns.update(campaign.id, {
+              nb_prospects: stats.contacts,
+              open_rate: stats.openRate,
+              reply_rate: stats.replyRate,
+              accept_rate_lk: stats.acceptRate,
+              interested: stats.interested,
+              meetings: stats.meetings,
+              status: 'active',
+            });
           }
 
-          const analysisResult = await claude.analyzeCampaign({
-            campaignName: campaign.name,
+          const isEligible = stats.contacts > 50;
+          let diagnostic = null;
+
+          if (isEligible) {
+            try {
+              const stepStats = {};
+              for (let i = 0; i < 6; i++) {
+                const ss = lemlist.transformStepStats(rawStats, i);
+                if (ss) stepStats[`E${i + 1}`] = ss;
+              }
+
+              const analysisResult = await claude.analyzeCampaign({
+                campaignName: campaign.name,
+                stats,
+                stepStats,
+                sector: campaign.sector || '',
+                position: campaign.position || '',
+              });
+
+              diagnostic = analysisResult.parsed || analysisResult.content;
+
+              await db.diagnostics.create(campaign.id, {
+                diagnostic: typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic),
+                priorities: analysisResult.parsed?.priorities || [],
+              });
+            } catch (err) {
+              diagnostic = { error: err.message };
+            }
+          }
+
+          return {
+            campaign: campaign.name,
+            lemlistId: lc._id,
             stats,
-            stepStats,
-            sector: campaign.sector || '',
-            position: campaign.position || '',
-          });
+            eligible: isEligible,
+            analyzed: !!diagnostic,
+          };
+        })
+      );
 
-          diagnostic = analysisResult.parsed || analysisResult.content;
-
-          await db.diagnostics.create(campaign.id, {
-            diagnostic: typeof diagnostic === 'string' ? diagnostic : JSON.stringify(diagnostic),
-            priorities: analysisResult.parsed?.priorities || [],
-          });
-        } catch (err) {
-          diagnostic = { error: err.message };
+      for (const r of batchResults) {
+        if (r.status === 'fulfilled' && r.value) {
+          results.push(r.value);
         }
       }
 
-      results.push({
-        campaign: campaign.name,
-        lemlistId: lc._id,
-        stats,
-        eligible: isEligible,
-        analyzed: !!diagnostic,
-      });
+      // Delay between batches to respect Lemlist rate limits
+      if (batch + LEMLIST_CONCURRENCY < lemlistCampaigns.length) {
+        await sleep(LEMLIST_DELAY_MS);
+      }
     }
 
     res.json({
@@ -113,7 +154,8 @@ router.post('/collect', async (req, res, next) => {
 // GET /api/stats/latest
 router.get('/latest', async (req, res, next) => {
   try {
-    const campaigns = await db.campaigns.list({ userId: req.user.id });
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const campaigns = await db.campaigns.list({ userId: req.user.id, limit });
     const result = campaigns.map(c => ({
       id: c.id,
       name: c.name,
@@ -144,14 +186,14 @@ router.get('/diagnostics/:campaignId', async (req, res, next) => {
   }
 });
 
-// POST /api/stats/run-orchestrator — Manual trigger for orchestrator jobs
+// POST /api/stats/run-orchestrator
 router.post('/run-orchestrator', async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
     const orchestrator = require('../orchestrator');
-    const { job } = req.body; // 'collect-stats' | 'consolidate'
+    const { job } = req.body;
 
     if (job === 'collect-stats') {
       const result = await orchestrator.collectStats.run();

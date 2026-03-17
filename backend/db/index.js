@@ -1,11 +1,27 @@
 const useSqlite = !!process.env.DATABASE_PATH;
 
+if (useSqlite) {
+  console.warn('⚠️  SQLite mode is intended for local development only. Set DATABASE_URL for production.');
+}
+
 let pool;
 if (!useSqlite) {
   const { Pool } = require('pg');
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+    // Scalability: explicit pool sizing for 1000+ users
+    max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
+    min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    // Recycle connections to avoid stale TCP sockets
+    maxLifetimeMillis: 1800000, // 30 minutes
+  });
+
+  // Log pool errors (don't crash)
+  pool.on('error', (err) => {
+    console.error('[db] Idle client error:', err.message);
   });
 }
 
@@ -47,13 +63,82 @@ const campaigns = {
     }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY updated_at DESC';
+    // Pagination support
+    if (filter.limit) {
+      sql += ` LIMIT $${i++}`;
+      params.push(filter.limit);
+    }
+    if (filter.offset) {
+      sql += ` OFFSET $${i++}`;
+      params.push(filter.offset);
+    }
     const result = await query(sql, params);
     return result.rows;
+  },
+
+  async count(filter = {}) {
+    let sql = 'SELECT COUNT(*) as total FROM campaigns';
+    const conditions = [];
+    const params = [];
+    let i = 1;
+    if (filter.userId) {
+      conditions.push(`user_id = $${i++}`);
+      params.push(filter.userId);
+    }
+    if (filter.status) {
+      conditions.push(`status = $${i++}`);
+      params.push(filter.status);
+    }
+    if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+    const result = await query(sql, params);
+    return parseInt(result.rows[0].total, 10);
+  },
+
+  // Batch load touchpoints for multiple campaigns (eliminates N+1)
+  async listWithTouchpoints(filter = {}) {
+    const campaignRows = await this.list(filter);
+    if (campaignRows.length === 0) return [];
+
+    const ids = campaignRows.map(c => c.id);
+    const placeholders = ids.map((_, idx) => `$${idx + 1}`).join(',');
+    const tpResult = await query(
+      `SELECT * FROM touchpoints WHERE campaign_id IN (${placeholders}) ORDER BY sort_order`,
+      ids
+    );
+
+    const tpMap = {};
+    for (const tp of tpResult.rows) {
+      if (!tpMap[tp.campaign_id]) tpMap[tp.campaign_id] = [];
+      tpMap[tp.campaign_id].push(tp);
+    }
+
+    return campaignRows.map(c => ({
+      ...c,
+      sequence: tpMap[c.id] || [],
+    }));
   },
 
   async get(id) {
     const result = await query('SELECT * FROM campaigns WHERE id = $1', [id]);
     return result.rows[0] || null;
+  },
+
+  // Get campaign with all related data in batch (eliminates N+1)
+  async getWithRelations(id) {
+    const [campResult, tpResult, diagResult, verResult] = await Promise.all([
+      query('SELECT * FROM campaigns WHERE id = $1', [id]),
+      query('SELECT * FROM touchpoints WHERE campaign_id = $1 ORDER BY sort_order', [id]),
+      query('SELECT * FROM diagnostics WHERE campaign_id = $1 ORDER BY date_analyse DESC', [id]),
+      query('SELECT * FROM versions WHERE campaign_id = $1 ORDER BY version DESC', [id]),
+    ]);
+    const campaign = campResult.rows[0] || null;
+    if (!campaign) return null;
+    return {
+      campaign,
+      sequence: tpResult.rows,
+      diagnostics: diagResult.rows,
+      history: verResult.rows,
+    };
   },
 
   async getByLemlistId(lemlistId) {
@@ -221,16 +306,34 @@ const touchpoints = {
 // =============================================
 
 const diagnostics = {
-  async listByCampaign(campaignId) {
+  async listByCampaign(campaignId, limit) {
+    let sql = 'SELECT * FROM diagnostics WHERE campaign_id = $1 ORDER BY date_analyse DESC';
+    const params = [campaignId];
+    if (limit) {
+      sql += ' LIMIT $2';
+      params.push(limit);
+    }
+    const result = await query(sql, params);
+    return result.rows;
+  },
+
+  async listAll(limit = 100) {
     const result = await query(
-      'SELECT * FROM diagnostics WHERE campaign_id = $1 ORDER BY date_analyse DESC',
-      [campaignId]
+      'SELECT * FROM diagnostics ORDER BY date_analyse DESC LIMIT $1',
+      [limit]
     );
     return result.rows;
   },
 
-  async listAll() {
-    const result = await query('SELECT * FROM diagnostics ORDER BY date_analyse DESC');
+  async listByUserCampaigns(userId, limit = 50) {
+    const result = await query(`
+      SELECT d.*, c.name as campaign_name, c.sector as campaign_sector
+      FROM diagnostics d
+      JOIN campaigns c ON c.id = d.campaign_id
+      WHERE c.user_id = $1
+      ORDER BY d.date_analyse DESC
+      LIMIT $2
+    `, [userId, limit]);
     return result.rows;
   },
 
@@ -258,6 +361,11 @@ const diagnostics = {
     const result = await query('DELETE FROM diagnostics WHERE id = $1', [id]);
     return { changes: result.rowCount };
   },
+
+  async deleteByCampaign(campaignId) {
+    const result = await query('DELETE FROM diagnostics WHERE campaign_id = $1', [campaignId]);
+    return { changes: result.rowCount };
+  },
 };
 
 // =============================================
@@ -271,6 +379,23 @@ const versions = {
       [campaignId]
     );
     return result.rows;
+  },
+
+  // Batch load latest version for multiple campaigns
+  async latestForCampaigns(campaignIds) {
+    if (campaignIds.length === 0) return {};
+    const placeholders = campaignIds.map((_, idx) => `$${idx + 1}`).join(',');
+    const result = await query(`
+      SELECT DISTINCT ON (campaign_id) *
+      FROM versions
+      WHERE campaign_id IN (${placeholders})
+      ORDER BY campaign_id, version DESC
+    `, campaignIds);
+    const map = {};
+    for (const row of result.rows) {
+      map[row.campaign_id] = row;
+    }
+    return map;
   },
 
   async get(id) {
@@ -329,6 +454,11 @@ const versions = {
     const result = await query('DELETE FROM versions WHERE id = $1', [id]);
     return { changes: result.rowCount };
   },
+
+  async deleteByCampaign(campaignId) {
+    const result = await query('DELETE FROM versions WHERE campaign_id = $1', [campaignId]);
+    return { changes: result.rowCount };
+  },
 };
 
 // =============================================
@@ -351,8 +481,34 @@ const memoryPatterns = {
     }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY date_discovered DESC';
+    // Default limit to prevent unbounded loads
+    const limit = filter.limit || 100;
+    sql += ` LIMIT $${i++}`;
+    params.push(limit);
+    if (filter.offset) {
+      sql += ` OFFSET $${i++}`;
+      params.push(filter.offset);
+    }
     const result = await query(sql, params);
     return result.rows;
+  },
+
+  async count(filter = {}) {
+    let sql = 'SELECT COUNT(*) as total FROM memory_patterns';
+    const conditions = [];
+    const params = [];
+    let i = 1;
+    if (filter.category) {
+      conditions.push(`category = $${i++}`);
+      params.push(filter.category);
+    }
+    if (filter.confidence) {
+      conditions.push(`confidence = $${i++}`);
+      params.push(filter.confidence);
+    }
+    if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+    const result = await query(sql, params);
+    return parseInt(result.rows[0].total, 10);
   },
 
   async get(id) {
@@ -438,15 +594,15 @@ async function dashboardKpis(userId) {
 // =============================================
 
 const chatThreads = {
-  async list(userId) {
+  async list(userId, limit = 50) {
     if (userId) {
       const result = await query(
-        'SELECT * FROM chat_threads WHERE user_id = $1 ORDER BY updated_at DESC',
-        [userId]
+        'SELECT * FROM chat_threads WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2',
+        [userId, limit]
       );
       return result.rows;
     }
-    const result = await query('SELECT * FROM chat_threads ORDER BY updated_at DESC');
+    const result = await query('SELECT * FROM chat_threads ORDER BY updated_at DESC LIMIT $1', [limit]);
     return result.rows;
   },
 
@@ -478,10 +634,10 @@ const chatThreads = {
 };
 
 const chatMessages = {
-  async listByThread(threadId) {
+  async listByThread(threadId, limit = 100) {
     const result = await query(
-      'SELECT * FROM chat_messages WHERE thread_id = $1 ORDER BY created_at ASC',
-      [threadId]
+      'SELECT * FROM chat_messages WHERE thread_id = $1 ORDER BY created_at ASC LIMIT $2',
+      [threadId, limit]
     );
     return result.rows;
   },
@@ -626,10 +782,10 @@ const documents = {
     return { changes: result.rowCount };
   },
 
-  async getParsedTextByUser(userId) {
+  async getParsedTextByUser(userId, limit = 10) {
     const result = await query(
-      'SELECT original_name, parsed_text FROM documents WHERE user_id = $1 AND parsed_text IS NOT NULL ORDER BY created_at DESC',
-      [userId]
+      'SELECT original_name, parsed_text FROM documents WHERE user_id = $1 AND parsed_text IS NOT NULL ORDER BY created_at DESC LIMIT $2',
+      [userId, limit]
     );
     return result.rows;
   },
@@ -699,6 +855,25 @@ const projects = {
       'SELECT * FROM projects WHERE user_id = $1 ORDER BY updated_at DESC',
       [userId]
     );
+    return result.rows;
+  },
+
+  // Batch load projects with file counts and campaign counts (eliminates N+1)
+  async listWithCounts(userId) {
+    const result = await query(`
+      SELECT p.*,
+        COALESCE(fc.file_count, 0)::int as file_count,
+        COALESCE(cc.campaign_count, 0)::int as campaign_count
+      FROM projects p
+      LEFT JOIN (
+        SELECT project_id, COUNT(*) as file_count FROM project_files GROUP BY project_id
+      ) fc ON fc.project_id = p.id
+      LEFT JOIN (
+        SELECT project_id, COUNT(*) as campaign_count FROM campaigns WHERE user_id = $1 GROUP BY project_id
+      ) cc ON cc.project_id = p.id
+      WHERE p.user_id = $1
+      ORDER BY p.updated_at DESC
+    `, [userId]);
     return result.rows;
   },
 
@@ -824,10 +999,10 @@ const customVariables = {
 // =============================================
 
 const opportunities = {
-  async listByUser(userId, limit = 10) {
+  async listByUser(userId, limit = 20, offset = 0) {
     const result = await query(
-      'SELECT * FROM opportunities WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
-      [userId, limit]
+      'SELECT * FROM opportunities WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [userId, limit, offset]
     );
     return result.rows;
   },
@@ -900,10 +1075,10 @@ const opportunities = {
 // =============================================
 
 const reports = {
-  async listByUser(userId, limit = 10) {
+  async listByUser(userId, limit = 20, offset = 0) {
     const result = await query(
-      'SELECT * FROM reports WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
-      [userId, limit]
+      'SELECT * FROM reports WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [userId, limit, offset]
     );
     return result.rows;
   },
@@ -945,7 +1120,7 @@ const reports = {
 // =============================================
 
 const chartData = {
-  async listByUser(userId, limit = 12) {
+  async listByUser(userId, limit = 52) {
     const result = await query(
       'SELECT * FROM chart_data WHERE user_id = $1 ORDER BY week_start ASC LIMIT $2',
       [userId, limit]
@@ -1045,6 +1220,81 @@ const userIntegrations = {
 };
 
 // =============================================
+// Job Queue (PostgreSQL-backed, replaces in-memory queue)
+// =============================================
+
+const jobQueue = {
+  async add(jobName, data = {}, opts = {}) {
+    const priority = opts.priority || 0;
+    const maxAttempts = opts.maxAttempts || 3;
+    const result = await query(`
+      INSERT INTO job_queue (job_name, data, priority, max_attempts, status)
+      VALUES ($1, $2, $3, $4, 'pending')
+      RETURNING *
+    `, [jobName, JSON.stringify(data), priority, maxAttempts]);
+    return result.rows[0];
+  },
+
+  async claimNext() {
+    // Atomic claim: grab the oldest pending job and mark it processing
+    const result = await query(`
+      UPDATE job_queue SET status = 'processing', started_at = now(), attempts = attempts + 1
+      WHERE id = (
+        SELECT id FROM job_queue
+        WHERE status = 'pending' AND (run_after IS NULL OR run_after <= now())
+        ORDER BY priority DESC, created_at ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING *
+    `);
+    return result.rows[0] || null;
+  },
+
+  async complete(id) {
+    await query(
+      "UPDATE job_queue SET status = 'completed', completed_at = now() WHERE id = $1",
+      [id]
+    );
+  },
+
+  async fail(id, errorMsg) {
+    // Check if we should retry or move to dead letter
+    const job = await query('SELECT * FROM job_queue WHERE id = $1', [id]);
+    const row = job.rows[0];
+    if (row && row.attempts < row.max_attempts) {
+      // Exponential backoff: 2^attempts seconds
+      const backoffSec = Math.pow(2, row.attempts);
+      await query(
+        "UPDATE job_queue SET status = 'pending', last_error = $1, run_after = now() + ($2 || ' seconds')::interval WHERE id = $3",
+        [errorMsg, backoffSec.toString(), id]
+      );
+    } else {
+      await query(
+        "UPDATE job_queue SET status = 'dead', last_error = $1, completed_at = now() WHERE id = $2",
+        [errorMsg, id]
+      );
+    }
+  },
+
+  async getDeadLetterQueue(limit = 50) {
+    const result = await query(
+      "SELECT * FROM job_queue WHERE status = 'dead' ORDER BY completed_at DESC LIMIT $1",
+      [limit]
+    );
+    return result.rows;
+  },
+
+  async cleanup(olderThanDays = 7) {
+    const result = await query(
+      "DELETE FROM job_queue WHERE status = 'completed' AND completed_at < now() - ($1 || ' days')::interval",
+      [olderThanDays.toString()]
+    );
+    return { changes: result.rowCount };
+  },
+};
+
+// =============================================
 // Raw query helper (for special cases in routes)
 // =============================================
 
@@ -1064,9 +1314,26 @@ async function closeDb() {
   }
 }
 
+// Health check: verify DB connection is alive
+async function healthCheck() {
+  if (useSqlite) return { ok: true, mode: 'sqlite' };
+  try {
+    const result = await pool.query('SELECT 1 as ok');
+    const poolStats = {
+      total: pool.totalCount,
+      idle: pool.idleCount,
+      waiting: pool.waitingCount,
+    };
+    return { ok: result.rows[0].ok === 1, mode: 'postgresql', pool: poolStats };
+  } catch (err) {
+    return { ok: false, mode: 'postgresql', error: err.message };
+  }
+}
+
 module.exports = {
   query: rawQuery,
   closeDb,
+  healthCheck,
   campaigns,
   touchpoints,
   diagnostics,
@@ -1087,4 +1354,5 @@ module.exports = {
   reports,
   chartData,
   userIntegrations,
+  jobQueue,
 };

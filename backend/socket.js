@@ -12,6 +12,9 @@ let io = null;
 // Track connected users: userId → Set<socketId>
 const connectedUsers = new Map();
 
+// Limits
+const MAX_SOCKETS_PER_USER = 10;
+
 /**
  * Initialize Socket.io on an existing HTTP server.
  * @param {import('http').Server} httpServer
@@ -26,6 +29,8 @@ function init(httpServer, allowedOrigins) {
     },
     pingInterval: 25000,
     pingTimeout: 20000,
+    // Limit payload size to prevent abuse
+    maxHttpBufferSize: 1e6, // 1MB
   });
 
   // ── Auth middleware — validate JWT on connection ──
@@ -47,20 +52,33 @@ function init(httpServer, allowedOrigins) {
   io.on('connection', (socket) => {
     const userId = socket.user.id;
 
-    // Track user connection
+    // Enforce per-user connection limit
     if (!connectedUsers.has(userId)) {
       connectedUsers.set(userId, new Set());
     }
-    connectedUsers.get(userId).add(socket.id);
+    const userSockets = connectedUsers.get(userId);
+
+    if (userSockets.size >= MAX_SOCKETS_PER_USER) {
+      // Disconnect oldest socket for this user
+      const oldestId = userSockets.values().next().value;
+      const oldSocket = io.sockets.sockets.get(oldestId);
+      if (oldSocket) {
+        oldSocket.disconnect(true);
+      }
+      userSockets.delete(oldestId);
+    }
+
+    userSockets.add(socket.id);
 
     // Join user's private room (for targeted notifications)
     socket.join(`user:${userId}`);
 
-    console.log(`🔌 Socket connected: ${socket.user.email} (${socket.id})`);
-
     // ── Chat: join a thread room ──
     socket.on('chat:join', (threadId) => {
-      socket.join(`thread:${threadId}`);
+      // Validate threadId format to prevent room pollution
+      if (typeof threadId === 'string' && threadId.length < 100) {
+        socket.join(`thread:${threadId}`);
+      }
     });
 
     socket.on('chat:leave', (threadId) => {
@@ -76,7 +94,6 @@ function init(httpServer, allowedOrigins) {
           connectedUsers.delete(userId);
         }
       }
-      console.log(`🔌 Socket disconnected: ${socket.user.email} (${socket.id})`);
     });
   });
 
@@ -90,51 +107,52 @@ function getIO() {
   return io;
 }
 
+/**
+ * Gracefully close all socket connections.
+ */
+function close() {
+  if (io) {
+    io.close();
+    connectedUsers.clear();
+  }
+}
+
 // ── Emit helpers — called from routes/orchestrator ──
 
-/**
- * Send a notification to a specific user (all their connected devices).
- */
 function notifyUser(userId, event, data) {
   if (!io) return;
   io.to(`user:${userId}`).emit(event, data);
 }
 
-/**
- * Broadcast a chat message to everyone in a thread room.
- */
 function emitToThread(threadId, event, data) {
   if (!io) return;
   io.to(`thread:${threadId}`).emit(event, data);
 }
 
-/**
- * Send a campaign update to the owning user.
- */
 function notifyCampaignUpdate(userId, campaign) {
   notifyUser(userId, 'campaign:updated', campaign);
 }
 
-/**
- * Send a stats refresh signal to the owning user.
- */
 function notifyStatsRefresh(userId, data) {
   notifyUser(userId, 'stats:refreshed', data);
 }
 
-/**
- * Check if a user is currently connected.
- */
 function isUserOnline(userId) {
   return connectedUsers.has(userId);
+}
+
+function getConnectedUserCount() {
+  return connectedUsers.size;
 }
 
 module.exports = {
   init,
   getIO,
+  close,
   notifyUser,
   emitToThread,
   notifyCampaignUpdate,
   notifyStatsRefresh,
   isUserOnline,
+  getConnectedUserCount,
 };
