@@ -21,7 +21,13 @@ export function SocketProvider({ children, isAuthenticated }) {
       return;
     }
 
-    const s = connect();
+    let s;
+    try {
+      s = connect();
+    } catch (err) {
+      console.warn('[SocketProvider] connect failed:', err.message);
+      return;
+    }
     if (!s) return;
 
     setSocket(s);
@@ -55,6 +61,7 @@ export function SocketProvider({ children, isAuthenticated }) {
 
 export function useSocket() {
   const ctx = useContext(SocketContext);
-  if (!ctx) throw new Error('useSocket must be used within SocketProvider');
+  // Return safe defaults if used outside provider (prevents crash)
+  if (!ctx) return { socket: null, connected: false, refreshConnection: () => {} };
   return ctx;
 }
