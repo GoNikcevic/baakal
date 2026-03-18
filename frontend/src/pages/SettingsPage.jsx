@@ -6,8 +6,9 @@
    =============================================================================== */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getKeys, saveKeys, testKeys } from '../services/api-client';
+import { getKeys, saveKeys, testKeys, syncLemlist } from '../services/api-client';
 import { useNotifications } from '../context/NotificationContext';
+import { useSocket } from '../context/SocketContext';
 
 /* ─── Key definitions grouped by category ─── */
 
@@ -117,6 +118,8 @@ export default function SettingsPage() {
       setExtendedHeight(extendedRef.current.scrollHeight);
     }
   }, [showExtended]);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const { socket } = useSocket();
   const { showToast: notifyToast } = useNotifications();
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
@@ -138,6 +141,43 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => { loadKeys(); }, [loadKeys]);
+
+  /* ─── Socket listener for Lemlist sync progress ─── */
+
+  useEffect(() => {
+    if (!socket) return;
+    const onSync = (data) => {
+      setSyncStatus(data);
+      if (data.status === 'done') {
+        notifyToast({
+          type: 'success',
+          title: 'Synchronisation Lemlist',
+          message: data.message,
+          duration: 5000,
+        });
+      } else if (data.status === 'error') {
+        notifyToast({
+          type: 'danger',
+          title: 'Erreur Lemlist',
+          message: data.message,
+          duration: 5000,
+        });
+      }
+    };
+    socket.on('lemlist:sync', onSync);
+    return () => socket.off('lemlist:sync', onSync);
+  }, [socket, notifyToast]);
+
+  /* ─── Lemlist sync handler ─── */
+
+  async function handleSyncLemlist() {
+    setSyncStatus({ status: 'starting', progress: 0, message: 'Lancement...' });
+    try {
+      await syncLemlist();
+    } catch (err) {
+      setSyncStatus({ status: 'error', progress: 0, message: err.message });
+    }
+  }
 
   /* ─── Toast helper ─── */
 
@@ -407,6 +447,49 @@ export default function SettingsPage() {
         <div className="card-body" style={{ padding: 0 }}>
           {CORE_KEYS.map(renderKeyRow)}
         </div>
+      </div>
+
+      {/* Lemlist Sync */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div className="card-title">Analyse Lemlist</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+              Synchronise vos campagnes Lemlist et analyse les patterns de performance avec Claude
+            </div>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleSyncLemlist}
+            disabled={syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'}
+          >
+            {syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'
+              ? 'Synchronisation...'
+              : 'Synchroniser Lemlist'}
+          </button>
+        </div>
+        {syncStatus && (
+          <div className="card-body" style={{ paddingTop: 0 }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{
+                height: 6, borderRadius: 3, background: 'var(--bg-elevated)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: 3,
+                  width: `${syncStatus.progress || 0}%`,
+                  background: syncStatus.status === 'error' ? 'var(--danger, #e74c3c)'
+                    : syncStatus.status === 'done' ? 'var(--success, #00d68f)'
+                    : 'var(--blue, #6366f1)',
+                  transition: 'width 0.4s ease, background 0.3s ease',
+                }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {syncStatus.message || ''}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Integrations library */}
