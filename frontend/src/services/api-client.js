@@ -269,6 +269,8 @@ export function transformOpportunity(o) {
     statusColor: o.status_color || statusColorMap[o.status] || 'var(--text-muted)',
     statusBg: statusBgMap[o.status] || 'rgba(128,128,128,0.1)',
     timing: o.timing || '',
+    score: o.score ?? null,
+    scoreBreakdown: o.score_breakdown || o.scoreBreakdown || null,
   };
 }
 
@@ -481,6 +483,11 @@ export async function generateVariables(params, dryRun = false) {
   });
 }
 
+/** Score leads */
+export async function scoreLeads() {
+  return request('/ai/score-leads', { method: 'POST' });
+}
+
 /** Consolidate cross-campaign memory */
 export async function consolidateMemory(dryRun = false) {
   const qs = dryRun ? '?dry_run=true' : '';
@@ -662,6 +669,7 @@ const BakalAPI = {
   exportCampaignsCsv,
   exportCampaignCsv,
   exportReportPdf,
+  scoreLeads,
   campaignToBackend,
   sequenceToBackend,
   transformCampaign,

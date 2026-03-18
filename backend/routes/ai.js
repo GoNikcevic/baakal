@@ -410,6 +410,41 @@ router.post('/deploy-to-lemlist', async (req, res, next) => {
   }
 });
 
+// POST /api/ai/score-leads
+router.post('/score-leads', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { scoreOpportunities } = require('../lib/lead-scoring');
+
+    const [opps, profile] = await Promise.all([
+      db.opportunities.listByUser(userId, 100, 0),
+      db.profiles.get(userId),
+    ]);
+
+    if (!opps || !opps.length) {
+      return res.json({ scored: [], count: 0 });
+    }
+
+    // Load linked campaigns
+    const campaignIds = [...new Set(opps.filter(o => o.campaign_id).map(o => o.campaign_id))];
+    const campaignMap = {};
+    for (const cid of campaignIds) {
+      try { campaignMap[cid] = await db.campaigns.get(cid); } catch {}
+    }
+
+    const scored = scoreOpportunities(opps, profile, campaignMap);
+
+    // Persist scores
+    for (const opp of scored) {
+      await db.opportunities.updateScore(opp.id, opp.score, opp.scoreBreakdown);
+    }
+
+    res.json({ scored, count: scored.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- Helpers ---
 
 function extractPriorities(diagnostic) {
