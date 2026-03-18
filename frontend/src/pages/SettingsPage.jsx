@@ -5,7 +5,7 @@
    Backend: routes/settings.js (GET/POST /api/settings/keys, POST /keys/test)
    =============================================================================== */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getKeys, saveKeys, testKeys } from '../services/api-client';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -107,9 +107,16 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState(false);
   const [showExtended, setShowExtended] = useState(false);
   const [crmProvider, setCrmProvider] = useState(() => {
-    // Detect which CRM is configured
     return localStorage.getItem('bakal-crm-provider') || '';
   });
+  const extendedRef = useRef(null);
+  const [extendedHeight, setExtendedHeight] = useState(0);
+
+  useEffect(() => {
+    if (showExtended && extendedRef.current) {
+      setExtendedHeight(extendedRef.current.scrollHeight);
+    }
+  }, [showExtended]);
   const { showToast: notifyToast } = useNotifications();
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
@@ -415,10 +422,13 @@ export default function SettingsPage() {
             {showExtended ? '\u25B2' : '\u25BC'}
           </span>
         </div>
-        <div style={{
-          maxHeight: showExtended ? '2000px' : '0',
+        <div ref={extendedRef} style={{
+          maxHeight: showExtended ? extendedHeight + 'px' : '0',
           overflow: 'hidden',
-          transition: 'max-height 0.4s ease-in-out',
+          transition: showExtended
+            ? 'max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out'
+            : 'max-height 0.35s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.2s ease-in',
+          opacity: showExtended ? 1 : 0,
         }}>
           {EXTENDED_GROUPS.map(group => (
             <div key={group.label}>
