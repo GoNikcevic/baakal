@@ -76,22 +76,17 @@ body {
 }
 
 /* ═══════════ APP SHELL ═══════════ */
-.app-shell {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
+.app-shell { min-height: 100vh; }
 
 /* ═══════════ SIDEBAR ═══════════ */
 .sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
   width: 240px;
-  min-width: 240px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   padding: 20px 12px;
   display: flex; flex-direction: column;
   z-index: 100;
-  height: 100vh;
   overflow-y: auto;
 }
 /* ── Sidebar brand (Layout.jsx) ── */
@@ -252,7 +247,7 @@ body {
 
 /* ═══════════ MAIN ═══════════ */
 .mobile-nav { display: none; }
-.main { flex: 1; padding: 28px 32px; height: 100vh; box-sizing: border-box; overflow: auto; }
+.main { margin-left: 240px; padding: 28px 32px; }
 
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1702,7 +1697,7 @@ body {
 }
 
 /* ═══════════ CHAT PAGE ═══════════ */
-.chat-page { display:flex; height:100%; gap:0; }
+.chat-page { display:flex; height:calc(100vh - 56px); gap:0; }
 
 /* ── Thread sidebar ── */
 .chat-threads {
@@ -2365,7 +2360,7 @@ body {
   .sidebar .sidebar-create-btn svg, .sidebar .sidebar-cta svg { width: 18px; height: 18px; }
   .sidebar .user-card, .sidebar .sidebar-user-section { justify-content: center; }
   .sidebar .sidebar-logout-btn { display: none; }
-  .main { padding: 20px 16px; }
+  .main { margin-left: 60px; padding: 20px 16px; }
 
   .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -2419,7 +2414,7 @@ body {
 
 @media (max-width: 600px) {
   .sidebar { display: none; }
-  .main { padding: 16px 12px; height: calc(100vh - 60px); }
+  .main { margin-left: 0; padding: 16px 12px; }
 
   /* Mobile nav bar at bottom */
   .mobile-nav {
