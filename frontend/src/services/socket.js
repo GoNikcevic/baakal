@@ -24,22 +24,27 @@ export function connect() {
     socket.disconnect();
   }
 
-  socket = io({
-    auth: { token },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 10000,
-  });
+  try {
+    socket = io({
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 15000,
+    });
 
-  socket.on('connect', () => {
-    console.log('[socket] connected:', socket.id);
-  });
+    socket.on('connect', () => {
+      console.log('[socket] connected:', socket.id);
+    });
 
-  socket.on('connect_error', (err) => {
-    console.warn('[socket] connection error:', err.message);
-  });
+    socket.on('connect_error', (err) => {
+      console.warn('[socket] connection error:', err.message);
+    });
+  } catch (err) {
+    console.warn('[socket] failed to initialize:', err.message);
+    socket = null;
+  }
 
   return socket;
 }
