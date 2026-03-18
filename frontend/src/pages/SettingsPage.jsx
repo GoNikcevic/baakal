@@ -12,59 +12,56 @@ import { useNotifications } from '../context/NotificationContext';
 /* ─── Key definitions grouped by category ─── */
 
 const CORE_KEYS = [
-  { field: 'lemlistKey', label: 'Lemlist', placeholder: 'Votre clé API Lemlist', required: true },
-  { field: 'claudeKey', label: 'Claude (Anthropic)', placeholder: 'sk-ant-...', required: true },
-  { field: 'notionToken', label: 'Notion', placeholder: 'ntn_ ou secret_...' },
+  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn, sequences multi-canal', placeholder: 'Votre cle API Lemlist', required: true, color: '#6C5CE7', icon: 'L' },
+  { field: 'claudeKey', label: 'Claude (Anthropic)', desc: 'Generation de copy IA, analyse de performance, optimisation', placeholder: 'sk-ant-...', required: true, color: '#D97706', icon: 'C' },
+  { field: 'crmKey', label: 'CRM', desc: 'Synchronisation contacts et deals', placeholder: 'Votre cle API CRM', required: true, color: '#FF6B35', icon: 'R',
+    crmSelector: true, crmOptions: [
+      { value: 'hubspot', label: 'HubSpot', placeholder: 'pat-...' },
+      { value: 'salesforce', label: 'Salesforce', placeholder: 'Votre cle API Salesforce' },
+      { value: 'pipedrive', label: 'Pipedrive', placeholder: 'Votre cle API Pipedrive' },
+    ],
+  },
 ];
 
 const EXTENDED_GROUPS = [
   {
-    label: 'CRM',
-    keys: [
-      { field: 'hubspotKey', label: 'HubSpot', placeholder: 'pat-...' },
-      { field: 'pipedriveKey', label: 'Pipedrive', placeholder: 'Votre clé API Pipedrive' },
-      { field: 'salesforceKey', label: 'Salesforce', placeholder: 'Votre clé API Salesforce' },
-      { field: 'folkKey', label: 'Folk', placeholder: 'Votre clé API Folk' },
-    ],
-  },
-  {
     label: 'Enrichissement',
     keys: [
-      { field: 'dropcontactKey', label: 'DropContact', placeholder: 'Votre clé API DropContact' },
-      { field: 'apolloKey', label: 'Apollo', placeholder: 'Votre clé API Apollo' },
-      { field: 'hunterKey', label: 'Hunter', placeholder: 'Votre clé API Hunter' },
-      { field: 'kasprKey', label: 'Kaspr', placeholder: 'Votre clé API Kaspr' },
-      { field: 'lushaKey', label: 'Lusha', placeholder: 'Votre clé API Lusha' },
-      { field: 'snovKey', label: 'Snov.io', placeholder: 'Votre clé API Snov' },
+      { field: 'dropcontactKey', label: 'DropContact', desc: 'Enrichissement email et telephone', placeholder: 'Votre cle API DropContact', color: '#00B894', icon: 'D' },
+      { field: 'apolloKey', label: 'Apollo', desc: 'Base de donnees B2B et enrichissement', placeholder: 'Votre cle API Apollo', color: '#6C5CE7', icon: 'A' },
+      { field: 'hunterKey', label: 'Hunter', desc: 'Recherche et verification d\'emails', placeholder: 'Votre cle API Hunter', color: '#FF7675', icon: 'H' },
+      { field: 'kasprKey', label: 'Kaspr', desc: 'Donnees LinkedIn en temps reel', placeholder: 'Votre cle API Kaspr', color: '#0984E3', icon: 'K' },
+      { field: 'lushaKey', label: 'Lusha', desc: 'Coordonnees professionnelles', placeholder: 'Votre cle API Lusha', color: '#00CEC9', icon: 'Lu' },
+      { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre cle API Snov', color: '#E17055', icon: 'S' },
     ],
   },
   {
     label: 'Outreach',
     keys: [
-      { field: 'instantlyKey', label: 'Instantly', placeholder: 'Votre clé API Instantly' },
-      { field: 'lgmKey', label: 'La Growth Machine', placeholder: 'Votre clé API LGM' },
-      { field: 'waalaxyKey', label: 'Waalaxy', placeholder: 'Votre clé API Waalaxy' },
+      { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email a grande echelle', placeholder: 'Votre cle API Instantly', color: '#0984E3', icon: 'In' },
+      { field: 'lgmKey', label: 'La Growth Machine', desc: 'Sequences multi-canal automatisees', placeholder: 'Votre cle API LGM', color: '#6C5CE7', icon: 'LG' },
+      { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre cle API Waalaxy', color: '#A29BFE', icon: 'W' },
     ],
   },
   {
     label: 'LinkedIn / Scraping',
     keys: [
-      { field: 'phantombusterKey', label: 'PhantomBuster', placeholder: 'Votre clé API PhantomBuster' },
-      { field: 'captaindataKey', label: 'Captain Data', placeholder: 'Votre clé API CaptainData' },
+      { field: 'phantombusterKey', label: 'PhantomBuster', desc: 'Scraping et automatisation web', placeholder: 'Votre cle API PhantomBuster', color: '#636E72', icon: 'PB' },
+      { field: 'captaindataKey', label: 'Captain Data', desc: 'Extraction de donnees multi-sources', placeholder: 'Votre cle API CaptainData', color: '#0984E3', icon: 'CD' },
     ],
   },
   {
     label: 'Calendrier',
     keys: [
-      { field: 'calendlyKey', label: 'Calendly', placeholder: 'Votre clé API Calendly' },
-      { field: 'calcomKey', label: 'Cal.com', placeholder: 'Votre clé API Cal.com' },
+      { field: 'calendlyKey', label: 'Calendly', desc: 'Planification de RDV automatisee', placeholder: 'Votre cle API Calendly', color: '#0069FF', icon: 'Ca' },
+      { field: 'calcomKey', label: 'Cal.com', desc: 'Alternative open-source a Calendly', placeholder: 'Votre cle API Cal.com', color: '#292929', icon: 'Cl' },
     ],
   },
   {
-    label: 'Délivrabilité',
+    label: 'Delivrabilite',
     keys: [
-      { field: 'mailreachKey', label: 'MailReach', placeholder: 'Votre clé API MailReach' },
-      { field: 'warmboxKey', label: 'Warmbox', placeholder: 'Votre clé API Warmbox' },
+      { field: 'mailreachKey', label: 'MailReach', desc: 'Warm-up et monitoring inbox', placeholder: 'Votre cle API MailReach', color: '#E17055', icon: 'MR' },
+      { field: 'warmboxKey', label: 'Warmbox', desc: 'Prechauffage email automatise', placeholder: 'Votre cle API Warmbox', color: '#FDCB6E', icon: 'Wb' },
     ],
   },
 ];
@@ -109,6 +106,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [showExtended, setShowExtended] = useState(false);
+  const [crmProvider, setCrmProvider] = useState(() => {
+    // Detect which CRM is configured
+    return localStorage.getItem('bakal-crm-provider') || '';
+  });
   const { showToast: notifyToast } = useNotifications();
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
@@ -265,78 +266,100 @@ export default function SettingsPage() {
   /* ─── Render key row ─── */
 
   function renderKeyRow(keyDef) {
-    const info = keyStatus[keyDef.field] || {};
-    const isEditing = editing[keyDef.field];
-    const test = testStatus[keyDef.field];
+    const actualField = keyDef.crmSelector
+      ? (crmProvider ? crmProvider + 'Key' : keyDef.field)
+      : keyDef.field;
+    const info = keyStatus[actualField] || {};
+    const isEditing = editing[actualField];
+    const test = testStatus[actualField];
+    const selectedCrm = keyDef.crmSelector ? keyDef.crmOptions?.find(o => o.value === crmProvider) : null;
+    const placeholder = selectedCrm?.placeholder || keyDef.placeholder;
 
     return (
-      <div className="settings-key-row" key={keyDef.field}>
-        <div className="settings-key-info">
-          <div className="settings-key-label">
-            {keyDef.label}
-            {keyDef.required && <span className="settings-required">requis</span>}
-          </div>
-          {info.configured && !isEditing && (
-            <div className="settings-key-masked">{info.masked}</div>
-          )}
-          {info.configured && info.updatedAt && !isEditing && (
-            <div className="settings-key-date">
-              Mis à jour le {new Date(info.updatedAt).toLocaleDateString('fr-FR')}
-            </div>
-          )}
+      <div className="settings-key-row" key={keyDef.field} style={{
+        display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px',
+        borderBottom: '1px solid var(--border)', transition: 'background 0.15s',
+      }}>
+        {/* Icon */}
+        <div style={{
+          width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+          background: (keyDef.color || 'var(--text-muted)') + '18',
+          border: `1px solid ${keyDef.color || 'var(--border)'}30`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, fontWeight: 700, color: keyDef.color || 'var(--text-muted)',
+          letterSpacing: '-0.5px',
+        }}>
+          {keyDef.icon || keyDef.label.charAt(0)}
         </div>
 
-        <div className="settings-key-actions">
-          {test && <StatusBadge status={test} />}
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{keyDef.label}</span>
+            {keyDef.required && <span className="settings-required">requis</span>}
+            {test && <StatusBadge status={test} />}
+          </div>
+          {keyDef.desc && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.4 }}>{keyDef.desc}</div>
+          )}
 
-          {isEditing ? (
-            <div className="settings-key-edit-row">
+          {/* CRM selector */}
+          {keyDef.crmSelector && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+              {keyDef.crmOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`btn btn-ghost btn-sm${crmProvider === opt.value ? ' active' : ''}`}
+                  style={{
+                    fontSize: 11, padding: '4px 10px',
+                    ...(crmProvider === opt.value ? { background: 'var(--accent-glow)', borderColor: 'var(--blue)' } : {}),
+                  }}
+                  onClick={() => { setCrmProvider(opt.value); localStorage.setItem('bakal-crm-provider', opt.value); }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {info.configured && !isEditing && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{info.masked}</div>
+          )}
+
+          {isEditing && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               <input
-                className="form-input settings-key-input"
+                className="form-input"
                 type="password"
-                placeholder={keyDef.placeholder}
-                value={drafts[keyDef.field] || ''}
-                onChange={e => setDrafts(prev => ({ ...prev, [keyDef.field]: e.target.value }))}
+                placeholder={placeholder}
+                value={drafts[actualField] || ''}
+                onChange={e => setDrafts(prev => ({ ...prev, [actualField]: e.target.value }))}
                 autoFocus
                 onKeyDown={e => {
-                  if (e.key === 'Enter') saveField(keyDef.field);
-                  if (e.key === 'Escape') cancelEdit(keyDef.field);
+                  if (e.key === 'Enter') saveField(actualField);
+                  if (e.key === 'Escape') cancelEdit(actualField);
                 }}
+                style={{ flex: 1, fontSize: 13, padding: '8px 12px' }}
               />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => saveField(keyDef.field)}
-                disabled={saving || !(drafts[keyDef.field] || '').trim()}
-              >
-                Sauver
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => cancelEdit(keyDef.field)}
-              >
-                Annuler
-              </button>
-            </div>
-          ) : (
-            <div className="settings-key-btns">
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => startEdit(keyDef.field)}
-              >
-                {info.configured ? 'Modifier' : 'Configurer'}
-              </button>
-              {info.configured && (
-                <button
-                  className="btn btn-ghost btn-sm settings-btn-danger"
-                  onClick={() => removeField(keyDef.field)}
-                  disabled={saving}
-                >
-                  Supprimer
-                </button>
-              )}
+              <button className="btn btn-primary btn-sm" onClick={() => saveField(actualField)}
+                disabled={saving || !(drafts[actualField] || '').trim()}>Sauver</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => cancelEdit(actualField)}>Annuler</button>
             </div>
           )}
         </div>
+
+        {/* Actions */}
+        {!isEditing && (
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => startEdit(actualField)}>
+              {info.configured ? 'Modifier' : 'Configurer'}
+            </button>
+            {info.configured && (
+              <button className="btn btn-ghost btn-sm settings-btn-danger"
+                onClick={() => removeField(actualField)} disabled={saving}>Supprimer</button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -381,41 +404,36 @@ export default function SettingsPage() {
 
       {/* Integrations library */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-header">
-          <div className="card-title">Bibliothèque d'intégrations</div>
+        <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => setShowExtended(p => !p)}>
+          <div className="card-title">Bibliotheque d'integrations</div>
+          <span style={{
+            fontSize: 12, color: 'var(--text-muted)',
+            transition: 'transform 0.3s ease',
+            transform: showExtended ? 'rotate(180deg)' : 'rotate(0deg)',
+            display: 'inline-block',
+          }}>
+            {showExtended ? '\u25B2' : '\u25BC'}
+          </span>
         </div>
-        <div className="card-body">
-          {!showExtended ? (
-            <button
-              className="btn btn-ghost"
-              onClick={() => setShowExtended(true)}
-              style={{ width: '100%' }}
-            >
-              Voir plus d'intégrations
-            </button>
-          ) : (
-            <button
-              className="btn btn-ghost"
-              onClick={() => setShowExtended(false)}
-              style={{ width: '100%', marginBottom: 16 }}
-            >
-              Masquer les intégrations
-            </button>
-          )}
+        <div style={{
+          maxHeight: showExtended ? '2000px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.4s ease-in-out',
+        }}>
+          {EXTENDED_GROUPS.map(group => (
+            <div key={group.label}>
+              <div style={{
+                fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: '0.5px', color: 'var(--text-muted)',
+                padding: '14px 20px 6px', borderTop: '1px solid var(--border)',
+              }}>
+                {group.label}
+              </div>
+              {group.keys.map(renderKeyRow)}
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* Extended integration groups */}
-      {showExtended && EXTENDED_GROUPS.map(group => (
-        <div className="card" key={group.label} style={{ marginBottom: 16 }}>
-          <div className="card-header">
-            <div className="card-title">{group.label}</div>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            {group.keys.map(renderKeyRow)}
-          </div>
-        </div>
-      ))}
 
       {/* Preferences */}
       <div className="card" style={{ marginBottom: 16 }}>
