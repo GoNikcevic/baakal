@@ -6,6 +6,7 @@
    =============================================================================== */
 
 import { useState, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 
 const FILTERS = [
@@ -16,6 +17,7 @@ const FILTERS = [
 
 export default function CampaignsList({ onNavigateCampaign }) {
   const { campaigns, projects } = useApp();
+  const { setShowCreatorModal } = useOutletContext?.() || {};
 
   const [filter, setFilter] = useState('');
   const [sortByReply, setSortByReply] = useState(false);
@@ -90,7 +92,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
             Creez votre premiere campagne de prospection. Choisissez votre cible,
             votre canal et votre angle — Claude s'occupe du reste.
           </div>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => setShowCreatorModal?.(true)}>
             Creer ma premiere campagne
           </button>
         </div>

@@ -5,6 +5,7 @@
    =============================================================================== */
 
 import { useState, useMemo, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import CampaignsList from './CampaignsList';
 import AnalyticsSectionFull from './AnalyticsSection';
@@ -33,6 +34,8 @@ const KPI_LABELS = {
 
 export default function DashboardPage({ section, onNavigateCampaign }) {
   const { campaigns, globalKpis, opportunities, recommendations, reports, chartData } = useApp();
+  const { setShowCreatorModal } = useOutletContext() || {};
+  const openCreator = useCallback(() => setShowCreatorModal?.(true), [setShowCreatorModal]);
   const [tab, setTab] = useState(section || 'overview');
 
   // Sync tab when `section` prop changes — derive from props directly
@@ -96,10 +99,11 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
           recommendations={recommendations}
           chartData={chartData}
           onShowCampaigns={() => setTab('campaigns')}
+          onCreateCampaign={openCreator}
         />
       )}
 
-      {currentTab === 'reports' && <ReportsSection isEmpty={isEmpty} reports={reports} />}
+      {currentTab === 'reports' && <ReportsSection isEmpty={isEmpty} reports={reports} onCreateCampaign={openCreator} />}
 
       {currentTab === 'analytics' && <AnalyticsSectionFull onNavigate={(tab) => setTab(tab)} />}
 
@@ -107,7 +111,7 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
         <CampaignsList onNavigateCampaign={onNavigateCampaign} />
       )}
 
-      {currentTab === 'refinement' && <RefinementSection isEmpty={isEmpty} />}
+      {currentTab === 'refinement' && <RefinementSection isEmpty={isEmpty} onBack={() => setTab('overview')} />}
     </div>
   );
 }
@@ -117,13 +121,13 @@ export default function DashboardPage({ section, onNavigateCampaign }) {
    Overview Section
    ═══════════════════════════════════════════════════ */
 
-function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recommendations, chartData, onShowCampaigns }) {
+function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recommendations, chartData, onShowCampaigns, onCreateCampaign }) {
   if (isEmpty) {
     return (
       <div id="section-overview">
-        <WelcomeBanner />
+        <WelcomeBanner onCreateCampaign={onCreateCampaign} />
         <EmptyKpis />
-        <EmptyOverviewGrid />
+        <EmptyOverviewGrid onCreateCampaign={onCreateCampaign} />
       </div>
     );
   }
@@ -372,7 +376,7 @@ function CampaignTableRow({ campaign: c }) {
    Empty States
    ═══════════════════════════════════════════════════ */
 
-function WelcomeBanner() {
+function WelcomeBanner({ onCreateCampaign }) {
   return (
     <div className="welcome-banner">
       <div className="welcome-title">Bienvenue sur Bakal</div>
@@ -389,7 +393,7 @@ function WelcomeBanner() {
             Definissez votre cible, votre canal (Email, LinkedIn ou les deux) et
             votre angle d'approche.
           </div>
-          <button className="btn btn-primary">Creer ma campagne</button>
+          <button className="btn btn-primary" onClick={onCreateCampaign}>Creer ma campagne</button>
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">2</div>
@@ -451,7 +455,7 @@ function EmptyKpis() {
   );
 }
 
-function EmptyOverviewGrid() {
+function EmptyOverviewGrid({ onCreateCampaign }) {
   return (
     <div className="section-grid">
       <div className="card card-empty">
@@ -467,6 +471,7 @@ function EmptyOverviewGrid() {
           <button
             className="btn btn-primary"
             style={{ marginTop: '16px', fontSize: '13px' }}
+            onClick={onCreateCampaign}
           >
             Creer une campagne
           </button>
@@ -520,7 +525,7 @@ function EmptyOverviewGrid() {
    Reports Section
    ═══════════════════════════════════════════════════ */
 
-function ReportsSection({ isEmpty, reports }) {
+function ReportsSection({ isEmpty, reports, onCreateCampaign }) {
   if (isEmpty || !reports || reports.length === 0) {
     return (
       <div id="section-reports">
@@ -532,7 +537,7 @@ function ReportsSection({ isEmpty, reports }) {
             Lancez votre premiere campagne pour recevoir votre premier bilan de
             performance.
           </div>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={onCreateCampaign}>
             Creer ma premiere campagne
           </button>
         </div>
@@ -593,7 +598,7 @@ function ReportsSection({ isEmpty, reports }) {
    Refinement Section
    ═══════════════════════════════════════════════════ */
 
-function RefinementSection({ isEmpty }) {
+function RefinementSection({ isEmpty, onBack }) {
   const handleAcceptVariable = useCallback((key, varData) => {
     // Future: integrate with VariableManager registry or backend
     console.log('Variable accepted:', key, varData);
@@ -615,7 +620,7 @@ function RefinementSection({ isEmpty }) {
             Le systeme de test A/B et d'optimisation s'active apres la premiere
             semaine de campagne active, avec au moins 50 prospects contactes.
           </div>
-          <button className="btn btn-ghost">Retour au dashboard</button>
+          <button className="btn btn-ghost" onClick={onBack}>Retour au dashboard</button>
         </div>
       </div>
     );
