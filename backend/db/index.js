@@ -1064,6 +1064,14 @@ const opportunities = {
     return result.rows[0] || null;
   },
 
+  async updateScore(id, score, scoreBreakdown) {
+    const result = await query(
+      `UPDATE opportunities SET score = $1, score_breakdown = $2 WHERE id = $3 RETURNING *`,
+      [score, JSON.stringify(scoreBreakdown), id]
+    );
+    return result.rows[0] || null;
+  },
+
   async delete(id) {
     const result = await query('DELETE FROM opportunities WHERE id = $1', [id]);
     return { changes: result.rowCount };

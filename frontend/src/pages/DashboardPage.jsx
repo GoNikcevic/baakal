@@ -4,12 +4,14 @@
    recommendations with link to full recos page.
    =============================================================================== */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
 import PerformanceChart from '../components/charts/PerformanceChart';
 import { sanitizeHtml } from '../services/sanitize';
+import ScoreBadge from '../components/ScoreBadge';
+import { scoreLeads } from '../services/api-client';
 
 const KPI_LABELS = {
   contacts: '\u{1F4E4} Contacts atteints',
@@ -21,7 +23,7 @@ const KPI_LABELS = {
 };
 
 export default function DashboardPage() {
-  const { campaigns, globalKpis, opportunities, recommendations, chartData } = useApp();
+  const { campaigns, globalKpis, opportunities, recommendations, chartData, setOpportunities } = useApp();
   const { setShowCreatorModal } = useOutletContext() || {};
   const openCreator = useCallback(() => setShowCreatorModal?.(true), [setShowCreatorModal]);
 
@@ -69,6 +71,7 @@ export default function DashboardPage() {
         recommendations={recommendations}
         chartData={chartData}
         onCreateCampaign={openCreator}
+        setOpportunities={setOpportunities}
       />
     </div>
   );
@@ -79,7 +82,23 @@ export default function DashboardPage() {
    Overview Section
    ═══════════════════════════════════════════════════ */
 
-function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recommendations, chartData, onCreateCampaign }) {
+function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recommendations, chartData, onCreateCampaign, setOpportunities }) {
+  const [scoring, setScoring] = useState(false);
+
+  const handleScoreLeads = useCallback(async () => {
+    setScoring(true);
+    try {
+      const data = await scoreLeads();
+      if (data.scored && data.scored.length > 0) {
+        const { transformOpportunity } = await import('../services/api-client');
+        setOpportunities(data.scored.map(transformOpportunity));
+      }
+    } catch (err) {
+      console.error('Score leads error:', err);
+    } finally {
+      setScoring(false);
+    }
+  }, [setOpportunities]);
   if (isEmpty) {
     return (
       <div id="section-overview">
@@ -146,6 +165,14 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         <div className="card">
           <div className="card-header">
             <div className="card-title">{'\u{1F525}'} Opportunites recentes</div>
+            <button
+              className="btn btn-ghost"
+              style={{ padding: '6px 12px', fontSize: '12px' }}
+              onClick={handleScoreLeads}
+              disabled={scoring}
+            >
+              {scoring ? 'Scoring...' : 'Scorer les leads'}
+            </button>
           </div>
           <div className="card-body" style={{ padding: '16px 24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -156,9 +183,12 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
                       <div style={{ fontWeight: 600, fontSize: '13px' }}>{opp.name}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{opp.title} &middot; {opp.company} &middot; {opp.size}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: opp.statusColor, background: opp.statusBg, padding: '2px 8px', borderRadius: '4px' }}>{opp.status}</span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{opp.timing}</div>
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ScoreBadge score={opp.score} breakdown={opp.scoreBreakdown} />
+                      <div>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: opp.statusColor, background: opp.statusBg, padding: '2px 8px', borderRadius: '4px' }}>{opp.status}</span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{opp.timing}</div>
+                      </div>
                     </div>
                   </div>
                 ))
