@@ -546,6 +546,11 @@ export async function deleteVariable(id) {
   return request('/variables/' + id, { method: 'DELETE' });
 }
 
+/** Trigger background Lemlist sync and analysis */
+export async function syncLemlist() {
+  return request('/settings/keys/sync-lemlist', { method: 'POST' });
+}
+
 /** Test API key connectivity */
 export async function testKeys() {
   return request('/settings/keys/test', { method: 'POST' });
@@ -661,6 +666,7 @@ const BakalAPI = {
   testConnections,
   getKeys,
   saveKeys,
+  syncLemlist,
   testKeys,
   uploadFiles,
   fetchVariables,
