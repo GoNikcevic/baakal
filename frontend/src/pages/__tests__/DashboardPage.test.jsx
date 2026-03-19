@@ -55,8 +55,8 @@ describe('DashboardPage', () => {
   it('shows empty KPI cards with placeholder values', () => {
     renderDashboard();
 
-    // Multiple KPI cards show "En attente de donnees"
-    const placeholders = screen.getAllByText('En attente de donnees');
+    // Multiple KPI cards show "En attente de données"
+    const placeholders = screen.getAllByText('En attente de données');
     expect(placeholders.length).toBe(6);
   });
 
@@ -87,14 +87,14 @@ describe('DashboardPage', () => {
   it('shows subtitle for empty state', () => {
     renderDashboard();
 
-    expect(screen.getByText(/Bienvenue.*Configurez votre premiere campagne/)).toBeInTheDocument();
+    expect(screen.getByText(/Bienvenue.*Configurez votre première campagne/)).toBeInTheDocument();
   });
 
   it('shows onboarding steps in empty overview', () => {
     renderDashboard();
 
-    expect(screen.getByText('Creez votre campagne')).toBeInTheDocument();
-    expect(screen.getByText('Claude genere vos sequences')).toBeInTheDocument();
+    expect(screen.getByText('Créez votre campagne')).toBeInTheDocument();
+    expect(screen.getByText('Claude génère vos séquences')).toBeInTheDocument();
     expect(screen.getByText('Importez vos prospects')).toBeInTheDocument();
     expect(screen.getByText('Lancez et optimisez')).toBeInTheDocument();
   });

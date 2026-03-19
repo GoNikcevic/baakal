@@ -343,7 +343,7 @@ export default function ProfilePage() {
       <div className="card">
         <div className="card-title">Documents entreprise</div>
         <div className="page-subtitle" style={{ marginBottom: 16 }}>
-          Briefs, guidelines, personas PDF, exemples de campagnes — Claude les utilisera pour personnaliser vos sequences.
+          Briefs, guidelines, personas PDF, exemples de campagnes — Claude les utilisera pour personnaliser vos séquences.
         </div>
         <div
           onDragEnter={handleDragEnter}
@@ -371,7 +371,7 @@ export default function ProfilePage() {
           />
           <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-            {isDragging ? 'Deposez vos fichiers ici' : 'Glissez vos fichiers ici ou cliquez pour parcourir'}
+            {isDragging ? 'Déposez vos fichiers ici' : 'Glissez vos fichiers ici ou cliquez pour parcourir'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             PDF, DOCX, CSV, Excel, images — max 20 Mo par fichier

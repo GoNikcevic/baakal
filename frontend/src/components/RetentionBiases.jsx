@@ -13,12 +13,12 @@ import { useApp } from '../context/useApp';
 function computeSetupProgress(campaigns, hasProfile) {
   const campaignList = Object.values(campaigns);
   const steps = [
-    { id: 'account', label: 'Compte cree', done: true }, // Always done — endowed progress
+    { id: 'account', label: 'Compte créé', done: true }, // Always done — endowed progress
     { id: 'profile', label: 'Profil entreprise', done: hasProfile },
-    { id: 'campaign', label: 'Premiere campagne', done: campaignList.length > 0 },
-    { id: 'sequence', label: 'Sequences generees', done: campaignList.some(c => c.sequence?.length > 0) },
+    { id: 'campaign', label: 'Première campagne', done: campaignList.length > 0 },
+    { id: 'sequence', label: 'Séquences générées', done: campaignList.some(c => c.sequence?.length > 0) },
     { id: 'active', label: 'Campagne active', done: campaignList.some(c => c.status === 'active') },
-    { id: 'optimized', label: 'Premiere optimisation IA', done: campaignList.some(c => c.iteration > 0) },
+    { id: 'optimized', label: 'Première optimisation IA', done: campaignList.some(c => c.iteration > 0) },
   ];
 
   const completed = steps.filter(s => s.done).length;
@@ -90,7 +90,7 @@ export function ProgressCard() {
             </div>
             <div className="retention-stat">
               <div className="retention-stat-value">{metrics.daysSinceCreation}j</div>
-              <div className="retention-stat-label">D'experience accumulee</div>
+              <div className="retention-stat-label">D'expérience accumulée</div>
             </div>
           </div>
         </div>
@@ -119,8 +119,8 @@ export function ProgressCard() {
         </div>
         <div className="setup-hint">
           {setup.completed < setup.total
-            ? `Encore ${setup.total - setup.completed} etape${setup.total - setup.completed > 1 ? 's' : ''} — votre IA s'ameliore a chaque etape`
-            : 'Configuration terminee !'}
+            ? `Encore ${setup.total - setup.completed} étape${setup.total - setup.completed > 1 ? 's' : ''} — votre IA s'améliore à chaque étape`
+            : 'Configuration terminée !'}
         </div>
       </div>
     </div>

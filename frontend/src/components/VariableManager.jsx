@@ -11,27 +11,27 @@ import { fetchVariables, createVariable, deleteVariable } from '../services/api-
 
 const INITIAL_REGISTRY = {
   prospect: [
-    { key: 'firstName',   label: 'Prenom',             sync: 'synced',  source: 'lemlist' },
+    { key: 'firstName',   label: 'Prénom',             sync: 'synced',  source: 'lemlist' },
     { key: 'lastName',    label: 'Nom de famille',     sync: 'synced',  source: 'lemlist' },
     { key: 'email',       label: 'Email',              sync: 'synced',  source: 'lemlist' },
-    { key: 'phone',       label: 'Telephone',          sync: 'synced',  source: 'lemlist' },
+    { key: 'phone',       label: 'Téléphone',          sync: 'synced',  source: 'lemlist' },
     { key: 'jobTitle',    label: 'Poste / Fonction',   sync: 'synced',  source: 'lemlist' },
     { key: 'linkedinUrl', label: 'Profil LinkedIn',    sync: 'synced',  source: 'lemlist' },
   ],
   company: [
     { key: 'companyName',   label: "Nom de l'entreprise", sync: 'synced',  source: 'lemlist' },
     { key: 'companyDomain', label: 'Domaine / Site web',  sync: 'synced',  source: 'lemlist' },
-    { key: 'industry',      label: "Secteur d'activite",  sync: 'synced',  source: 'lemlist' },
-    { key: 'companySize',   label: 'Taille (employes)',    sync: 'synced',  source: 'lemlist' },
+    { key: 'industry',      label: "Secteur d'activité",  sync: 'synced',  source: 'lemlist' },
+    { key: 'companySize',   label: 'Taille (employés)',    sync: 'synced',  source: 'lemlist' },
     { key: 'city',          label: 'Ville',                sync: 'synced',  source: 'lemlist' },
     { key: 'country',       label: 'Pays',                 sync: 'synced',  source: 'lemlist' },
   ],
   enrichment: [
-    { key: 'icebreaker',       label: 'Icebreaker personnalise',    sync: 'custom', source: 'ai' },
-    { key: 'painPoint',        label: 'Point de douleur identifie', sync: 'custom', source: 'ai' },
+    { key: 'icebreaker',       label: 'Icebreaker personnalisé',    sync: 'custom', source: 'ai' },
+    { key: 'painPoint',        label: 'Point de douleur identifié', sync: 'custom', source: 'ai' },
     { key: 'lastPost',         label: 'Dernier post LinkedIn',      sync: 'custom', source: 'scraping' },
     { key: 'mutualConnection', label: 'Connexion en commun',        sync: 'custom', source: 'scraping' },
-    { key: 'recentNews',       label: 'Actualite recente',          sync: 'custom', source: 'scraping' },
+    { key: 'recentNews',       label: 'Actualité récente',          sync: 'custom', source: 'scraping' },
   ],
   custom: [],
 };
@@ -40,7 +40,7 @@ const VAR_CATEGORIES = {
   prospect:   { label: 'Prospect',       icon: '\u{1F464}' },
   company:    { label: 'Entreprise',     icon: '\u{1F3E2}' },
   enrichment: { label: 'Enrichissement', icon: '\u{1F9E0}' },
-  custom:     { label: 'Personnalise',   icon: '\u{2699}\u{FE0F}' },
+  custom:     { label: 'Personnalisé',   icon: '\u{2699}\u{FE0F}' },
 };
 
 const SYNC_LABELS = {
@@ -101,7 +101,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
       return;
     }
     if (existingKeys.includes(trimmed)) {
-      setError('Cette variable existe deja.');
+      setError('Cette variable existe déjà.');
       return;
     }
 
@@ -138,7 +138,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
-          Creer une variable personnalisee
+          Créer une variable personnalisée
         </div>
 
         {/* Preview */}
@@ -171,7 +171,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
             <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4 }}>{error}</div>
           ) : (
             <div className="field-hint" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-              Sera utilisee comme {'{{nom}}'} dans les messages.
+              Sera utilisée comme {'{{nom}}'} dans les messages.
             </div>
           )}
         </div>
@@ -198,7 +198,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
         {/* Default value */}
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-            Valeur par defaut (optionnel)
+            Valeur par défaut (optionnel)
           </label>
           <input
             type="text"
@@ -218,7 +218,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
-              Categorie
+              Catégorie
             </label>
             <select
               value={category}
@@ -271,7 +271,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
             style={{ fontSize: 12, padding: '8px 14px' }}
             onClick={handleCreate}
           >
-            Creer la variable
+            Créer la variable
           </button>
         </div>
       </div>
@@ -320,7 +320,7 @@ function VarItem({ variable, isCustom, onInsert, onDelete }) {
         </div>
       )}
       <div className="var-item-tooltip">
-        Cliquez pour inserer &middot; {SYNC_LABELS[syncClass]}
+        Cliquez pour insérer &middot; {SYNC_LABELS[syncClass]}
       </div>
     </div>
   );
@@ -429,7 +429,7 @@ export default function VariableManager({
       onInsertVariable(key);
     } else {
       // Default: show a hint toast
-      setToast('Cliquez dans un champ de message pour y inserer la variable.');
+      setToast('Cliquez dans un champ de message pour y insérer la variable.');
     }
   }, [onInsertVariable]);
 
@@ -446,7 +446,7 @@ export default function VariableManager({
       newVar._backendId = saved.id;
     } catch (err) {
       if (err.status === 409) {
-        setToast('Cette variable existe deja.');
+        setToast('Cette variable existe déjà.');
         return;
       }
       // Continue with local-only if backend unavailable
@@ -462,8 +462,8 @@ export default function VariableManager({
       return updated;
     });
     setShowModal(false);
-    const syncNote = newVar.syncMode !== 'local' ? ' · Sync Lemlist activee' : '';
-    setToast(`Variable {{${newVar.key}}} creee${syncNote}`);
+    const syncNote = newVar.syncMode !== 'local' ? ' · Sync Lemlist activée' : '';
+    setToast(`Variable {{${newVar.key}}} créée${syncNote}`);
   }, [onRegistryChange]);
 
   const handleDeleteCustomVar = useCallback(async (index) => {
@@ -487,7 +487,7 @@ export default function VariableManager({
       if (onRegistryChange) onRegistryChange(updated);
       return updated;
     });
-    setToast(`Variable {{${deleted.key}}} supprimee`);
+    setToast(`Variable {{${deleted.key}}} supprimée`);
   }, [registry.custom, onRegistryChange]);
 
   /* ─── Render ─── */
@@ -530,7 +530,7 @@ export default function VariableManager({
                 </div>
                 {catKey === 'custom' && (
                   <button className="var-add-btn" onClick={() => setShowModal(true)}>
-                    + Creer une variable
+                    + Créer une variable
                   </button>
                 )}
               </div>
@@ -544,7 +544,7 @@ export default function VariableManager({
                 {VAR_CATEGORIES.custom.icon} {VAR_CATEGORIES.custom.label}
               </div>
               <button className="var-add-btn" onClick={() => setShowModal(true)}>
-                + Creer une variable
+                + Créer une variable
               </button>
             </div>
           )}

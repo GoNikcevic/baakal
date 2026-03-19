@@ -24,46 +24,46 @@ const EDITOR_FALLBACK = {
     params: [
       { l: 'Canal', v: 'Email' }, { l: 'Cible', v: 'DAF · Comptabilite' },
       { l: 'Taille', v: '11-50 sal.' }, { l: 'Angle', v: 'Douleur client' },
-      { l: 'Ton', v: 'Pro decontracte' }, { l: 'Tutoiement', v: 'Vous' },
+      { l: 'Ton', v: 'Pro décontracté' }, { l: 'Tutoiement', v: 'Vous' },
       { l: 'Longueur', v: 'Court (3 phrases)' }, { l: 'CTA', v: 'Question ouverte' },
     ],
     aiBar: {
       title: '2 suggestions disponibles',
-      text: "E3 : l'angle anxiogene sous-performe (-3pts reponse). E4 : le break-up peut etre raccourci (actuellement 4 phrases, objectif 3).",
+      text: "E3 : l'angle anxiogène sous-performe (-3pts réponse). E4 : le break-up peut être raccourci (actuellement 4 phrases, objectif 3).",
     },
     touchpoints: [
       {
-        id: 'E1', type: 'email', label: 'Email initial', timing: 'J+0 · Envoye a 247 prospects',
+        id: 'E1', type: 'email', label: 'Email initial', timing: 'J+0 · Envoyé à 247 prospects',
         subType: 'Angle douleur client',
-        subject: '{{firstName}}, une question sur votre gestion financiere',
-        body: 'Bonjour {{firstName}},\n\nCombien d\'heures par semaine votre equipe passe-t-elle sur des taches qui pourraient etre automatisees ?\n\nChez {{companyName}}, les cabinets comme le votre gagnent en moyenne 12h/semaine en digitalisant trois processus cles.\n\nQuel est votre plus gros frein operationnel en ce moment ?',
+        subject: '{{firstName}}, une question sur votre gestion financière',
+        body: 'Bonjour {{firstName}},\n\nCombien d\'heures par semaine votre équipe passe-t-elle sur des tâches qui pourraient être automatisées ?\n\nChez {{companyName}}, les cabinets comme le vôtre gagnent en moyenne 12h/semaine en digitalisant trois processus clés.\n\nQuel est votre plus gros frein opérationnel en ce moment ?',
         suggestion: null,
       },
       {
         id: 'E2', type: 'email', label: 'Email valeur', timing: 'J+3 · Case study',
         subType: 'Preuve par l\'exemple',
-        subject: 'Re: gestion financiere — un cas concret',
-        body: '{{firstName}}, je me permets de revenir avec un exemple concret.\n\nLe cabinet Nexia Conseil (35 personnes, secteur similaire) a reduit de 40% le temps de reporting mensuel en automatisant la collecte de donnees.\n\nResultat : 2 jours recuperes chaque mois pour du conseil a valeur ajoutee.\n\nEst-ce que c\'est un sujet chez {{companyName}} ?',
+        subject: 'Re: gestion financière — un cas concret',
+        body: '{{firstName}}, je me permets de revenir avec un exemple concret.\n\nLe cabinet Nexia Conseil (35 personnes, secteur similaire) a réduit de 40% le temps de reporting mensuel en automatisant la collecte de données.\n\nRésultat : 2 jours récupérés chaque mois pour du conseil à valeur ajoutée.\n\nEst-ce que c\'est un sujet chez {{companyName}} ?',
         suggestion: null,
       },
       {
         id: 'E3', type: 'email', label: 'Email relance', timing: 'J+7 · Angle different',
         subType: 'Changement d\'angle',
         subject: 'Autre approche, {{firstName}}',
-        body: '{{firstName}}, je change d\'approche.\n\nPlutot que de parler d\'automatisation, une question simple : quel est le cout reel d\'une erreur de saisie dans un bilan chez {{companyName}} ?\n\nPour les cabinets de votre taille, nos clients estiment ce cout entre 2 000 et 8 000EUR par incident.\n\nSi le sujet vous parle, je peux vous montrer comment d\'autres cabinets ont elimine ce risque.',
+        body: '{{firstName}}, je change d\'approche.\n\nPlutôt que de parler d\'automatisation, une question simple : quel est le coût réel d\'une erreur de saisie dans un bilan chez {{companyName}} ?\n\nPour les cabinets de votre taille, nos clients estiment ce coût entre 2 000 et 8 000EUR par incident.\n\nSi le sujet vous parle, je peux vous montrer comment d\'autres cabinets ont éliminé ce risque.',
         suggestion: {
           label: 'Suggestion IA — Changer l\'angle',
-          text: 'L\'angle "cout de l\'erreur" est percu comme anxiogene sur ce segment. Les donnees montrent que l\'angle "gain de temps" performe +2.1pts mieux. <strong>Proposition :</strong> "Si vous pouviez recuperer une journee par semaine, qu\'en feriez-vous ?" -> CTA question ouverte positive.',
+          text: 'L\'angle "coût de l\'erreur" est perçu comme anxiogène sur ce segment. Les données montrent que l\'angle "gain de temps" performe +2.1pts mieux. <strong>Proposition :</strong> "Si vous pouviez récupérer une journée par semaine, qu\'en feriez-vous ?" -> CTA question ouverte positive.',
         },
       },
       {
         id: 'E4', type: 'email', label: 'Email break-up', timing: 'J+12 · Soft close',
         subType: 'Dernier message',
         subject: 'Derniere tentative, {{firstName}}',
-        body: '{{firstName}}, je ne veux pas encombrer votre boite.\n\nSi ce n\'est pas le bon moment, pas de souci — je ne reviendrai pas.\n\nJuste un dernier mot : si un jour 12h/semaine recuperees ca vous interesse, mon agenda est ouvert.\n\nBonne continuation.',
+        body: '{{firstName}}, je ne veux pas encombrer votre boîte.\n\nSi ce n\'est pas le bon moment, pas de souci — je ne reviendrai pas.\n\nJuste un dernier mot : si un jour 12h/semaine récupérées ça vous intéresse, mon agenda est ouvert.\n\nBonne continuation.',
         suggestion: {
           label: 'Suggestion IA — Raccourcir',
-          text: 'Le break-up fait 4 phrases, objectif 3 max. Supprimer "Juste un dernier mot..." et integrer le benefice dans la phrase precedente.',
+          text: 'Le break-up fait 4 phrases, objectif 3 max. Supprimer "Juste un dernier mot..." et intégrer le bénéfice dans la phrase précédente.',
         },
       },
     ],
@@ -78,19 +78,19 @@ const EDITOR_FALLBACK = {
     params: [
       { l: 'Canal', v: 'LinkedIn' }, { l: 'Cible', v: 'Dirigeant · Formation' },
       { l: 'Taille', v: '1-10 sal.' }, { l: 'Angle', v: 'Preuve sociale' },
-      { l: 'Ton', v: 'Pro decontracte' }, { l: 'Tutoiement', v: 'Vous' },
+      { l: 'Ton', v: 'Pro décontracté' }, { l: 'Tutoiement', v: 'Vous' },
       { l: 'CTA', v: 'Question ouverte' },
     ],
     aiBar: {
       title: '1 suggestion critique',
-      text: "L2 : le taux de reponse (6.8%) est sous l'objectif (8%). Changer l'angle de preuve sociale -> douleur client.",
+      text: "L2 : le taux de réponse (6.8%) est sous l'objectif (8%). Changer l'angle de preuve sociale -> douleur client.",
     },
     touchpoints: [
       {
-        id: 'L1', type: 'linkedin', label: 'Note de connexion', timing: 'J+0 · Max 300 caracteres',
-        subType: 'Premiere prise de contact',
+        id: 'L1', type: 'linkedin', label: 'Note de connexion', timing: 'J+0 · Max 300 caractères',
+        subType: 'Première prise de contact',
         subject: null,
-        body: '{{firstName}}, votre parcours dans la formation m\'a interpelle. J\'accompagne des dirigeants du secteur sur la croissance commerciale — je serais ravi d\'echanger avec vous.',
+        body: '{{firstName}}, votre parcours dans la formation m\'a interpellé. J\'accompagne des dirigeants du secteur sur la croissance commerciale — je serais ravi d\'échanger avec vous.',
         maxChars: 300,
         suggestion: null,
       },
@@ -98,10 +98,10 @@ const EDITOR_FALLBACK = {
         id: 'L2', type: 'linkedin', label: 'Message post-connexion', timing: 'J+3 · Conversationnel',
         subType: 'Apres acceptation',
         subject: null,
-        body: 'Merci d\'avoir accepte, {{firstName}} !\n\nJ\'ai accompagne 3 organismes de formation comme le votre a generer entre 5 et 12 RDV qualifies par mois.\n\nCurieux de savoir comment vous gerez votre developpement commercial actuellement ?',
+        body: 'Merci d\'avoir accepté, {{firstName}} !\n\nJ\'ai accompagné 3 organismes de formation comme le vôtre à générer entre 5 et 12 RDV qualifiés par mois.\n\nCurieux de savoir comment vous gérez votre développement commercial actuellement ?',
         suggestion: {
           label: 'Suggestion critique — Changer l\'angle',
-          text: '6.8% de reponse vs 8% cible. Le "3 organismes de formation" manque de specificite. <strong>Proposition :</strong> Passer a l\'angle douleur client : "Quel est votre plus gros frein pour trouver de nouveaux clients en ce moment ?" -> +1.5-2pts estimes.',
+          text: '6.8% de réponse vs 8% cible. Le "3 organismes de formation" manque de spécificité. <strong>Proposition :</strong> Passer à l\'angle douleur client : "Quel est votre plus gros frein pour trouver de nouveaux clients en ce moment ?" -> +1.5-2pts estimés.',
         },
       },
     ],
@@ -111,7 +111,7 @@ const EDITOR_FALLBACK = {
     icon: '📧',
     iconBg: 'var(--warning-bg)',
     channel: 'Multi-canal',
-    meta: '6 touchpoints · En preparation',
+    meta: '6 touchpoints · En préparation',
     status: 'prep',
     params: [
       { l: 'Canal', v: 'Email + LinkedIn' }, { l: 'Cible', v: 'DRH · Conseil' },
@@ -120,47 +120,47 @@ const EDITOR_FALLBACK = {
       { l: 'Longueur', v: 'Standard' }, { l: 'CTA', v: 'Proposition de call' },
     ],
     aiBar: {
-      title: '1 alerte pre-lancement',
+      title: '1 alerte pré-lancement',
       text: 'Le CTA "15 minutes cette semaine" est trop agressif pour un premier contact DRH. Les questions ouvertes convertissent 2x mieux.',
     },
     touchpoints: [
       {
         id: 'E1', type: 'email', label: 'Email initial', timing: 'J+0 · Offre directe',
         subType: 'Premier contact',
-        subject: '{{firstName}}, une solution concrete pour vos recrutements',
-        body: 'Bonjour {{firstName}},\n\nNous aidons des DRH de PME comme {{companyName}} a reduire de 40% leur temps de recrutement grace a une methode structuree d\'approche directe.\n\nSeriez-vous disponible 15 minutes cette semaine pour en discuter ?',
+        subject: '{{firstName}}, une solution concrète pour vos recrutements',
+        body: 'Bonjour {{firstName}},\n\nNous aidons des DRH de PME comme {{companyName}} à réduire de 40% leur temps de recrutement grâce à une méthode structurée d\'approche directe.\n\nSeriez-vous disponible 15 minutes cette semaine pour en discuter ?',
         suggestion: {
           label: 'Alerte IA — CTA trop agressif',
-          text: 'Le CTA "15 minutes cette semaine" est trop direct pour un premier contact DRH. Vos donnees montrent que les questions ouvertes convertissent 2x mieux. <strong>Proposition :</strong> "Quel est votre plus gros defi recrutement en ce moment ?" -> +2-3pts estimes.',
+          text: 'Le CTA "15 minutes cette semaine" est trop direct pour un premier contact DRH. Vos données montrent que les questions ouvertes convertissent 2x mieux. <strong>Proposition :</strong> "Quel est votre plus gros défi recrutement en ce moment ?" -> +2-3pts estimés.',
         },
       },
       {
         id: 'L1', type: 'linkedin', label: 'Note de connexion LinkedIn', timing: 'J+1 · Max 300 chars',
         subType: 'Prise de contact LK',
         subject: null,
-        body: '{{firstName}}, votre expertise RH chez {{companyName}} m\'a interpelle. J\'echange regulierement avec des DRH de PME lyonnaises — je serais ravi de vous compter dans mon reseau.',
+        body: '{{firstName}}, votre expertise RH chez {{companyName}} m\'a interpellé. J\'échange régulièrement avec des DRH de PME lyonnaises — je serais ravi de vous compter dans mon réseau.',
         maxChars: 300,
         suggestion: null,
       },
       {
         id: 'E2', type: 'email', label: 'Email valeur', timing: 'J+4 · Case study',
         subType: 'Preuve par l\'exemple',
-        subject: 'Re: recrutements — un resultat qui parle',
-        body: '{{firstName}}, un exemple concret : une PME de conseil RH (180 personnes, Lyon) a divise par 2 ses delais de recrutement en 3 mois.\n\nLeur secret ? Une methode d\'approche directe structuree qui genere 3x plus de candidatures qualifiees.\n\nSi vous faites face a des defis similaires chez {{companyName}}, je serais heureux d\'en discuter.',
+        subject: 'Re: recrutements — un résultat qui parle',
+        body: '{{firstName}}, un exemple concret : une PME de conseil RH (180 personnes, Lyon) a divisé par 2 ses délais de recrutement en 3 mois.\n\nLeur secret ? Une méthode d\'approche directe structurée qui génère 3x plus de candidatures qualifiées.\n\nSi vous faites face à des défis similaires chez {{companyName}}, je serais heureux d\'en discuter.',
         suggestion: null,
       },
       {
         id: 'L2', type: 'linkedin', label: 'Message LinkedIn', timing: 'J+5 · Post-connexion',
         subType: 'Apres acceptation LK',
         subject: null,
-        body: 'Merci d\'avoir accepte, {{firstName}} !\n\nJ\'accompagne des PME lyonnaises sur l\'optimisation de leurs processus RH. Comment gerez-vous vos recrutements chez {{companyName}} actuellement ?',
+        body: 'Merci d\'avoir accepté, {{firstName}} !\n\nJ\'accompagne des PME lyonnaises sur l\'optimisation de leurs processus RH. Comment gérez-vous vos recrutements chez {{companyName}} actuellement ?',
         suggestion: null,
       },
       {
         id: 'E3', type: 'email', label: 'Email relance', timing: 'J+8 · Angle different',
         subType: 'Nouvelle perspective',
         subject: 'Autre approche, {{firstName}}',
-        body: '{{firstName}}, une autre maniere de voir les choses : combien vous coute un recrutement rate chez {{companyName}} ?\n\nPour les PME de votre taille, nos clients estiment ce cout entre 15 000 et 45 000EUR.\n\nSi vous souhaitez en discuter, je suis disponible.',
+        body: '{{firstName}}, une autre manière de voir les choses : combien vous coûte un recrutement raté chez {{companyName}} ?\n\nPour les PME de votre taille, nos clients estiment ce coût entre 15 000 et 45 000EUR.\n\nSi vous souhaitez en discuter, je suis disponible.',
         suggestion: null,
       },
       {
@@ -228,14 +228,14 @@ function syncCampaignsFromContext(contextCampaigns) {
       icon: CH_ICONS[ch] || '✉️',
       iconBg: CH_BGS[ch] || 'var(--blue-bg)',
       channel: CH_LABELS[ch] || 'Email',
-      meta: `${seq.length} touchpoints · ${c.status === 'prep' ? 'En preparation' : 'Iteration ' + (c.iteration || 1)}`,
+      meta: `${seq.length} touchpoints · ${c.status === 'prep' ? 'En préparation' : 'Itération ' + (c.iteration || 1)}`,
       status: c.status || 'prep',
       params: [
         { l: 'Canal', v: CH_LABELS[ch] || 'Email' },
         { l: 'Cible', v: [c.position, c.sectorShort].filter(Boolean).join(' · ') },
         c.size ? { l: 'Taille', v: c.size } : null,
         c.angle ? { l: 'Angle', v: c.angle } : null,
-        { l: 'Ton', v: c.tone || 'Pro decontracte' },
+        { l: 'Ton', v: c.tone || 'Pro décontracté' },
         { l: 'Tutoiement', v: c.formality || 'Vous' },
         c.length ? { l: 'Longueur', v: c.length } : null,
         c.cta ? { l: 'CTA', v: c.cta } : null,
@@ -296,11 +296,11 @@ function AiBar({ aiBar, onApplyAll, onDismissAll }) {
       <div className="ai-bar-icon">~</div>
       <div className="ai-bar-content">
         <div className="ai-bar-title">
-          {applied ? 'Toutes les suggestions appliquees' : aiBar.title}
+          {applied ? 'Toutes les suggestions appliquées' : aiBar.title}
         </div>
         <div className="ai-bar-text">
           {applied
-            ? 'Verifiez les modifications et sauvegardez quand vous etes satisfait.'
+            ? 'Vérifiez les modifications et sauvegardez quand vous êtes satisfait.'
             : aiBar.text}
         </div>
       </div>
@@ -335,7 +335,7 @@ function TouchpointSuggestion({ suggestion, onApply, onDismiss }) {
     return (
       <div className="tp-ai-suggestion" style={{ opacity: 1 }}>
         <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>
-          Suggestion appliquee -- verifiez le resultat
+          Suggestion appliquée -- vérifiez le résultat
         </div>
       </div>
     );
@@ -386,7 +386,7 @@ function CharCounter({ bodyRef, maxChars }) {
 
   return (
     <span className={`tp-field-count${overClass}`} data-max={maxChars}>
-      {count} / {maxChars} caracteres
+      {count} / {maxChars} caractères
     </span>
   );
 }
@@ -422,7 +422,7 @@ function TouchpointCard({
   /* ─── Regenerate single touchpoint ─── */
   const handleRegenerate = useCallback(async () => {
     setRegenStatus('loading');
-    setRegenMsg('Regeneration en cours...');
+    setRegenMsg('Régénération en cours...');
 
     if (backendAvailable) {
       const backendId = campaignData._backendId || activeCampaignKey;
@@ -447,7 +447,7 @@ function TouchpointCard({
           }
         }
         setRegenStatus('done');
-        setRegenMsg('Regenere -- verifiez le resultat avant de sauvegarder');
+        setRegenMsg('Régénéré -- vérifiez le résultat avant de sauvegarder');
       } catch (err) {
         setRegenStatus('error');
         setRegenMsg('Erreur : ' + err.message);
@@ -504,7 +504,7 @@ function TouchpointCard({
         </div>
         <div className="tp-actions">
           <button className="tp-action ai" onClick={handleRegenerate}>
-            Regenerer
+            Régénérer
           </button>
           <button className="tp-action" onClick={onDuplicate}>
             Dupliquer
@@ -614,10 +614,10 @@ function LaunchBar({ campaign, campaignKey, touchpoints, backendAvailable, onLau
       <div className="editor-launch-bar" style={{ borderColor: 'var(--success)' }}>
         <div className="editor-launch-info" style={{ flex: 1 }}>
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--success)', letterSpacing: '-0.2px' }}>
-            Sequence deployee
+            Séquence déployée
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            {touchpoints.length} touchpoints actifs -- Les premiers envois demarrent sous 24h
+            {touchpoints.length} touchpoints actifs -- Les premiers envois démarrent sous 24h
           </div>
         </div>
       </div>
@@ -627,9 +627,9 @@ function LaunchBar({ campaign, campaignKey, touchpoints, backendAvailable, onLau
   return (
     <div className="editor-launch-bar">
       <div className="editor-launch-info">
-        <div style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.2px' }}>Sequence prete</div>
+        <div style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.2px' }}>Séquence prête</div>
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-          {touchpoints.length} touchpoints -- Verifiez vos messages puis lancez la campagne
+          {touchpoints.length} touchpoints -- Vérifiez vos messages puis lancez la campagne
         </div>
       </div>
       <button
@@ -659,7 +659,7 @@ function ParamsPanel({ params, onClose }) {
       marginBottom: '16px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>Parametres de la campagne</div>
+        <div style={{ fontSize: '14px', fontWeight: 600 }}>Paramètres de la campagne</div>
         <button className="tp-action" style={{ fontSize: '11px' }} onClick={onClose}>Fermer</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
@@ -922,7 +922,7 @@ export default function CopyEditorPage() {
     setIsDirty(false);
     const suffix = savedToBackend ? ' -- Synchronise' : ' -- Local';
     setSaveStatus('saved');
-    setSaveMessage(`Sequences sauvegardees -- ${time}${suffix}`);
+    setSaveMessage(`Séquences sauvegardées -- ${time}${suffix}`);
     setTimeout(() => {
       setSaveStatus(null);
       setSaveMessage(`Derniere sauvegarde : aujourd'hui a ${time}`);
@@ -948,7 +948,7 @@ export default function CopyEditorPage() {
     if (!currentCampaign || !activeCampaign) return;
 
     setRegenAllStatus('loading');
-    setRegenAllMessage('Claude analyse la campagne et regenere les touchpoints.');
+    setRegenAllMessage('Claude analyse la campagne et régénère les touchpoints.');
 
     if (backendAvailable) {
       const backendId = currentCampaign._backendId || activeCampaign;
@@ -972,8 +972,8 @@ export default function CopyEditorPage() {
         setRegenAllStatus('done');
         setRegenAllMessage(
           stepsCount > 0
-            ? `Regeneration terminee -- ${stepsCount} touchpoint(s) modifie(s)`
-            : 'Analyse terminee -- aucune regeneration necessaire'
+            ? `Régénération terminée -- ${stepsCount} touchpoint(s) modifié(s)`
+            : 'Analyse terminée -- aucune régénération nécessaire'
         );
       } catch (err) {
         console.warn('Refinement loop failed:', err.message);
@@ -982,7 +982,7 @@ export default function CopyEditorPage() {
       }
     } else {
       setRegenAllStatus('error');
-      setRegenAllMessage('Connectez le backend pour utiliser la regeneration IA.');
+      setRegenAllMessage('Connectez le backend pour utiliser la régénération IA.');
     }
 
     setTimeout(() => {
@@ -1020,15 +1020,15 @@ export default function CopyEditorPage() {
           onSelect={selectCampaign}
         />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-          Aucune campagne selectionnee
+          Aucune campagne sélectionnée
         </div>
       </div>
     );
   }
 
   const statusText = currentCampaign.status === 'prep'
-    ? 'Campagne en preparation -- les modifications seront deployees au lancement'
-    : 'Campagne active -- les modifications seront appliquees a la prochaine iteration';
+    ? 'Campagne en préparation -- les modifications seront déployées au lancement'
+    : 'Campagne active -- les modifications seront appliquées à la prochaine itération';
 
   return (
     <div className="copy-editor-page" style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -1057,7 +1057,7 @@ export default function CopyEditorPage() {
               style={{ fontSize: '12px', padding: '8px 14px' }}
               onClick={() => setShowParams(!showParams)}
             >
-              Parametres
+              Paramètres
             </button>
             <button
               className="btn btn-ghost"
@@ -1075,7 +1075,7 @@ export default function CopyEditorPage() {
               onClick={regenerateAll}
               disabled={regenAllStatus === 'loading'}
             >
-              {regenAllStatus === 'loading' ? 'Regeneration...' : 'Tout regenerer'}
+              {regenAllStatus === 'loading' ? 'Régénération...' : 'Tout régénérer'}
             </button>
           </div>
         </div>
@@ -1103,7 +1103,7 @@ export default function CopyEditorPage() {
         {(currentCampaign.aiBar || regenAllStatus) && (
           <AiBar
             aiBar={regenAllStatus
-              ? { title: regenAllStatus === 'loading' ? 'Regeneration en cours...' : regenAllMessage, text: regenAllMessage }
+              ? { title: regenAllStatus === 'loading' ? 'Régénération en cours...' : regenAllMessage, text: regenAllMessage }
               : currentCampaign.aiBar}
             onApplyAll={applyAllSuggestions}
             onDismissAll={dismissAllSuggestions}
@@ -1131,7 +1131,7 @@ export default function CopyEditorPage() {
             style={{ fontSize: '13px', padding: '8px 14px', width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             onClick={() => setShowVarGenerator(!showVarGenerator)}
           >
-            <span>{'\u{1F9EC}'} Refinement A/B — Generateur de variables</span>
+            <span>{'\u{1F9EC}'} Refinement A/B — Générateur de variables</span>
             <span style={{ fontSize: '11px' }}>{showVarGenerator ? '\u25B2' : '\u25BC'}</span>
           </button>
           {showVarGenerator && (
@@ -1156,7 +1156,7 @@ export default function CopyEditorPage() {
             ) : saveStatus === 'error' ? (
               <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{saveMessage}</span>
             ) : isDirty ? (
-              <span style={{ color: 'var(--warning)', fontWeight: 600 }}>Modifications non sauvegardees</span>
+              <span style={{ color: 'var(--warning)', fontWeight: 600 }}>Modifications non sauvegardées</span>
             ) : saveMessage ? (
               saveMessage
             ) : (
@@ -1176,7 +1176,7 @@ export default function CopyEditorPage() {
               style={{ fontSize: '12px', padding: '8px 14px' }}
               onClick={saveChanges}
             >
-              Sauvegarder les sequences
+              Sauvegarder les séquences
             </button>
           </div>
         </div>

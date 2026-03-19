@@ -52,21 +52,21 @@ const DEFAULT_SUGGESTIONS = [
 const ONBOARDING_SUGGESTIONS = [
   'Comment fonctionne Bakal ?',
   'Quel secteur cibler en premier ?',
-  'Aide-moi a definir mon ICP',
+  'Aide-moi à définir mon ICP',
 ];
 
 const RETURNING_SUGGESTIONS = [
-  'Resume de mes campagnes',
-  'Quelle campagne optimiser en priorite ?',
-  'Creer une campagne similaire',
+  'Résumé de mes campagnes',
+  'Quelle campagne optimiser en priorité ?',
+  'Créer une campagne similaire',
 ];
 
 const ACTION_PROMPTS = {
-  create: 'Je veux creer une nouvelle campagne de prospection. Guide-moi etape par etape.',
-  optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je ameliorer ?',
+  create: 'Je veux créer une nouvelle campagne de prospection. Guide-moi étape par étape.',
+  optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je améliorer ?',
   analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
-  setup_profile: 'Je viens de m\'inscrire. Aide-moi a configurer mon profil entreprise pour personnaliser mes campagnes.',
-  explore: 'Explique-moi les fonctionnalites de Bakal et comment tirer le meilleur parti de la plateforme.',
+  setup_profile: 'Je viens de m\'inscrire. Aide-moi à configurer mon profil entreprise pour personnaliser mes campagnes.',
+  explore: 'Explique-moi les fonctionnalités de Bakal et comment tirer le meilleur parti de la plateforme.',
 };
 
 /* ─── Sub-components ─── */
@@ -148,12 +148,12 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
 
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Campagne prete : {escapeHtml(campaign.name)}</div>
+        <div className="chat-action-title">Campagne prête : {escapeHtml(campaign.name)}</div>
         <div className="chat-action-params">{params}</div>
         {steps && <div className="chat-action-sequence">{steps}</div>}
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onCreateCampaign(campaign)}>
-            Creer et voir la sequence &rarr;
+            Créer et voir la séquence &rarr;
           </button>
           <button className="chat-action-btn ghost" onClick={onModify}>
             Modifier
@@ -203,13 +203,13 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
   if (action === 'regenerate_touchpoints') {
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Regenerer : {escapeHtml(metadata.campaignName || '')}</div>
+        <div className="chat-action-title">Régénérer : {escapeHtml(metadata.campaignName || '')}</div>
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0' }}>
           Touchpoints : {(metadata.steps || []).join(', ')}
         </div>
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
-            Regenerer les touchpoints
+            Régénérer les touchpoints
           </button>
           <button className="chat-action-btn ghost" onClick={onModify}>
             Modifier
@@ -380,9 +380,9 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
 
   // Contextual greeting based on user state
   let title = 'Assistant Bakal';
-  let subtitle = 'Je peux vous aider a creer des campagnes, optimiser vos sequences et analyser vos performances.';
+  let subtitle = 'Je peux vous aider à créer des campagnes, optimiser vos séquences et analyser vos performances.';
   let actions = [
-    { key: 'create', label: 'Creer une campagne' },
+    { key: 'create', label: 'Créer une campagne' },
     { key: 'optimize', label: 'Optimiser' },
     { key: 'analyze', label: 'Analyser' },
   ];
@@ -390,23 +390,23 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
   if (!hasProfile && campaignCount === 0) {
     // Brand new user — onboarding
     title = userName ? `Bienvenue ${userName} !` : 'Bienvenue sur Bakal !';
-    subtitle = 'Commencez par configurer votre profil entreprise, puis creez votre premiere campagne de prospection. Je vous guide etape par etape.';
+    subtitle = 'Commencez par configurer votre profil entreprise, puis créez votre première campagne de prospection. Je vous guide étape par étape.';
     actions = [
       { key: 'setup_profile', label: 'Configurer mon profil' },
-      { key: 'create', label: 'Creer ma premiere campagne' },
+      { key: 'create', label: 'Créer ma première campagne' },
     ];
   } else if (hasProfile && campaignCount === 0) {
     // Profile done but no campaigns yet
-    title = userName ? `Pret a prospecter, ${userName} ?` : 'Pret a prospecter ?';
-    subtitle = 'Votre profil est configure. Creez votre premiere campagne et je genere vos sequences personnalisees.';
+    title = userName ? `Prêt à prospecter, ${userName} ?` : 'Prêt à prospecter ?';
+    subtitle = 'Votre profil est configuré. Créez votre première campagne et je génère vos séquences personnalisées.';
     actions = [
-      { key: 'create', label: 'Creer ma premiere campagne' },
-      { key: 'explore', label: 'Explorer les fonctionnalites' },
+      { key: 'create', label: 'Créer ma première campagne' },
+      { key: 'explore', label: 'Explorer les fonctionnalités' },
     ];
   } else if (campaignCount > 0 && activeCampaigns === 0) {
     // Has campaigns but none active
     title = userName ? `Bon retour, ${userName} !` : 'Bon retour !';
-    subtitle = `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en preparation. Lancez-en une ou creez-en une nouvelle.`;
+    subtitle = `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en préparation. Lancez-en une ou créez-en une nouvelle.`;
     actions = [
       { key: 'create', label: 'Nouvelle campagne' },
       { key: 'analyze', label: 'Voir mes campagnes' },
@@ -606,21 +606,21 @@ export default function ChatPage() {
   /* ─── Get context suggestions ─── */
   const getSuggestions = useCallback((metadata) => {
     if (!metadata || !metadata.action) {
-      return ['Creer une campagne', 'Voir mes stats', 'Optimiser mes sequences'];
+      return ['Créer une campagne', 'Voir mes stats', 'Optimiser mes séquences'];
     }
     if (metadata.action === 'create_campaign') {
-      return ['Modifier les parametres', 'Ajouter un touchpoint LinkedIn', 'Changer le ton'];
+      return ['Modifier les paramètres', 'Ajouter un touchpoint LinkedIn', 'Changer le ton'];
     }
     if (metadata.action === 'update_campaign') {
       return ['Voir la campagne', 'Lancer une analyse', 'Autre modification'];
     }
     if (metadata.action === 'analyze_campaign' || metadata.action === 'show_diagnostic') {
-      return ['Regenerer les touchpoints faibles', 'Comparer avec les autres campagnes', 'Proposer des optimisations'];
+      return ['Régénérer les touchpoints faibles', 'Comparer avec les autres campagnes', 'Proposer des optimisations'];
     }
     if (metadata.action === 'regenerate_touchpoints') {
-      return ['Voir les nouvelles versions', 'Deployer les modifications', 'Modifier l\'approche'];
+      return ['Voir les nouvelles versions', 'Déployer les modifications', 'Modifier l\'approche'];
     }
-    return ['Creer une campagne', 'Voir mes stats', 'Optimiser mes sequences'];
+    return ['Créer une campagne', 'Voir mes stats', 'Optimiser mes séquences'];
   }, []);
 
   /* ─── Create campaign from chat ─── */
@@ -678,7 +678,7 @@ export default function ChatPage() {
           {
             id: Date.now(),
             role: 'assistant',
-            content: `Campagne **"${campaignData.name}"** creee avec succes ! Vous pouvez la retrouver dans l'editeur de sequences.`,
+            content: `Campagne **"${campaignData.name}"** créée avec succès ! Vous pouvez la retrouver dans l'éditeur de séquences.`,
             metadata: null,
             animate: true,
           },
@@ -690,7 +690,7 @@ export default function ChatPage() {
           {
             id: Date.now(),
             role: 'assistant',
-            content: 'Erreur lors de la creation : `' + err.message + '`. Essayez de creer la campagne manuellement.',
+            content: 'Erreur lors de la création : `' + err.message + '`. Essayez de créer la campagne manuellement.',
             metadata: null,
             animate: true,
           },
@@ -704,7 +704,7 @@ export default function ChatPage() {
         {
           id: Date.now(),
           role: 'assistant',
-          content: 'Le backend n\'est pas connecte. Vous pouvez creer cette campagne manuellement via le bouton **+ Nouvelle campagne** du dashboard.',
+          content: 'Le backend n\'est pas connecté. Vous pouvez créer cette campagne manuellement via le bouton **+ Nouvelle campagne** du dashboard.',
           metadata: null,
           animate: true,
         },
@@ -820,7 +820,7 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Desole, je ne peux pas repondre pour le moment. Verifiez que le backend est demarre et que la cle API Claude est configuree.\n\n`' + err.message + '`',
+            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Claude est configurée.\n\n`' + err.message + '`',
             metadata: null,
             animate: true,
           },
@@ -836,7 +836,7 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Le backend n\'est pas connecte. Demarrez le serveur avec `cd backend && node server.js` pour activer l\'assistant IA.\n\nEn attendant, vous pouvez explorer le dashboard et les autres pages.',
+            content: 'Le backend n\'est pas connecté. Démarrez le serveur avec `cd backend && node server.js` pour activer l\'assistant IA.\n\nEn attendant, vous pouvez explorer le dashboard et les autres pages.',
             metadata: null,
             animate: true,
           },
@@ -869,7 +869,7 @@ export default function ChatPage() {
 
     if (action === 'regenerate_touchpoints') {
       const steps = (metadata.steps || []).join(', ');
-      sendMessage(`Regenere les touchpoints ${steps} de la campagne "${metadata.campaignName || ''}"`);
+      sendMessage(`Régénère les touchpoints ${steps} de la campagne "${metadata.campaignName || ''}"`);
       return;
     }
 
@@ -1027,7 +1027,7 @@ export default function ChatPage() {
               fontSize: '15px', fontWeight: 600,
             }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>+</div>
-              Deposez vos fichiers ici
+              Déposez vos fichiers ici
               <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)', marginTop: '4px' }}>
                 CSV, Excel, PDF, DOCX — max 20 Mo
               </div>
@@ -1163,7 +1163,7 @@ export default function ChatPage() {
             ref={inputRef}
             id="chatInput"
             className="chat-input"
-            placeholder={attachedFiles.length > 0 ? 'Ajoutez un message pour accompagner vos fichiers...' : 'Ecrivez votre message...'}
+            placeholder={attachedFiles.length > 0 ? 'Ajoutez un message pour accompagner vos fichiers...' : 'Écrivez votre message...'}
             rows={1}
             value={inputValue}
             onChange={handleInputChange}

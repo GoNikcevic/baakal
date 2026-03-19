@@ -12,7 +12,7 @@ import { useApp } from '../context/useApp';
 const FILTERS = [
   { key: '', label: 'Toutes' },
   { key: 'active', label: 'Active' },
-  { key: 'prep', label: 'En preparation' },
+  { key: 'prep', label: 'En préparation' },
 ];
 
 export default function CampaignsList({ onNavigateCampaign }) {
@@ -87,13 +87,13 @@ export default function CampaignsList({ onNavigateCampaign }) {
       <div id="campaigns-list-view">
         <div className="empty-state">
           <div className="empty-state-icon">🎯</div>
-          <div className="empty-state-title">Aucune campagne creee</div>
+          <div className="empty-state-title">Aucune campagne créée</div>
           <div className="empty-state-desc">
-            Creez votre premiere campagne de prospection. Choisissez votre cible,
+            Créez votre première campagne de prospection. Choisissez votre cible,
             votre canal et votre angle — Claude s'occupe du reste.
           </div>
           <button className="btn btn-primary" onClick={() => setShowCreatorModal?.(true)}>
-            Creer ma premiere campagne
+            Créer ma première campagne
           </button>
         </div>
       </div>
@@ -123,8 +123,8 @@ export default function CampaignsList({ onNavigateCampaign }) {
             onClick={handleSortToggle}
           >
             {sortByReply
-              ? `Tri par reponse ${sortAsc ? '↑' : '↓'}`
-              : 'Trier par reponse'}
+              ? `Tri par réponse ${sortAsc ? '↑' : '↓'}`
+              : 'Trier par réponse'}
           </button>
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
                     <div>
                       <div className="project-header-name">Sans projet</div>
                       <div className="project-header-meta">
-                        Campagnes non assignees a un projet
+                        Campagnes non assignées à un projet
                       </div>
                     </div>
                   </div>
@@ -300,7 +300,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
               fontSize: '14px',
             }}
           >
-            Aucune campagne ne correspond au filtre selectionne.
+            Aucune campagne ne correspond au filtre sélectionné.
           </div>
         )}
       </div>
@@ -324,7 +324,7 @@ function CampaignRow({ campaign: c, onClick }) {
         Active
       </span>
     ) : (
-      <span className="status-badge status-prep">⏳ Preparation</span>
+      <span className="status-badge status-prep">⏳ Préparation</span>
     );
 
   let stat1Value, stat1Label, stat2Value, stat2Label;
@@ -337,12 +337,12 @@ function CampaignRow({ campaign: c, onClick }) {
     stat1Value = '—';
     stat1Label = 'N/A LinkedIn';
     stat2Value = (c.kpis?.replyRate ?? 0) + '%';
-    stat2Label = 'Reponse';
+    stat2Label = 'Réponse';
   } else {
     stat1Value = (c.kpis?.openRate ?? 0) + '%';
     stat1Label = 'Ouverture';
     stat2Value = (c.kpis?.replyRate ?? 0) + '%';
-    stat2Label = 'Reponse';
+    stat2Label = 'Réponse';
   }
 
   const stat1Color =
@@ -359,7 +359,7 @@ function CampaignRow({ campaign: c, onClick }) {
         ? 'var(--text-muted)'
         : 'var(--warning)';
 
-  const dateLabel = isPrep ? 'Creee' : 'Lancee';
+  const dateLabel = isPrep ? 'Créée' : 'Lancée';
 
   const audienceCount =
     c.volume?.sent > 0

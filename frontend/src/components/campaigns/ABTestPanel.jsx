@@ -38,10 +38,10 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
                 color: 'var(--success)',
               }}
             >
-              Test A/B lance sur {launched}
+              Test A/B lancé sur {launched}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Regeneration en cours par Claude &middot; Resultats estimes dans
+              Régénération en cours par Claude &middot; Résultats estimés dans
               5-7 jours
             </div>
           </div>
@@ -121,14 +121,14 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
               textTransform: 'uppercase',
             }}
           >
-            Repartition
+            Répartition
           </div>
           <select
             className="form-select"
             value={split}
             onChange={(e) => setSplit(e.target.value)}
           >
-            <option>50/50 (recommande)</option>
+            <option>50/50 (recommandé)</option>
             <option>70/30</option>
             <option>80/20</option>
           </select>
@@ -142,7 +142,7 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
           marginBottom: '16px',
         }}
       >
-        Claude va generer une variante B automatiquement basee sur les donnees
+        Claude va générer une variante B automatiquement basée sur les données
         cross-campagne.
       </div>
 

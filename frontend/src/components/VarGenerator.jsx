@@ -26,9 +26,9 @@ const VARGEN_SCENARIOS = {
     chain: [
       {
         key: 'beerName',
-        label: 'Nom de la biere phare',
+        label: 'Nom de la bière phare',
         type: 'base',
-        desc: 'Le produit signature ou best-seller de la brasserie. Trouvable sur leur site, Untappd, ou reseaux sociaux.',
+        desc: 'Le produit signature ou best-seller de la brasserie. Trouvable sur leur site, Untappd, ou réseaux sociaux.',
         source: { icon: '🔍', label: 'Scraping site web / Untappd' },
         examples: [
           { prospect: "Brasserie de la Goutte d'Or", value: 'Chateau Rouge (Amber Ale)' },
@@ -40,35 +40,35 @@ const VARGEN_SCENARIOS = {
         key: 'microbioProblem',
         label: 'Risque microbiologique probable',
         type: 'enrichment',
-        desc: 'Probleme microbiologique le plus courant selon le type de biere produite. Genere par IA a partir du style de biere.',
+        desc: 'Problème microbiologique le plus courant selon le type de bière produite. Généré par IA à partir du style de bière.',
         source: { icon: '🤖', label: 'IA \u2014 base sur le type de fermentation' },
         dependsOn: ['beerName'],
-        derivationHint: 'Le type de biere (IPA, Stout, Sour, Lager\u2026) determine la levure et les risques de contamination.',
+        derivationHint: 'Le type de bière (IPA, Stout, Sour, Lager\u2026) détermine la levure et les risques de contamination.',
         formula: {
           inputs: ['beerName'],
-          prompt: "A partir du style de biere, identifie le risque microbiologique le plus probable. Sois specifique et technique mais comprehensible.",
+          prompt: "À partir du style de bière, identifie le risque microbiologique le plus probable. Sois spécifique et technique mais compréhensible.",
         },
         examples: [
-          { prospect: 'Chateau Rouge (Amber)', value: "Oxydation prematuree \u2014 les malts caramelises sont plus sensibles aux reactions de Maillard post-embouteillage" },
-          { prospect: 'La Blanche (Witbier)', value: "Contamination Lactobacillus \u2014 les bieres de ble a pH eleve sont un terrain propice" },
-          { prospect: 'Saison Station (Saison)', value: "Refermentation non controlee \u2014 les levures Saison sont notoirement imprevisibles en bouteille" },
+          { prospect: 'Chateau Rouge (Amber)', value: "Oxydation prématurée \u2014 les malts caramélisés sont plus sensibles aux réactions de Maillard post-embouteillage" },
+          { prospect: 'La Blanche (Witbier)', value: "Contamination Lactobacillus \u2014 les bières de blé à pH élevé sont un terrain propice" },
+          { prospect: 'Saison Station (Saison)', value: "Refermentation non contrôlée \u2014 les levures Saison sont notoirement imprévisibles en bouteille" },
         ],
       },
       {
         key: 'brewerIcebreaker',
         label: 'Icebreaker brasseur',
         type: 'derived',
-        desc: "Accroche personnalisee qui combine la biere phare et le risque microbio pour montrer une expertise credible du metier.",
+        desc: "Accroche personnalisée qui combine la bière phare et le risque microbio pour montrer une expertise crédible du métier.",
         source: { icon: '🧠', label: 'IA \u2014 combinaison de beerName + microbioProblem' },
         dependsOn: ['beerName', 'microbioProblem'],
         formula: {
           inputs: ['beerName', 'microbioProblem'],
-          prompt: "Combine le nom de la biere phare et le risque microbiologique en une phrase d'accroche qui montre une expertise du metier brassicole. Ton conversationnel, pas de jargon excessif. Max 2 phrases.",
+          prompt: "Combine le nom de la bière phare et le risque microbiologique en une phrase d'accroche qui montre une expertise du métier brassicole. Ton conversationnel, pas de jargon excessif. Max 2 phrases.",
         },
         examples: [
-          { prospect: "Brasserie de la Goutte d'Or", value: "<em>Chateau Rouge</em> est une de mes ambers preferees \u2014 vous avez mis en place un protocole anti-oxydation specifique pour proteger ces malts caramelises post-embouteillage ?" },
-          { prospect: 'Brasserie du Mont Blanc', value: "J'ai goute <em>La Blanche</em> recemment, tres reussie. Cela dit, les witbiers a pH eleve sont un vrai defi cote Lactobacillus \u2014 c'est un sujet que vous maitrisez deja ?" },
-          { prospect: 'Deck & Donohue', value: "Les Saisons, c'est une de mes passions \u2014 mais je sais que <em>Saison Station</em> doit vous donner du fil a retordre en refermentation bouteille. Vous avez trouve une parade ?" },
+          { prospect: "Brasserie de la Goutte d'Or", value: "<em>Chateau Rouge</em> est une de mes ambers préférées \u2014 vous avez mis en place un protocole anti-oxydation spécifique pour protéger ces malts caramélisés post-embouteillage ?" },
+          { prospect: 'Brasserie du Mont Blanc', value: "J'ai goûté <em>La Blanche</em> récemment, très réussie. Cela dit, les witbiers à pH élevé sont un vrai défi côté Lactobacillus \u2014 c'est un sujet que vous maîtrisez déjà ?" },
+          { prospect: 'Deck & Donohue', value: "Les Saisons, c'est une de mes passions \u2014 mais je sais que <em>Saison Station</em> doit vous donner du fil à retordre en refermentation bouteille. Vous avez trouvé une parade ?" },
         ],
       },
     ],
@@ -89,7 +89,7 @@ const VARGEN_SCENARIOS = {
     chain: [
       {
         key: 'accountingSoftware',
-        label: 'Logiciel comptable utilise',
+        label: 'Logiciel comptable utilisé',
         type: 'base',
         desc: "L'outil principal de gestion comptable. Identifiable via les offres d'emploi, profils LinkedIn de l'equipe, ou le site web.",
         source: { icon: '🔍', label: "Scraping offres d'emploi / LinkedIn" },
@@ -101,15 +101,15 @@ const VARGEN_SCENARIOS = {
       },
       {
         key: 'estimatedTimeLost',
-        label: 'Heures perdues estimees / semaine',
+        label: 'Heures perdues estimées / semaine',
         type: 'enrichment',
-        desc: "Estimation du temps consacre aux taches automatisables, calcule selon l'outil utilise et la taille du cabinet.",
+        desc: "Estimation du temps consacré aux tâches automatisables, calculé selon l'outil utilisé et la taille du cabinet.",
         source: { icon: '🤖', label: 'IA \u2014 base sur accountingSoftware + companySize' },
         dependsOn: ['accountingSoftware', 'companySize'],
-        derivationHint: "Chaque logiciel a des fonctionnalites d'automatisation connues. On estime le gap entre usage courant et potentiel.",
+        derivationHint: "Chaque logiciel a des fonctionnalités d'automatisation connues. On estime le gap entre usage courant et potentiel.",
         formula: {
           inputs: ['accountingSoftware', 'companySize'],
-          prompt: "Estime le nombre d'heures par semaine perdues en taches automatisables, selon le logiciel comptable et la taille de l'entreprise. Sois specifique sur ce qui cause la perte de temps.",
+          prompt: "Estime le nombre d'heures par semaine perdues en tâches automatisables, selon le logiciel comptable et la taille de l'entreprise. Sois spécifique sur ce qui cause la perte de temps.",
         },
         examples: [
           { prospect: 'Cabinet Fidrec (Sage 100)', value: "~14h/semaine \u2014 Sage 100 n'a pas d'OCR natif, saisie manuelle des factures" },
@@ -126,12 +126,12 @@ const VARGEN_SCENARIOS = {
         dependsOn: ['accountingSoftware', 'estimatedTimeLost'],
         formula: {
           inputs: ['accountingSoftware', 'estimatedTimeLost'],
-          prompt: "Cree une accroche pour un DAF qui mentionne leur outil comptable et le temps perdu estime. La question doit etre chiffree et provoquer une prise de conscience. Ton professionnel decontracte, 1-2 phrases max.",
+          prompt: "Crée une accroche pour un DAF qui mentionne leur outil comptable et le temps perdu estimé. La question doit être chiffrée et provoquer une prise de conscience. Ton professionnel décontracté, 1-2 phrases max.",
         },
         examples: [
           { prospect: 'Cabinet Fidrec', value: "<em>14h par semaine</em> en saisie manuelle sur Sage 100 \u2014 c'est ce qu'on observe en moyenne chez les cabinets de votre taille. Si vous pouviez recuperer ne serait-ce que la moitie, qu'est-ce que ca changerait ?" },
-          { prospect: 'Nexia Conseil', value: "Cegid Loop fait bien le job, mais on voit souvent <em>8h/semaine</em> perdues sur le rapprochement bancaire. C'est un sujet que vous avez deja creuse chez Nexia ?" },
-          { prospect: 'BDO France', value: "SAP B1 est puissant, mais la plupart des PME n'utilisent que 40% de ses capacites \u2014 ca represente environ <em>6h recuperables par semaine</em>. Ca vous parle ?" },
+          { prospect: 'Nexia Conseil', value: "Cegid Loop fait bien le job, mais on voit souvent <em>8h/semaine</em> perdues sur le rapprochement bancaire. C'est un sujet que vous avez déjà creusé chez Nexia ?" },
+          { prospect: 'BDO France', value: "SAP B1 est puissant, mais la plupart des PME n'utilisent que 40% de ses capacités \u2014 ça représente environ <em>6h récupérables par semaine</em>. Ça vous parle ?" },
         ],
       },
     ],
@@ -166,7 +166,7 @@ const VARGEN_SCENARIOS = {
         key: 'catalogSize',
         label: 'Taille du catalogue',
         type: 'base',
-        desc: "Nombre approximatif de formations proposees. Identifiable sur leur site ou les plateformes CPF.",
+        desc: "Nombre approximatif de formations proposées. Identifiable sur leur site ou les plateformes CPF.",
         source: { icon: '🔍', label: 'Scraping site web / MonCompteFormation' },
         examples: [
           { prospect: 'FormaPro Consulting', value: '12 formations (management, RH)' },
@@ -178,17 +178,17 @@ const VARGEN_SCENARIOS = {
         key: 'formationIcebreaker',
         label: 'Icebreaker formation',
         type: 'derived',
-        desc: "Accroche qui combine statut Qualiopi et taille catalogue pour parler de la problematique de remplissage.",
+        desc: "Accroche qui combine statut Qualiopi et taille catalogue pour parler de la problématique de remplissage.",
         source: { icon: '🧠', label: 'IA \u2014 combinaison qualiopiStatus + catalogSize' },
         dependsOn: ['qualiopiStatus', 'catalogSize'],
         formula: {
           inputs: ['qualiopiStatus', 'catalogSize'],
-          prompt: "Cree une accroche pour un dirigeant d'organisme de formation en utilisant leur statut Qualiopi et la taille de leur catalogue. L'angle est la difficulte a remplir les sessions. Ton conversationnel, 1-2 phrases.",
+          prompt: "Crée une accroche pour un dirigeant d'organisme de formation en utilisant leur statut Qualiopi et la taille de leur catalogue. L'angle est la difficulté à remplir les sessions. Ton conversationnel, 1-2 phrases.",
         },
         examples: [
-          { prospect: 'FormaPro Consulting', value: "Avec <em>12 formations</em> au catalogue et Qualiopi en poche, le plus dur c'est pas la qualite \u2014 c'est de remplir les sessions. Comment vous gerez votre acquisition de stagiaires aujourd'hui ?" },
-          { prospect: 'CreActifs', value: "8 formations en entrepreneuriat, c'est un positionnement pointu. Mais les organismes specialises comme le votre ont souvent du mal a <em>toucher les bons candidats</em> au bon moment \u2014 c'est votre cas aussi ?" },
-          { prospect: 'OpenClassrooms B2B', value: "Avec <em>150+ parcours</em>, vous avez le catalogue. Mais pour les entreprises B2B, le defi c'est souvent de convaincre les DRH de passer a la formation en ligne \u2014 comment vous approchez ce frein ?" },
+          { prospect: 'FormaPro Consulting', value: "Avec <em>12 formations</em> au catalogue et Qualiopi en poche, le plus dur c'est pas la qualité \u2014 c'est de remplir les sessions. Comment vous gérez votre acquisition de stagiaires aujourd'hui ?" },
+          { prospect: 'CreActifs', value: "8 formations en entrepreneuriat, c'est un positionnement pointu. Mais les organismes spécialisés comme le vôtre ont souvent du mal à <em>toucher les bons candidats</em> au bon moment \u2014 c'est votre cas aussi ?" },
+          { prospect: 'OpenClassrooms B2B', value: "Avec <em>150+ parcours</em>, vous avez le catalogue. Mais pour les entreprises B2B, le défi c'est souvent de convaincre les DRH de passer à la formation en ligne \u2014 comment vous approchez ce frein ?" },
         ],
       },
     ],
@@ -242,13 +242,13 @@ function VarCard({ variable, onAccept, onDismiss, onEdit, onRefreshPreview }) {
         <div className="vargen-var-name">
           <span className="vargen-var-tag">{`{{${variable.key}}}`}</span>
           <span className={`vargen-var-type ${variable.type}`}>
-            {isDerived ? '\u26A1 Derivee' : isEnrichment ? '🧠 Enrichie' : '📥 Base'}
+            {isDerived ? '\u26A1 Dérivée' : isEnrichment ? '🧠 Enrichie' : '📥 Base'}
           </span>
         </div>
         <div className="vargen-var-actions">
           {status === 'accepted' ? (
             <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              \u2705 Ajoutee a la bibliotheque
+              \u2705 Ajoutée à la bibliothèque
             </span>
           ) : (
             <>
@@ -324,20 +324,20 @@ function VarCard({ variable, onAccept, onDismiss, onEdit, onRefreshPreview }) {
         <div className="vargen-preview">
           <div className="vargen-preview-header">
             <span className="vargen-preview-title">
-              {'\uD83D\uDC41\uFE0F'} Previsualisation IA &mdash; {variable.examples.length} exemples
+              {'\uD83D\uDC41\uFE0F'} Prévisualisation IA &mdash; {variable.examples.length} exemples
             </span>
             <button
               className="btn btn-ghost"
               style={{ fontSize: 10, padding: '4px 8px' }}
               onClick={handleRefresh}
             >
-              {'🔄'} Rafraichir
+              {'🔄'} Rafraîchir
             </button>
           </div>
           <div className="vargen-preview-body">
             {refreshing ? (
               <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--text-muted)' }}>
-                {'🔄'} Regeneration des exemples...
+                {'🔄'} Régénération des exemples...
               </div>
             ) : (
               variable.examples.map((ex, i) => (
@@ -459,15 +459,15 @@ export default function VarGenerator({
       }}>
         <div className="vargen-header-left">
           <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.3px' }}>
-            {'🧬'} Generateur de variables
+            {'🧬'} Générateur de variables
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-            Suggestions IA basees sur l'industrie et la campagne
+            Suggestions IA basées sur l'industrie et la campagne
           </div>
         </div>
         {allAccepted ? (
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            \u2705 {scenario.chain.length} variables ajoutees a votre bibliotheque
+            \u2705 {scenario.chain.length} variables ajoutées à votre bibliothèque
           </div>
         ) : (
           <button
@@ -476,7 +476,7 @@ export default function VarGenerator({
             onClick={regenerateSuggestions}
             disabled={regenerating}
           >
-            {regenerating ? '🧠 Analyse en cours...' : '🔄 Regenerer'}
+            {regenerating ? '🧠 Analyse en cours...' : '🔄 Régénérer'}
           </button>
         )}
       </div>
@@ -487,7 +487,7 @@ export default function VarGenerator({
         borderBottom: '1px solid var(--border)', flexWrap: 'wrap',
       }}>
         <span className="vargen-context-label" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          Analyse basee sur :
+          Analyse basée sur :
         </span>
         <span className="vargen-context-tag highlight" style={{
           fontSize: 11, padding: '3px 10px', borderRadius: 20,
@@ -540,7 +540,7 @@ export default function VarGenerator({
             <div style={{ fontSize: 36, marginBottom: 16 }}>{'🧠'}</div>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Analyse en cours...</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
-              Claude analyse l'industrie, les donnees de campagne et la memoire cross-campagne pour suggerer les meilleures variables.
+              Claude analyse l'industrie, les données de campagne et la mémoire cross-campagne pour suggérer les meilleures variables.
             </div>
           </div>
         ) : (
@@ -566,7 +566,7 @@ export default function VarGenerator({
                 fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
                 marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px',
               }}>
-                Chaine de variables suggeree
+                Chaîne de variables suggérée
               </div>
 
               {visibleChain.map((v, idx) => (
@@ -589,7 +589,7 @@ export default function VarGenerator({
               marginTop: 20, padding: '16px 0', borderTop: '1px solid var(--border)',
             }}>
               <div className="vargen-actions-info" style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>
-                {'💡'} Les variables acceptees seront ajoutees a votre bibliotheque et synchronisees avec Lemlist.
+                {'💡'} Les variables acceptées seront ajoutées à votre bibliothèque et synchronisées avec Lemlist.
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
@@ -597,7 +597,7 @@ export default function VarGenerator({
                   style={{ fontSize: 12, padding: '8px 14px' }}
                   onClick={suggestNewChain}
                 >
-                  {'🧠'} Suggerer une autre chaine
+                  {'🧠'} Suggérer une autre chaîne
                 </button>
                 <button
                   className="btn btn-primary"

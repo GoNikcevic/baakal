@@ -17,7 +17,7 @@ export default function PerformanceChart({ data }) {
   if (!data || data.length === 0) {
     return (
       <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
-        Les graphiques apparaitront avec les donnees de campagne.
+        Les graphiques apparaîtront avec les données de campagne.
       </div>
     );
   }

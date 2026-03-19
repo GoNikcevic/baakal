@@ -16,7 +16,7 @@ function TouchpointSuggestion({ suggestion, onApply, onDismiss }) {
     return (
       <div className="tp-ai-suggestion" style={{ opacity: 1 }}>
         <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>
-          Suggestion appliquee -- verifiez le resultat
+          Suggestion appliquée -- vérifiez le résultat
         </div>
       </div>
     );
@@ -67,7 +67,7 @@ function CharCounter({ bodyRef, maxChars }) {
 
   return (
     <span className={`tp-field-count${overClass}`} data-max={maxChars}>
-      {count} / {maxChars} caracteres
+      {count} / {maxChars} caractères
     </span>
   );
 }
@@ -91,7 +91,7 @@ export default function TouchpointCard({
   /* ─── Regenerate single touchpoint ─── */
   const handleRegenerate = useCallback(async () => {
     setRegenStatus('loading');
-    setRegenMsg('Regeneration en cours...');
+    setRegenMsg('Régénération en cours...');
 
     if (backendAvailable) {
       const backendId = campaignData._backendId || activeCampaignKey;
@@ -116,7 +116,7 @@ export default function TouchpointCard({
           }
         }
         setRegenStatus('done');
-        setRegenMsg('Regenere -- verifiez le resultat avant de sauvegarder');
+        setRegenMsg('Régénéré -- vérifiez le résultat avant de sauvegarder');
       } catch (err) {
         setRegenStatus('error');
         setRegenMsg('Erreur : ' + err.message);
@@ -173,7 +173,7 @@ export default function TouchpointCard({
         </div>
         <div className="tp-actions">
           <button className="tp-action ai" onClick={handleRegenerate}>
-            Regenerer
+            Régénérer
           </button>
           <button className="tp-action" onClick={onDuplicate}>
             Dupliquer

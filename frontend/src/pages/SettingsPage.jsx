@@ -13,13 +13,13 @@ import { useSocket } from '../context/SocketContext';
 /* ─── Key definitions grouped by category ─── */
 
 const CORE_KEYS = [
-  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn, sequences multi-canal', placeholder: 'Votre cle API Lemlist', required: true, color: '#6C5CE7', icon: 'L' },
-  { field: 'claudeKey', label: 'Claude (Anthropic)', desc: 'Generation de copy IA, analyse de performance, optimisation', placeholder: 'sk-ant-...', required: true, color: '#D97706', icon: 'C' },
-  { field: 'crmKey', label: 'CRM', desc: 'Synchronisation contacts et deals', placeholder: 'Votre cle API CRM', required: true, color: '#FF6B35', icon: 'R',
+  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn, séquences multi-canal', placeholder: 'Votre clé API Lemlist', required: true, color: '#6C5CE7', icon: 'L' },
+  { field: 'claudeKey', label: 'Claude (Anthropic)', desc: 'Génération de copy IA, analyse de performance, optimisation', placeholder: 'sk-ant-...', required: true, color: '#D97706', icon: 'C' },
+  { field: 'crmKey', label: 'CRM', desc: 'Synchronisation contacts et deals', placeholder: 'Votre clé API CRM', required: true, color: '#FF6B35', icon: 'R',
     crmSelector: true, crmOptions: [
       { value: 'hubspot', label: 'HubSpot', placeholder: 'pat-...' },
-      { value: 'salesforce', label: 'Salesforce', placeholder: 'Votre cle API Salesforce' },
-      { value: 'pipedrive', label: 'Pipedrive', placeholder: 'Votre cle API Pipedrive' },
+      { value: 'salesforce', label: 'Salesforce', placeholder: 'Votre clé API Salesforce' },
+      { value: 'pipedrive', label: 'Pipedrive', placeholder: 'Votre clé API Pipedrive' },
     ],
   },
 ];
@@ -28,41 +28,41 @@ const EXTENDED_GROUPS = [
   {
     label: 'Enrichissement',
     keys: [
-      { field: 'dropcontactKey', label: 'DropContact', desc: 'Enrichissement email et telephone', placeholder: 'Votre cle API DropContact', color: '#00B894', icon: 'D' },
-      { field: 'apolloKey', label: 'Apollo', desc: 'Base de donnees B2B et enrichissement', placeholder: 'Votre cle API Apollo', color: '#6C5CE7', icon: 'A' },
-      { field: 'hunterKey', label: 'Hunter', desc: 'Recherche et verification d\'emails', placeholder: 'Votre cle API Hunter', color: '#FF7675', icon: 'H' },
-      { field: 'kasprKey', label: 'Kaspr', desc: 'Donnees LinkedIn en temps reel', placeholder: 'Votre cle API Kaspr', color: '#0984E3', icon: 'K' },
-      { field: 'lushaKey', label: 'Lusha', desc: 'Coordonnees professionnelles', placeholder: 'Votre cle API Lusha', color: '#00CEC9', icon: 'Lu' },
-      { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre cle API Snov', color: '#E17055', icon: 'S' },
+      { field: 'dropcontactKey', label: 'DropContact', desc: 'Enrichissement email et téléphone', placeholder: 'Votre clé API DropContact', color: '#00B894', icon: 'D' },
+      { field: 'apolloKey', label: 'Apollo', desc: 'Base de données B2B et enrichissement', placeholder: 'Votre clé API Apollo', color: '#6C5CE7', icon: 'A' },
+      { field: 'hunterKey', label: 'Hunter', desc: 'Recherche et vérification d\'emails', placeholder: 'Votre clé API Hunter', color: '#FF7675', icon: 'H' },
+      { field: 'kasprKey', label: 'Kaspr', desc: 'Données LinkedIn en temps réel', placeholder: 'Votre clé API Kaspr', color: '#0984E3', icon: 'K' },
+      { field: 'lushaKey', label: 'Lusha', desc: 'Coordonnées professionnelles', placeholder: 'Votre clé API Lusha', color: '#00CEC9', icon: 'Lu' },
+      { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre clé API Snov', color: '#E17055', icon: 'S' },
     ],
   },
   {
     label: 'Outreach',
     keys: [
-      { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email a grande echelle', placeholder: 'Votre cle API Instantly', color: '#0984E3', icon: 'In' },
-      { field: 'lgmKey', label: 'La Growth Machine', desc: 'Sequences multi-canal automatisees', placeholder: 'Votre cle API LGM', color: '#6C5CE7', icon: 'LG' },
-      { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre cle API Waalaxy', color: '#A29BFE', icon: 'W' },
+      { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email à grande échelle', placeholder: 'Votre clé API Instantly', color: '#0984E3', icon: 'In' },
+      { field: 'lgmKey', label: 'La Growth Machine', desc: 'Séquences multi-canal automatisées', placeholder: 'Votre clé API LGM', color: '#6C5CE7', icon: 'LG' },
+      { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre clé API Waalaxy', color: '#A29BFE', icon: 'W' },
     ],
   },
   {
     label: 'LinkedIn / Scraping',
     keys: [
-      { field: 'phantombusterKey', label: 'PhantomBuster', desc: 'Scraping et automatisation web', placeholder: 'Votre cle API PhantomBuster', color: '#636E72', icon: 'PB' },
-      { field: 'captaindataKey', label: 'Captain Data', desc: 'Extraction de donnees multi-sources', placeholder: 'Votre cle API CaptainData', color: '#0984E3', icon: 'CD' },
+      { field: 'phantombusterKey', label: 'PhantomBuster', desc: 'Scraping et automatisation web', placeholder: 'Votre clé API PhantomBuster', color: '#636E72', icon: 'PB' },
+      { field: 'captaindataKey', label: 'Captain Data', desc: 'Extraction de données multi-sources', placeholder: 'Votre clé API CaptainData', color: '#0984E3', icon: 'CD' },
     ],
   },
   {
     label: 'Calendrier',
     keys: [
-      { field: 'calendlyKey', label: 'Calendly', desc: 'Planification de RDV automatisee', placeholder: 'Votre cle API Calendly', color: '#0069FF', icon: 'Ca' },
-      { field: 'calcomKey', label: 'Cal.com', desc: 'Alternative open-source a Calendly', placeholder: 'Votre cle API Cal.com', color: '#292929', icon: 'Cl' },
+      { field: 'calendlyKey', label: 'Calendly', desc: 'Planification de RDV automatisée', placeholder: 'Votre clé API Calendly', color: '#0069FF', icon: 'Ca' },
+      { field: 'calcomKey', label: 'Cal.com', desc: 'Alternative open-source à Calendly', placeholder: 'Votre clé API Cal.com', color: '#292929', icon: 'Cl' },
     ],
   },
   {
-    label: 'Delivrabilite',
+    label: 'Délivrabilité',
     keys: [
-      { field: 'mailreachKey', label: 'MailReach', desc: 'Warm-up et monitoring inbox', placeholder: 'Votre cle API MailReach', color: '#E17055', icon: 'MR' },
-      { field: 'warmboxKey', label: 'Warmbox', desc: 'Prechauffage email automatise', placeholder: 'Votre cle API Warmbox', color: '#FDCB6E', icon: 'Wb' },
+      { field: 'mailreachKey', label: 'MailReach', desc: 'Warm-up et monitoring inbox', placeholder: 'Votre clé API MailReach', color: '#E17055', icon: 'MR' },
+      { field: 'warmboxKey', label: 'Warmbox', desc: 'Préchauffage email automatisé', placeholder: 'Votre clé API Warmbox', color: '#FDCB6E', icon: 'Wb' },
     ],
   },
 ];
@@ -222,7 +222,7 @@ export default function SettingsPage() {
   const showToast = useCallback((msg, type = 'success') => {
     notifyToast({
       type: type === 'error' ? 'danger' : type,
-      title: type === 'error' ? 'Erreur' : 'Succes',
+      title: type === 'error' ? 'Erreur' : 'Succès',
       message: msg,
       duration: 3000,
     });
@@ -576,7 +576,7 @@ export default function SettingsPage() {
       {/* Integrations library */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => setShowExtended(p => !p)}>
-          <div className="card-title">Bibliotheque d'integrations</div>
+          <div className="card-title">Bibliothèque d'intégrations</div>
           <span style={{
             fontSize: 12, color: 'var(--text-muted)',
             transition: 'transform 0.3s ease',

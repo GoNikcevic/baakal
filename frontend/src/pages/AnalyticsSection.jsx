@@ -76,7 +76,7 @@ function CampaignPerfRow({ campaign }) {
         {replyRate != null && (
           <>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '3px' }}>Reponse</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '3px' }}>Réponse</div>
               <div className="campaign-perf-bar-track">
                 <div
                   className="campaign-perf-bar-fill"
@@ -164,10 +164,10 @@ export default function AnalyticsSection({ onNavigate }) {
     const replied = Math.round(totalContacts * 0.081);
 
     return [
-      { label: 'Contactes', value: totalContacts },
+      { label: 'Contactés', value: totalContacts },
       { label: 'Ouvert', value: opened },
-      { label: 'Repondu', value: replied },
-      { label: 'Interesse', value: totalInterested },
+      { label: 'Répondu', value: replied },
+      { label: 'Intéressé', value: totalInterested },
       { label: 'RDV', value: totalMeetings },
     ];
   }, [activeCampaigns]);
@@ -181,7 +181,7 @@ export default function AnalyticsSection({ onNavigate }) {
           <div className="empty-state-icon">{'📈'}</div>
           <div className="empty-state-title">Analytics non disponibles</div>
           <div className="empty-state-desc">
-            Les graphiques de performance s'afficheront des que votre premiere campagne sera active avec des donnees de prospection.
+            Les graphiques de performance s'afficheront dès que votre première campagne sera active avec des données de prospection.
           </div>
           {onNavigate && (
             <button className="btn btn-ghost" onClick={() => onNavigate('overview')}>
@@ -205,11 +205,11 @@ export default function AnalyticsSection({ onNavigate }) {
           <div className="analytics-kpi-value">{kpis.openRate}</div>
         </div>
         <div className="analytics-kpi-card">
-          <div className="analytics-kpi-label">Taux de reponse</div>
+          <div className="analytics-kpi-label">Taux de réponse</div>
           <div className="analytics-kpi-value">{kpis.replyRate}</div>
         </div>
         <div className="analytics-kpi-card">
-          <div className="analytics-kpi-label">Interesses</div>
+          <div className="analytics-kpi-label">Intéressés</div>
           <div className="analytics-kpi-value">{kpis.interested}</div>
         </div>
         <div className="analytics-kpi-card">
@@ -258,7 +258,7 @@ export default function AnalyticsSection({ onNavigate }) {
 
         {/* Channel Breakdown */}
         <div className="card">
-          <div className="card-title">Repartition par canal</div>
+          <div className="card-title">Répartition par canal</div>
           <div className="card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Channel bars */}
