@@ -258,152 +258,164 @@ export default function ProfilePage() {
       </div>
 
       {/* Company Info */}
-      <div className="card">
-        <div className="card-title">Informations entreprise</div>
-        <div className="form-grid">
-          {renderInput('Nom de l\'entreprise', 'company', { placeholder: 'Ex: FormaPro Consulting' })}
-          {renderInput('Secteur d\'activité', 'sector', { placeholder: 'Ex: Formation professionnelle' })}
-          {renderInput('Site web', 'website', { type: 'url', placeholder: 'https://...' })}
-          {renderSelect('Taille d\'équipe', 'team_size', [
-            '1-5', '6-10', '11-25', '26-50', '51-100', '100+',
-          ])}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Informations entreprise</div></div>
+        <div className="card-body">
+          <div className="form-grid">
+            {renderInput('Nom de l\'entreprise', 'company', { placeholder: 'Ex: FormaPro Consulting' })}
+            {renderInput('Secteur d\'activité', 'sector', { placeholder: 'Ex: Formation professionnelle' })}
+            {renderInput('Site web', 'website', { type: 'url', placeholder: 'https://...' })}
+            {renderSelect('Taille d\'équipe', 'team_size', [
+              '1-5', '6-10', '11-25', '26-50', '51-100', '100+',
+            ])}
+          </div>
+          {renderTextarea('Description de l\'activité', 'description', {
+            placeholder: 'Décrivez brièvement votre activité et vos services principaux...',
+            rows: 3,
+          })}
         </div>
-        {renderTextarea('Description de l\'activité', 'description', {
-          placeholder: 'Décrivez brièvement votre activité et vos services principaux...',
-          rows: 3,
-        })}
       </div>
 
       {/* Value Proposition */}
-      <div className="card">
-        <div className="card-title">Proposition de valeur</div>
-        {renderTextarea('Proposition de valeur principale', 'value_prop', {
-          placeholder: 'Quel problème résolvez-vous et quelle est votre promesse client ?',
-          rows: 3,
-        })}
-        {renderTextarea('Preuves sociales / Références', 'social_proof', {
-          placeholder: 'Clients notables, chiffres clés, témoignages, certifications...',
-          rows: 3,
-        })}
-        {renderTextarea('Pain points clients', 'pain_points', {
-          placeholder: 'Les frustrations et difficultés principales de vos clients cibles...',
-          rows: 3,
-        })}
-        {renderTextarea('Objections fréquentes', 'objections', {
-          placeholder: 'Les raisons pour lesquelles les prospects hésitent...',
-          rows: 3,
-        })}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Proposition de valeur</div></div>
+        <div className="card-body">
+          {renderTextarea('Proposition de valeur principale', 'value_prop', {
+            placeholder: 'Quel problème résolvez-vous et quelle est votre promesse client ?',
+            rows: 3,
+          })}
+          {renderTextarea('Preuves sociales / Références', 'social_proof', {
+            placeholder: 'Clients notables, chiffres clés, témoignages, certifications...',
+            rows: 3,
+          })}
+          {renderTextarea('Pain points clients', 'pain_points', {
+            placeholder: 'Les frustrations et difficultés principales de vos clients cibles...',
+            rows: 3,
+          })}
+          {renderTextarea('Objections fréquentes', 'objections', {
+            placeholder: 'Les raisons pour lesquelles les prospects hésitent...',
+            rows: 3,
+          })}
+        </div>
       </div>
 
       {/* Personas */}
-      <div className="card">
-        <div className="card-title">Personas cibles</div>
-        {renderTextarea('Persona principal', 'persona_primary', {
-          placeholder: 'Décrivez votre interlocuteur idéal : poste, responsabilités, défis quotidiens...',
-          rows: 3,
-        })}
-        {renderTextarea('Persona secondaire', 'persona_secondary', {
-          placeholder: 'Autre profil cible (si applicable)...',
-          rows: 3,
-        })}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Personas cibles</div></div>
+        <div className="card-body">
+          {renderTextarea('Persona principal', 'persona_primary', {
+            placeholder: 'Décrivez votre interlocuteur idéal : poste, responsabilités, défis quotidiens...',
+            rows: 3,
+          })}
+          {renderTextarea('Persona secondaire', 'persona_secondary', {
+            placeholder: 'Autre profil cible (si applicable)...',
+            rows: 3,
+          })}
+        </div>
       </div>
 
       {/* Target */}
-      <div className="card">
-        <div className="card-title">Ciblage</div>
-        <div className="form-grid">
-          {renderInput('Secteurs cibles', 'target_sectors', { placeholder: 'Ex: Finance, RH, Formation' })}
-          {renderInput('Taille d\'entreprise cible', 'target_size', { placeholder: 'Ex: 11-50 salariés' })}
-          {renderInput('Zones géographiques', 'target_zones', { placeholder: 'Ex: Île-de-France, Lyon, France' })}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Ciblage</div></div>
+        <div className="card-body">
+          <div className="form-grid">
+            {renderInput('Secteurs cibles', 'target_sectors', { placeholder: 'Ex: Finance, RH, Formation' })}
+            {renderInput('Taille d\'entreprise cible', 'target_size', { placeholder: 'Ex: 11-50 salariés' })}
+            {renderInput('Zones géographiques', 'target_zones', { placeholder: 'Ex: Île-de-France, Lyon, France' })}
+          </div>
         </div>
       </div>
 
       {/* Communication Style */}
-      <div className="card">
-        <div className="card-title">Style de communication</div>
-        <div className="form-grid">
-          {renderSelect('Ton par défaut', 'default_tone', [
-            'Pro décontracté', 'Formel', 'Amical', 'Direct', 'Expert',
-          ])}
-          {renderSelect('Formalité', 'default_formality', [
-            'Vous', 'Tu',
-          ])}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Style de communication</div></div>
+        <div className="card-body">
+          <div className="form-grid">
+            {renderSelect('Ton par défaut', 'default_tone', [
+              'Pro décontracté', 'Formel', 'Amical', 'Direct', 'Expert',
+            ])}
+            {renderSelect('Formalité', 'default_formality', [
+              'Vous', 'Tu',
+            ])}
+          </div>
+          {renderTextarea('Mots / expressions à éviter', 'avoid_words', {
+            placeholder: 'Ex: "innovant", "synergies", "n\'hésitez pas"...',
+            rows: 2,
+          })}
+          {renderTextarea('Expressions signature', 'signature_phrases', {
+            placeholder: 'Phrases ou tournures que vous utilisez souvent et souhaitez conserver...',
+            rows: 2,
+          })}
         </div>
-        {renderTextarea('Mots / expressions à éviter', 'avoid_words', {
-          placeholder: 'Ex: "innovant", "synergies", "n\'hésitez pas"...',
-          rows: 2,
-        })}
-        {renderTextarea('Expressions signature', 'signature_phrases', {
-          placeholder: 'Phrases ou tournures que vous utilisez souvent et souhaitez conserver...',
-          rows: 2,
-        })}
       </div>
 
       {/* Documents */}
-      <div className="card">
-        <div className="card-title">Documents entreprise</div>
-        <div className="page-subtitle" style={{ marginBottom: 16 }}>
-          Briefs, guidelines, personas PDF, exemples de campagnes — Claude les utilisera pour personnaliser vos séquences.
-        </div>
-        <div
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          style={{
-            border: `2px dashed ${isDragging ? 'var(--blue)' : 'var(--border)'}`,
-            borderRadius: 12,
-            padding: '32px 20px',
-            textAlign: 'center',
-            background: isDragging ? 'rgba(96,165,250,0.06)' : 'var(--bg-elevated)',
-            transition: 'all 0.2s',
-            cursor: 'pointer',
-          }}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".csv,.xlsx,.xls,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
-            style={{ display: 'none' }}
-            onChange={(e) => { if (e.target.files?.length > 0) { addFiles(e.target.files); e.target.value = ''; } }}
-          />
-          <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-            {isDragging ? 'Déposez vos fichiers ici' : 'Glissez vos fichiers ici ou cliquez pour parcourir'}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header"><div className="card-title">Documents entreprise</div></div>
+        <div className="card-body">
+          <div className="page-subtitle" style={{ marginBottom: 16 }}>
+            Briefs, guidelines, personas PDF, exemples de campagnes — Claude les utilisera pour personnaliser vos séquences.
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-            PDF, DOCX, CSV, Excel, images — max 20 Mo par fichier
+          <div
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            style={{
+              border: `2px dashed ${isDragging ? 'var(--blue)' : 'var(--border)'}`,
+              borderRadius: 12,
+              padding: '32px 20px',
+              textAlign: 'center',
+              background: isDragging ? 'rgba(96,165,250,0.06)' : 'var(--bg-elevated)',
+              transition: 'all 0.2s',
+              cursor: 'pointer',
+            }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".csv,.xlsx,.xls,.pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
+              style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files?.length > 0) { addFiles(e.target.files); e.target.value = ''; } }}
+            />
+            <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
+              {isDragging ? 'Déposez vos fichiers ici' : 'Glissez vos fichiers ici ou cliquez pour parcourir'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+              PDF, DOCX, CSV, Excel, images — max 20 Mo par fichier
+            </div>
           </div>
-        </div>
 
-        {files.length > 0 && (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {files.map((f, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)', borderRadius: 8, fontSize: 13,
-              }}>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>{formatSize(f.size)}</span>
-                <button onClick={() => removeFile(i)} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-muted)', fontSize: 14, padding: '0 4px',
-                }}>x</button>
-              </div>
-            ))}
-            <button
-              className="btn btn-primary"
-              onClick={handleUpload}
-              disabled={uploading}
-              style={{ alignSelf: 'flex-start', marginTop: 8 }}
-            >
-              {uploading ? 'Upload en cours...' : `Envoyer ${files.length} fichier${files.length > 1 ? 's' : ''}`}
-            </button>
-          </div>
-        )}
+          {files.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {files.map((f, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 12px', background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)', borderRadius: 8, fontSize: 13,
+                }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>{formatSize(f.size)}</span>
+                  <button onClick={() => removeFile(i)} style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-muted)', fontSize: 14, padding: '0 4px',
+                  }}>x</button>
+                </div>
+              ))}
+              <button
+                className="btn btn-primary"
+                onClick={handleUpload}
+                disabled={uploading}
+                style={{ alignSelf: 'flex-start', marginTop: 8 }}
+              >
+                {uploading ? 'Upload en cours...' : `Envoyer ${files.length} fichier${files.length > 1 ? 's' : ''}`}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
