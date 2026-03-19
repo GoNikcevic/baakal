@@ -35,18 +35,18 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
 
     if (isLinkedin) {
       return [
-        { value: c.kpis?.contacts, label: 'Prospects contactes', pct: volumePct, color: 'var(--accent)' },
+        { value: c.kpis?.contacts, label: 'Prospects contactés', pct: volumePct, color: 'var(--accent)' },
         { value: (c.kpis?.acceptRate ?? 0) + '%', label: "Taux d'acceptation", pct: c.kpis?.acceptRate ?? 0, color: 'var(--success)' },
-        { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de reponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: c.kpis?.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)' },
-        { value: c.kpis?.interested ?? 0, label: 'Interesses', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
+        { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: c.kpis?.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)' },
+        { value: c.kpis?.interested ?? 0, label: 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
         { value: c.kpis?.meetings ?? 0, label: 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
       ];
     }
     return [
       { value: c.kpis?.contacts, label: 'Prospects contactes', pct: volumePct, color: 'var(--accent)' },
       { value: (c.kpis?.openRate ?? 0) + '%', label: "Taux d'ouverture", pct: c.kpis?.openRate ?? 0, color: 'var(--success)' },
-      { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de reponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: 'var(--blue)' },
-      { value: c.kpis?.interested ?? 0, label: 'Interesses', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
+      { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: 'var(--blue)' },
+      { value: c.kpis?.interested ?? 0, label: 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
       { value: c.kpis?.meetings ?? 0, label: 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
     ];
   }, [c, isLinkedin]);
@@ -215,7 +215,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
             touchpoints
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Duree : {duration} jours &middot; {seqDays}
+            Durée : {duration} jours &middot; {seqDays}
           </div>
         </div>
         <div className="sequence-steps">
@@ -246,7 +246,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
               gap: '8px',
             }}
           >
-            🤖 Diagnostic par etape — Claude
+            🤖 Diagnostic par étape — Claude
           </div>
           <div
             style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -292,7 +292,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
                     textAlign: 'center',
                   }}
                 >
-                  Aucune modification enregistree.
+                  Aucune modification enregistrée.
                 </div>
               )}
             </div>
@@ -326,10 +326,10 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
                     marginBottom: '4px',
                   }}
                 >
-                  Volume envoye
+                  Volume envoyé
                 </div>
                 <div style={{ fontSize: '14px' }}>
-                  {c.volume?.sent} / {c.volume?.planned} prospects prevus
+                  {c.volume?.sent} / {c.volume?.planned} prospects prévus
                 </div>
                 <div
                   style={{

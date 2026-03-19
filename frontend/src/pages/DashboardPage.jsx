@@ -7,6 +7,7 @@
 import { useMemo, useCallback, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import { DEMO_DATA } from '../data/demo-data';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
 import PerformanceChart from '../components/charts/PerformanceChart';
 import { sanitizeHtml } from '../services/sanitize';
@@ -26,9 +27,18 @@ export default function DashboardPage() {
   const { campaigns, globalKpis, opportunities, recommendations, chartData, setOpportunities } = useApp();
   const { setShowCreatorModal } = useOutletContext() || {};
   const openCreator = useCallback(() => setShowCreatorModal?.(true), [setShowCreatorModal]);
+  const [showDemo, setShowDemo] = useState(false);
 
-  const campaignsList = useMemo(() => Object.values(campaigns), [campaigns]);
-  const isEmpty = campaignsList.length === 0;
+  const displayData = showDemo ? {
+    campaigns: DEMO_DATA.campaigns,
+    globalKpis: DEMO_DATA.globalKpis,
+    opportunities: DEMO_DATA.opportunities,
+    recommendations: DEMO_DATA.recommendations,
+    chartData: DEMO_DATA.chartData,
+  } : { campaigns, globalKpis, opportunities, recommendations, chartData };
+
+  const campaignsList = useMemo(() => Object.values(displayData.campaigns), [displayData.campaigns]);
+  const isEmpty = showDemo ? false : campaignsList.length === 0;
   const activeCount = useMemo(
     () => campaignsList.filter((c) => c.status === 'active').length,
     [campaignsList]
@@ -36,7 +46,7 @@ export default function DashboardPage() {
 
   /* ── Subtitle ── */
   const subtitle = isEmpty
-    ? 'Bienvenue \u2014 Configurez votre premiere campagne'
+    ? 'Bienvenue \u2014 Configurez votre première campagne'
     : (() => {
         const today = new Date();
         const weekStr =
@@ -60,16 +70,23 @@ export default function DashboardPage() {
             &nbsp;&nbsp;{subtitle}
           </div>
         </div>
+        <button
+          className={`btn ${showDemo ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setShowDemo(p => !p)}
+          style={{ fontSize: 12 }}
+        >
+          {showDemo ? 'Donn\u00e9es de d\u00e9mo actives' : 'Voir la d\u00e9mo'}
+        </button>
       </div>
 
       {/* Overview content */}
       <OverviewSection
         isEmpty={isEmpty}
-        globalKpis={globalKpis}
+        globalKpis={displayData.globalKpis}
         campaigns={campaignsList}
-        opportunities={opportunities}
-        recommendations={recommendations}
-        chartData={chartData}
+        opportunities={displayData.opportunities}
+        recommendations={displayData.recommendations}
+        chartData={displayData.chartData}
         onCreateCampaign={openCreator}
         setOpportunities={setOpportunities}
       />
@@ -164,7 +181,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         {/* Opportunities */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">{'\u{1F525}'} Opportunites recentes</div>
+            <div className="card-title">{'\u{1F525}'} Opportunités récentes</div>
             <button
               className="btn btn-ghost"
               style={{ padding: '6px 12px', fontSize: '12px' }}
@@ -194,7 +211,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
                 ))
               ) : (
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '24px 0' }}>
-                  Les opportunites s'afficheront ici.
+                  Les opportunités s'afficheront ici.
                 </div>
               )}
             </div>
@@ -251,7 +268,7 @@ function CampaignsTable({ campaigns }) {
           <th>Canal</th>
           <th>Statut</th>
           <th>Ouvertures</th>
-          <th>Reponses</th>
+          <th>Réponses</th>
           <th>RDV</th>
         </tr>
       </thead>
@@ -274,7 +291,7 @@ function CampaignTableRow({ campaign: c }) {
       Active
     </span>
   ) : (
-    <span className="status-badge status-prep">{'\u23F3'} En preparation</span>
+    <span className="status-badge status-prep">{'\u23F3'} En préparation</span>
   );
 
   let openContent, replyContent, meetingsContent;
@@ -377,27 +394,27 @@ function WelcomeBanner({ onCreateCampaign }) {
     <div className="welcome-banner">
       <div className="welcome-title">Bienvenue sur Bakal</div>
       <div className="welcome-subtitle">
-        Votre plateforme de prospection intelligente est prete. Suivez ces etapes
-        pour lancer votre premiere campagne et commencer a generer des RDV
-        qualifies.
+        Votre plateforme de prospection intelligente est prête. Suivez ces étapes
+        pour lancer votre première campagne et commencer à générer des RDV
+        qualifiés.
       </div>
       <div className="onboarding-steps">
         <div className="onboarding-step step-active">
           <div className="onboarding-step-number">1</div>
-          <div className="onboarding-step-title">Creez votre campagne</div>
+          <div className="onboarding-step-title">Créez votre campagne</div>
           <div className="onboarding-step-desc">
-            Definissez votre cible, votre canal (Email, LinkedIn ou les deux) et
+            Définissez votre cible, votre canal (Email, LinkedIn ou les deux) et
             votre angle d'approche.
           </div>
-          <button className="btn btn-primary" onClick={onCreateCampaign}>Creer ma campagne</button>
+          <button className="btn btn-primary" onClick={onCreateCampaign}>Créer ma campagne</button>
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">2</div>
           <div className="onboarding-step-title">
-            Claude genere vos sequences
+            Claude génère vos séquences
           </div>
           <div className="onboarding-step-desc">
-            L'IA redige des messages personnalises et adaptes a votre cible et
+            L'IA rédige des messages personnalisés et adaptés à votre cible et
             votre secteur.
           </div>
         </div>
@@ -428,9 +445,9 @@ function EmptyKpis() {
   const items = [
     { label: '\u{1F4E4} Contacts atteints' },
     { label: "\u{1F4EC} Taux d'ouverture" },
-    { label: '\u{1F4AC} Taux de reponse' },
-    { label: '\u{1F525} Prospects interesses' },
-    { label: '\u{1F4C5} RDV qualifies' },
+    { label: '\u{1F4AC} Taux de réponse' },
+    { label: '\u{1F525} Prospects intéressés' },
+    { label: '\u{1F4C5} RDV qualifiés' },
     { label: '\u{1F6AB} Stops' },
   ];
 
@@ -443,7 +460,7 @@ function EmptyKpis() {
             &mdash;
           </div>
           <div className="kpi-trend" style={{ color: 'var(--text-muted)' }}>
-            En attente de donnees
+            En attente de données
           </div>
         </div>
       ))}
@@ -461,7 +478,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
         <div className="card-body">
           <div className="empty-icon">{'\u{1F4ED}'}</div>
           <div className="empty-text">
-            Aucune campagne pour le moment. Creez votre premiere campagne pour
+            Aucune campagne pour le moment. Créez votre première campagne pour
             voir vos performances ici.
           </div>
           <button
@@ -469,7 +486,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
             style={{ marginTop: '16px', fontSize: '13px' }}
             onClick={onCreateCampaign}
           >
-            Creer une campagne
+            Créer une campagne
           </button>
         </div>
       </div>
@@ -481,7 +498,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
         <div className="card-body">
           <div className="empty-icon">{'\u{1F4CA}'}</div>
           <div className="empty-text">
-            Les graphiques de performance apparaitront des que votre premiere
+            Les graphiques de performance apparaîtront dès que votre première
             campagne sera active.
           </div>
         </div>
@@ -489,13 +506,13 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
 
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F525}'} Opportunites recentes</div>
+          <div className="card-title">{'\u{1F525}'} Opportunités récentes</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F48E}'}</div>
           <div className="empty-text">
-            Les prospects interesses et les RDV planifies s'afficheront ici au
-            fil des reponses.
+            Les prospects intéressés et les RDV planifiés s'afficheront ici au
+            fil des réponses.
           </div>
         </div>
       </div>
@@ -508,7 +525,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
           <div className="empty-icon">{'\u{1F916}'}</div>
           <div className="empty-text">
             Claude analysera vos campagnes et proposera des optimisations des
-            qu'il aura suffisamment de donnees (&gt;50 prospects, &gt;7 jours).
+            qu'il aura suffisamment de données (&gt;50 prospects, &gt;7 jours).
           </div>
         </div>
       </div>

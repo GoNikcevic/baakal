@@ -55,12 +55,12 @@ function ReportsSection({ isEmpty, reports, onCreateCampaign }) {
           <div className="empty-state-icon">{'📋'}</div>
           <div className="empty-state-title">Aucun rapport disponible</div>
           <div className="empty-state-desc">
-            Les rapports hebdomadaires sont generes automatiquement chaque lundi.
-            Lancez votre premiere campagne pour recevoir votre premier bilan de
+            Les rapports hebdomadaires sont générés automatiquement chaque lundi.
+            Lancez votre première campagne pour recevoir votre premier bilan de
             performance.
           </div>
           <button className="btn btn-primary" onClick={onCreateCampaign}>
-            Creer ma premiere campagne
+            Créer ma première campagne
           </button>
         </div>
       </div>
@@ -101,8 +101,8 @@ function ReportsSection({ isEmpty, reports, onCreateCampaign }) {
               <div style={{ display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' }}>
                 <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Contacts:</span> <strong>{r.metrics.contacts}</strong></div>
                 <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Ouverture:</span> <strong>{r.metrics.openRate}</strong></div>
-                <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Reponse:</span> <strong>{r.metrics.replyRate}</strong></div>
-                <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Interesses:</span> <strong>{r.metrics.interested}</strong></div>
+                <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Réponse:</span> <strong>{r.metrics.replyRate}</strong></div>
+                <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>Intéressés:</span> <strong>{r.metrics.interested}</strong></div>
                 <div style={{ fontSize: '12px' }}><span style={{ color: 'var(--text-muted)' }}>RDV:</span> <strong>{r.metrics.meetings}</strong></div>
               </div>
               {/* Synthesis */}

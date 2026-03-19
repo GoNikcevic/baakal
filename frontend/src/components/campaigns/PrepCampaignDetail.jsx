@@ -34,8 +34,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     if (!c.sequence || c.sequence.length === 0) {
       setLaunchAlert({
         type: 'error',
-        title: 'Impossible de lancer — sequences manquantes',
-        desc: "Generez d'abord les sequences via Claude depuis l'editeur Copy & Sequences.",
+        title: 'Impossible de lancer — séquences manquantes',
+        desc: "Générez d'abord les séquences via Claude depuis l'éditeur Copy & Séquences.",
       });
       return;
     }
@@ -44,8 +44,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     if (notDone.length > 1) {
       setLaunchAlert({
         type: 'warning',
-        title: 'Etapes de preparation incompletes',
-        desc: `${notDone.length} etape(s) restante(s) : ${notDone.map((n) => n.title).join(', ')}`,
+        title: 'Étapes de préparation incomplètes',
+        desc: `${notDone.length} étape(s) restante(s) : ${notDone.map((n) => n.title).join(', ')}`,
       });
       return;
     }
@@ -104,7 +104,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
                 color: 'var(--warning)',
               }}
             >
-              En preparation
+              En préparation
             </span>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             gap: '8px',
           }}
         >
-          📋 Checklist de preparation
+          📋 Checklist de préparation
         </div>
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -218,7 +218,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
       <div className="sequence-card">
         <div className="sequence-header">
           <div className="sequence-title">
-            👁️ Apercu des sequences — En attente de validation
+            👁️ Aperçu des séquences — En attente de validation
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {(c.sequence || []).length} touchpoints &middot; Email ({emailCount})
@@ -253,7 +253,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
               gap: '8px',
             }}
           >
-            🤖 Recommandation pre-lancement — Claude
+            🤖 Recommandation pré-lancement — Claude
           </div>
           <div
             style={{
@@ -280,8 +280,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
                     fontWeight: 600,
                   }}
                 >
-                  ✅ Suggestion appliquee — sera integree dans la generation des
-                  sequences
+                  ✅ Suggestion appliquée — sera intégrée dans la génération des
+                  séquences
                 </div>
               ) : (
                 <>
@@ -321,11 +321,11 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
           >
             <InfoRow label="Client" content={<strong>{c.client}</strong>} />
             <InfoRow
-              label="Creee le"
+              label="Créée le"
               content={c.info?.createdDate || c.startDate}
             />
             <InfoRow
-              label="Volume prevu"
+              label="Volume prévu"
               content={c.info?.volumeDesc || `${c.volume?.planned} prospects`}
             />
             <InfoRow
@@ -355,12 +355,12 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
               }
             />
             <InfoRow
-              label="Lancement estime"
+              label="Lancement estimé"
               content={
                 <span
                   style={{ fontWeight: 600, color: 'var(--warning)' }}
                 >
-                  {c.info?.launchEstimate || 'Non planifie'}
+                  {c.info?.launchEstimate || 'Non planifié'}
                 </span>
               }
             />

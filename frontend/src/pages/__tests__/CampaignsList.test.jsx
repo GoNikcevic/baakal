@@ -113,7 +113,7 @@ describe('CampaignsList', () => {
     expect(screen.getByText('Filtrer :')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Toutes' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'En preparation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'En préparation' })).toBeInTheDocument();
   });
 
   it('filters to show only active campaigns', () => {
@@ -134,7 +134,7 @@ describe('CampaignsList', () => {
   it('filters to show only prep campaigns', () => {
     renderList();
 
-    fireEvent.click(screen.getByRole('button', { name: 'En preparation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'En préparation' }));
 
     const rows = document.querySelectorAll('.campaign-row');
     const rowTexts = [...rows].map((r) => r.textContent);
@@ -166,16 +166,16 @@ describe('CampaignsList', () => {
   it('renders sort button', () => {
     renderList();
 
-    expect(screen.getByRole('button', { name: /Trier par reponse/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Trier par réponse/ })).toBeInTheDocument();
   });
 
   it('toggles sort on click', () => {
     renderList();
 
-    const sortBtn = screen.getByRole('button', { name: /Trier par reponse/ });
+    const sortBtn = screen.getByRole('button', { name: /Trier par réponse/ });
     fireEvent.click(sortBtn);
 
-    expect(screen.getByRole('button', { name: /Tri par reponse/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tri par réponse/ })).toBeInTheDocument();
   });
 
   it('calls onNavigateCampaign when clicking a campaign row', () => {
@@ -213,8 +213,8 @@ describe('CampaignsList — filtered empty', () => {
   it('shows no-result message when filter matches nothing', () => {
     renderList();
 
-    // Apply "En preparation" filter, then "Active" — toggle quickly
-    fireEvent.click(screen.getByRole('button', { name: 'En preparation' }));
+    // Apply "En préparation" filter, then "Active" — toggle quickly
+    fireEvent.click(screen.getByRole('button', { name: 'En préparation' }));
 
     // Prep campaigns should show, active ones hidden from rows
     const rows = document.querySelectorAll('.campaign-row');

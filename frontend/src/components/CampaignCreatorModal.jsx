@@ -20,19 +20,19 @@ const SECTORS = [
 ];
 
 const POSITIONS = [
-  'Dirigeant / Gerant / CEO',
-  'DG / Directeur General',
+  'Dirigeant / Gérant / CEO',
+  'DG / Directeur Général',
   'DAF / Directeur Financier',
   'DRH / Directeur RH',
   'Directeur Commercial',
   'DSI / Directeur IT',
 ];
 
-const SIZES = ['1-10 salaries', '11-50 salaries', '51-200 salaries', '200+ salaries'];
-const ZONES = ['Ile-de-France', 'Lyon & Rhone-Alpes', 'Marseille & PACA', 'France entiere'];
-const TONES = ['Pro decontracte', 'Formel & Corporate', 'Direct & punchy'];
+const SIZES = ['1-10 salariés', '11-50 salariés', '51-200 salariés', '200+ salariés'];
+const ZONES = ['Île-de-France', 'Lyon & Rhône-Alpes', 'Marseille & PACA', 'France entière'];
+const TONES = ['Pro décontracté', 'Formel & Corporate', 'Direct & punchy'];
 const CHANNELS = ['Email + LinkedIn', 'Email uniquement', 'LinkedIn uniquement'];
-const ANGLES = ['Douleur client', 'Preuve sociale', 'Offre directe', 'Contenu educatif'];
+const ANGLES = ['Douleur client', 'Preuve sociale', 'Offre directe', 'Contenu éducatif'];
 const VOLUMES = ['Standard (~100/semaine)', 'Modere (~50/semaine)', 'Agressif (~200/semaine)'];
 
 export default function CampaignCreatorModal({ onClose }) {
@@ -121,7 +121,7 @@ export default function CampaignCreatorModal({ onClose }) {
 
       onClose();
     } catch (err) {
-      setError(err.message || 'Erreur lors de la creation.');
+      setError(err.message || 'Erreur lors de la création.');
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +163,7 @@ export default function CampaignCreatorModal({ onClose }) {
 
             {/* Position */}
             <div className="form-group">
-              <label className="form-label">Cible — Poste decideur</label>
+              <label className="form-label">Cible — Poste décideur</label>
               <select className="form-select" value={form.position} onChange={(e) => handleChange('position', e.target.value)}>
                 {POSITIONS.map((p) => <option key={p}>{p}</option>)}
               </select>
@@ -179,7 +179,7 @@ export default function CampaignCreatorModal({ onClose }) {
 
             {/* Zone */}
             <div className="form-group">
-              <label className="form-label">Zone geographique</label>
+              <label className="form-label">Zone géographique</label>
               <select className="form-select" value={form.zone} onChange={(e) => handleChange('zone', e.target.value)}>
                 {ZONES.map((z) => <option key={z}>{z}</option>)}
               </select>
@@ -225,7 +225,7 @@ export default function CampaignCreatorModal({ onClose }) {
         <div className="creator-footer">
           <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Creation...' : 'Creer la campagne'}
+            {submitting ? 'Création...' : 'Créer la campagne'}
           </button>
         </div>
       </div>

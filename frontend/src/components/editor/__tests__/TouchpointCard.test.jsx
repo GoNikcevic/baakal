@@ -24,8 +24,8 @@ const linkedinTp = {
   id: 'L1',
   type: 'linkedin',
   label: 'Note de connexion',
-  timing: 'J+0 · Max 300 caracteres',
-  subType: 'Premiere prise de contact',
+  timing: 'J+0 · Max 300 caractères',
+  subType: 'Première prise de contact',
   subject: null,
   body: '{{firstName}}, votre parcours m\'a interpelle.',
   maxChars: 300,
@@ -65,7 +65,7 @@ describe('TouchpointCard', () => {
     render(<TouchpointCard tp={linkedinTp} {...defaultProps} />);
 
     expect(screen.getByText('Message')).toBeInTheDocument();
-    expect(screen.getByText(/\/ 300 caracteres/)).toBeInTheDocument();
+    expect(screen.getByText(/\/ 300 caractères/)).toBeInTheDocument();
   });
 
   it('does not render subject field for linkedin messages', () => {
@@ -83,7 +83,7 @@ describe('TouchpointCard', () => {
   it('renders action buttons', () => {
     render(<TouchpointCard tp={emailTp} {...defaultProps} />);
 
-    expect(screen.getByText('Regenerer')).toBeInTheDocument();
+    expect(screen.getByText('Régénérer')).toBeInTheDocument();
     expect(screen.getByText('Dupliquer')).toBeInTheDocument();
     expect(screen.getByText('Supprimer')).toBeInTheDocument();
   });
@@ -148,9 +148,9 @@ describe('TouchpointCard', () => {
   it('shows offline message when regenerating without backend', async () => {
     render(<TouchpointCard tp={emailTp} {...defaultProps} backendAvailable={false} />);
 
-    fireEvent.click(screen.getByText('Regenerer'));
+    fireEvent.click(screen.getByText('Régénérer'));
 
-    expect(screen.getByText('Regeneration en cours...')).toBeInTheDocument();
+    expect(screen.getByText('Régénération en cours...')).toBeInTheDocument();
   });
 
   it('applies email dot style for email type', () => {

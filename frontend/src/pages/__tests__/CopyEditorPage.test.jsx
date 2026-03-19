@@ -82,29 +82,29 @@ describe('CopyEditorPage', () => {
     expect(screen.getByText(/Douleur client/)).toBeInTheDocument();
   });
 
-  it('renders Parametres and Tout regenerer buttons', () => {
+  it('renders Paramètres and Tout régénérer buttons', () => {
     renderEditor();
 
-    expect(screen.getByRole('button', { name: 'Parametres' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tout regenerer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Paramètres' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tout régénérer' })).toBeInTheDocument();
   });
 
-  it('shows params panel when clicking Parametres', () => {
+  it('shows params panel when clicking Paramètres', () => {
     renderEditor();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Parametres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paramètres' }));
 
-    expect(screen.getByText('Parametres de la campagne')).toBeInTheDocument();
+    expect(screen.getByText('Paramètres de la campagne')).toBeInTheDocument();
   });
 
   it('hides params panel when clicking Fermer', () => {
     renderEditor();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Parametres' }));
-    expect(screen.getByText('Parametres de la campagne')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Paramètres' }));
+    expect(screen.getByText('Paramètres de la campagne')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
-    expect(screen.queryByText('Parametres de la campagne')).not.toBeInTheDocument();
+    expect(screen.queryByText('Paramètres de la campagne')).not.toBeInTheDocument();
   });
 
   it('switches campaign when clicking sidebar item', () => {
@@ -147,7 +147,7 @@ describe('CopyEditorPage', () => {
     // Switch to DRH PME Lyon (prep)
     fireEvent.click(screen.getByText('DRH PME Lyon'));
 
-    expect(screen.getByText(/Sequence prete/)).toBeInTheDocument();
+    expect(screen.getByText(/Séquence prête/)).toBeInTheDocument();
   });
 
   it('shows status text for active campaigns', () => {

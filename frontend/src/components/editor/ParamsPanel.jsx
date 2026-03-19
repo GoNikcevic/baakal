@@ -12,7 +12,7 @@ export default function ParamsPanel({ params, onClose }) {
       marginBottom: '16px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>Parametres de la campagne</div>
+        <div style={{ fontSize: '14px', fontWeight: 600 }}>Paramètres de la campagne</div>
         <button className="tp-action" style={{ fontSize: '11px' }} onClick={onClose}>Fermer</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
