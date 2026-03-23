@@ -3,9 +3,18 @@ const lemlist = require('../api/lemlist');
 const { getUserKey } = require('../config');
 const logger = require('./logger');
 
-const MIN_TEST_DAYS = 7;
-const MIN_PROSPECTS = 100;
 const B_WIN_THRESHOLD = 1.05; // B needs 5% improvement to win
+
+/**
+ * Dynamic thresholds based on campaign audience size.
+ * Larger audiences → evaluate faster with more confidence.
+ */
+function getTestThresholds(nbProspects) {
+  if (nbProspects >= 1000) return { minDays: 5, minProspects: 300 };
+  if (nbProspects >= 500)  return { minDays: 7, minProspects: 200 };
+  if (nbProspects >= 200)  return { minDays: 7, minProspects: 100 };
+  return { minDays: 10, minProspects: 50 };
+}
 
 /**
  * Check A/B test results and auto-select winner.
@@ -21,18 +30,24 @@ async function evaluateABTests(campaignId, userId) {
   const activeTest = versions.find(v => v.result === 'testing');
   if (!activeTest) return null;
 
-  // Check if test has enough data (min 7 days)
+  // Get campaign to determine audience-based thresholds
+  const campaign = await db.campaigns.get(campaignId);
+  if (!campaign) return null;
+
+  const audience = campaign.nb_prospects || 0;
+  const { minDays, minProspects } = getTestThresholds(audience);
+
+  // Check if test has enough time
   const createdAt = new Date(activeTest.created_at || activeTest.date);
   const daysSinceStart = (Date.now() - createdAt.getTime()) / 86400000;
-  if (daysSinceStart < MIN_TEST_DAYS) {
-    logger.debug('ab-test', `Campaign ${campaignId}: only ${daysSinceStart.toFixed(1)} days, need ${MIN_TEST_DAYS}`);
+  if (daysSinceStart < minDays) {
+    logger.debug('ab-test', `Campaign ${campaignId}: ${daysSinceStart.toFixed(1)} days, need ${minDays} (audience: ${audience})`);
     return null;
   }
 
   // Check minimum prospect volume
-  const campaign = await db.campaigns.get(campaignId);
-  if (!campaign || (campaign.nb_prospects || 0) < MIN_PROSPECTS) {
-    logger.debug('ab-test', `Campaign ${campaignId}: ${campaign?.nb_prospects || 0} prospects, need ${MIN_PROSPECTS}`);
+  if (audience < minProspects) {
+    logger.debug('ab-test', `Campaign ${campaignId}: ${audience} prospects, need ${minProspects} (audience-based)`);
     return null;
   }
 
