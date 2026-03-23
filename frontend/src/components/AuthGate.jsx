@@ -130,6 +130,9 @@ export default function AuthGate({ onAuth }) {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
 
   // Form fields
   const [name, setName] = useState('');
@@ -155,6 +158,27 @@ export default function AuthGate({ onAuth }) {
     setEmail('');
     setPassword('');
     setCompany('');
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    if (!forgotEmail) { setError('Entrez votre email'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Erreur'); return; }
+      setForgotSent(true);
+    } catch {
+      setError('Erreur réseau');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -194,7 +218,66 @@ export default function AuthGate({ onAuth }) {
           </p>
         </div>
 
-        {/* ─── Form ─── */}
+        {/* ─── Forgot password flow ─── */}
+        {showForgot ? (
+          <div>
+            {forgotSent ? (
+              <div>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                  Si cette adresse est associée à un compte, un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(''); setError(''); }}
+                  style={styles.submitBtn}
+                >
+                  Retour à la connexion
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword}>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                  Entrez votre email et nous vous enverrons un lien de réinitialisation.
+                </p>
+                <div style={styles.fieldGroupLast}>
+                  <label style={styles.label} htmlFor="forgot-email">Email</label>
+                  <input
+                    ref={firstInputRef}
+                    type="email"
+                    id="forgot-email"
+                    required
+                    autoComplete="email"
+                    style={styles.input}
+                    placeholder="votre@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
+                {error && <div style={styles.error}>{error}</div>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    ...styles.submitBtn,
+                    ...(loading ? styles.submitBtnDisabled : {}),
+                  }}
+                >
+                  {loading ? 'Envoi...' : 'Envoyer le lien'}
+                </button>
+                <p style={styles.toggleText}>
+                  <button
+                    type="button"
+                    style={styles.toggleLink}
+                    onClick={() => { setShowForgot(false); setError(''); }}
+                  >
+                    Retour
+                  </button>
+                </p>
+              </form>
+            )}
+          </div>
+        ) : (
+        /* ─── Form ─── */
         <form onSubmit={handleSubmit} autoComplete="on">
           {/* Name (register only) */}
           {isRegister && (
@@ -257,7 +340,7 @@ export default function AuthGate({ onAuth }) {
           )}
 
           {/* Password */}
-          <div style={styles.fieldGroupLast}>
+          <div style={{ marginBottom: 8 }}>
             <label style={styles.label} htmlFor="auth-password">
               Mot de passe
             </label>
@@ -278,6 +361,20 @@ export default function AuthGate({ onAuth }) {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+
+          {/* Forgot password link (login only) */}
+          {!isRegister && (
+            <div style={{ textAlign: 'right', marginBottom: 16 }}>
+              <button
+                type="button"
+                style={{ ...styles.toggleLink, fontSize: 12, color: 'var(--text-muted)' }}
+                onClick={() => { setShowForgot(true); setError(''); }}
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+          )}
+          {isRegister && <div style={{ marginBottom: 12 }} />}
 
           {/* Error message */}
           {error && <div style={styles.error}>{error}</div>}
@@ -310,6 +407,7 @@ export default function AuthGate({ onAuth }) {
             </button>
           </p>
         </form>
+        )}
       </div>
     </div>
   );
