@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const {
@@ -8,6 +9,11 @@ const {
   hashRefreshToken,
   requireAuth,
 } = require('../middleware/auth');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../lib/email');
+
+const APP_URL = process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : 'http://localhost:5173');
 
 const router = Router();
 
@@ -23,6 +29,8 @@ const authLimiter = rateLimit({
 router.use('/login', authLimiter);
 router.use('/register', authLimiter);
 router.use('/refresh', authLimiter);
+router.use('/forgot-password', authLimiter);
+router.use('/reset-password', authLimiter);
 
 function validatePassword(password) {
   if (!password || password.length < 8) return 'Password must be at least 8 characters';
@@ -71,6 +79,15 @@ router.post('/register', async (req, res, next) => {
         await db.query('UPDATE chat_threads SET user_id = $1 WHERE user_id IS NULL', [user.id]);
       } catch { /* ignore */ }
     }
+
+    // Send verification email (non-blocking)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    await db.query(
+      'UPDATE users SET verification_token = $1, verification_expires = $2 WHERE id = $3',
+      [verificationToken, verificationExpires, user.id]
+    );
+    sendVerificationEmail(email, verificationToken).catch(() => {});
 
     const { accessToken, refreshToken } = await issueTokens(user);
 
@@ -153,6 +170,80 @@ router.get('/me', requireAuth, async (req, res, next) => {
     const user = await db.users.getById(req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/verify-email
+router.get('/verify-email', async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).send('Token manquant');
+
+    const result = await db.query(
+      'UPDATE users SET email_verified = true, verification_token = NULL, verification_expires = NULL WHERE verification_token = $1 AND verification_expires > NOW() RETURNING id',
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.redirect(APP_URL + '/login?error=invalid_token');
+    }
+
+    res.redirect(APP_URL + '/login?verified=true');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email requis' });
+
+    // Always return success (don't reveal if email exists)
+    const user = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (user.rows.length > 0) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+      await db.query(
+        'UPDATE users SET reset_token = $1, reset_expires = $2 WHERE id = $3',
+        [resetToken, resetExpires, user.rows[0].id]
+      );
+      await sendPasswordResetEmail(email.toLowerCase().trim(), resetToken);
+    }
+
+    res.json({ success: true, message: 'Si cette adresse existe, un email a été envoyé.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token et mot de passe requis' });
+
+    if (password.length < 8) return res.status(400).json({ error: 'Mot de passe trop court (min 8 caractères)' });
+
+    const result = await db.query(
+      'SELECT id FROM users WHERE reset_token = $1 AND reset_expires > NOW()',
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Lien expiré ou invalide' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await db.query(
+      'UPDATE users SET password_hash = $1, reset_token = NULL, reset_expires = NULL WHERE id = $2',
+      [hash, result.rows[0].id]
+    );
+
+    res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useApp } from './context/useApp'
 import { isLoggedIn, validateToken } from './services/auth'
 import { SocketProvider } from './context/SocketContext'
@@ -8,6 +8,7 @@ import OnboardingWizard from './components/OnboardingWizard'
 import Layout from './components/Layout'
 import { DashboardSkeleton } from './components/Skeleton'
 
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const ChatPage = lazy(() => import('./pages/ChatPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CampaignsList = lazy(() => import('./pages/CampaignsList'))
@@ -17,8 +18,12 @@ const RecosPage = lazy(() => import('./pages/RecosPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
+// Public routes accessible without authentication
+const PUBLIC_PATHS = ['/reset-password']
+
 export default function App() {
   const { initData } = useApp()
+  const location = useLocation()
   const [authed, setAuthed] = useState(null) // null = checking, true/false
   const [onboarded, setOnboarded] = useState(() =>
     localStorage.getItem('bakal_onboarding_complete') === 'true'
@@ -50,6 +55,23 @@ export default function App() {
       initData()
     }
   }, [authed, initData])
+
+  // Allow public routes without authentication
+  const isPublicRoute = PUBLIC_PATHS.some(p => location.pathname.startsWith(p))
+  if (isPublicRoute) {
+    return (
+      <Suspense fallback={<div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-muted)',
+        fontFamily: 'var(--font)',
+      }}>Chargement...</div>}>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    )
+  }
 
   if (authed === null) {
     return (
