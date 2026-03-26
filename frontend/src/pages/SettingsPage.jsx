@@ -425,13 +425,16 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Integrations — 3-column grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20, alignItems: 'start' }}>
+      {/* Left column */}
+      <div>
+      {/* Integrations — 2-column grid */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
           <div className="card-title">Intégrations</div>
         </div>
         <div className="card-body">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             {MAIN_TOOLS.map(tool => {
               const isConnected = keyStatus[tool.field]?.configured;
               const isEditing = editing[tool.field];
@@ -548,7 +551,10 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+      </div>
 
+      {/* Right column */}
+      <div>
       {/* Lemlist Sync */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -753,6 +759,8 @@ export default function SettingsPage() {
         <button className="btn btn-ghost" onClick={resetPreferences}>
           Réinitialiser les préférences
         </button>
+      </div>
+      </div>
       </div>
     </div>
   );
