@@ -14,6 +14,15 @@ import { saveKeys } from '../services/api-client';
 
 const TOTAL_STEPS = 5;
 
+const SECTOR_SUGGESTIONS = [
+  'SaaS / Logiciel', 'Tech / IT', 'E-commerce / Retail', 'Finance / Comptabilité',
+  'Formation professionnelle', 'Marketing / Communication', 'Immobilier',
+  'Santé / Pharma', 'Industrie / Manufacturing', 'Conseil / Consulting',
+  'RH / Recrutement', 'Juridique / Legal', 'Assurance', 'Énergie / Environnement',
+  'Transport / Logistique', 'Agroalimentaire', 'BTP / Construction',
+  'Média / Presse', 'Tourisme / Hôtellerie', 'Autre',
+];
+
 /* ─── Step config ─── */
 
 const STEP_META = [
@@ -41,6 +50,7 @@ export default function OnboardingWizard({ onComplete }) {
   // Step 1 — Company
   const [company, setCompany] = useState('');
   const [sector, setSector] = useState('');
+  const [sectorOpen, setSectorOpen] = useState(false);
   const [website, setWebsite] = useState('');
   const [teamSize, setTeamSize] = useState('');
 
@@ -186,9 +196,42 @@ export default function OnboardingWizard({ onComplete }) {
                 <label className="form-label">Nom de l'entreprise</label>
                 <input className="form-input" placeholder="Ex: FormaPro Consulting" value={company} onChange={e => setCompany(e.target.value)} />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label className="form-label">Secteur d'activité</label>
-                <input className="form-input" placeholder="Ex: Formation professionnelle" value={sector} onChange={e => setSector(e.target.value)} />
+                <input
+                  className="form-input"
+                  placeholder="Ex: SaaS, Formation, Finance..."
+                  value={sector}
+                  onChange={e => setSector(e.target.value)}
+                  onFocus={() => setSectorOpen(true)}
+                  onBlur={() => setTimeout(() => setSectorOpen(false), 150)}
+                />
+                {sectorOpen && sector.length < 30 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                    background: 'var(--bg-card)', border: '1px solid var(--border)',
+                    borderRadius: 8, maxHeight: 180, overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    marginTop: 4,
+                  }}>
+                    {SECTOR_SUGGESTIONS
+                      .filter(s => !sector || s.toLowerCase().includes(sector.toLowerCase()))
+                      .map(s => (
+                        <div
+                          key={s}
+                          style={{
+                            padding: '8px 12px', fontSize: 13, cursor: 'pointer',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-glow)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          onMouseDown={() => { setSector(s); setSectorOpen(false); }}
+                        >
+                          {s}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Site web</label>
