@@ -4,9 +4,10 @@
    recommendations with link to full recos page.
    =============================================================================== */
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import { useSocket } from '../context/SocketContext';
 import { DEMO_DATA } from '../data/demo-data';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
 import PerformanceChart from '../components/charts/PerformanceChart';
@@ -28,6 +29,17 @@ export default function DashboardPage() {
   const { campaigns, globalKpis, opportunities, recommendations, chartData, setOpportunities } = useApp();
   const { setShowCreatorModal, demoMode } = useOutletContext() || {};
   const openCreator = useCallback(() => setShowCreatorModal?.(true), [setShowCreatorModal]);
+  const { socket } = useSocket();
+  const [syncStatus, setSyncStatus] = useState(null);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onLemlist = (data) => setSyncStatus(data.status === 'done' || data.status === 'error' ? null : { type: 'Lemlist', ...data });
+    const onCrm = (data) => setSyncStatus(data.status === 'done' || data.status === 'error' ? null : { type: 'CRM', ...data });
+    socket.on('lemlist:sync', onLemlist);
+    socket.on('crm:sync', onCrm);
+    return () => { socket.off('lemlist:sync', onLemlist); socket.off('crm:sync', onCrm); };
+  }, [socket]);
 
   const displayData = demoMode ? {
     campaigns: DEMO_DATA.campaigns,
@@ -71,6 +83,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Sync in progress indicator */}
+      {syncStatus && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px', marginBottom: 16,
+          background: 'var(--blue-bg)', border: '1px solid rgba(59,130,246,0.15)',
+          borderRadius: 10, fontSize: 13, color: 'var(--blue)',
+          animation: 'fadeInUp 0.3s ease-out',
+        }}>
+          <div style={{
+            width: 16, height: 16, border: '2px solid var(--blue)',
+            borderTopColor: 'transparent', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span>Analyse {syncStatus.type} en cours — {syncStatus.message || `${syncStatus.progress || 0}%`}</span>
+        </div>
+      )}
 
       {/* Overview content */}
       <OverviewSection
