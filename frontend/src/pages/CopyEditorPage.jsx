@@ -5,6 +5,7 @@
    =============================================================================== */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import api, { exportCampaignCsv } from '../services/api-client';
 import VariableManager from '../components/VariableManager';
@@ -678,6 +679,7 @@ function ParamsPanel({ params, onClose }) {
 
 export default function CopyEditorPage() {
   const { campaigns, backendAvailable, setCampaigns } = useApp();
+  const { demoMode } = useOutletContext?.() || {};
 
   // Derive base editor data from campaigns context
   const baseEditorData = useMemo(() => {
@@ -685,11 +687,11 @@ export default function CopyEditorPage() {
     if (Object.keys(campaigns).length > 0) {
       synced = syncCampaignsFromContext(campaigns);
     }
-    if (Object.keys(synced).length === 0) {
+    if (Object.keys(synced).length === 0 && demoMode) {
       synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
     }
     return synced;
-  }, [campaigns]);
+  }, [campaigns, demoMode]);
 
   // Local overrides state (for edits before save)
   const [localOverrides, setLocalOverrides] = useState({});
@@ -936,7 +938,7 @@ export default function CopyEditorPage() {
     if (Object.keys(campaigns).length > 0) {
       synced = syncCampaignsFromContext(campaigns);
     }
-    if (Object.keys(synced).length === 0) {
+    if (Object.keys(synced).length === 0 && demoMode) {
       synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
     }
     setEditorCampaigns(synced);
@@ -1010,6 +1012,26 @@ export default function CopyEditorPage() {
   }, [activeCampaign, campaigns, setCampaigns, setEditorCampaigns]);
 
   /* ─── Render ─── */
+
+  if (Object.keys(editorCampaigns).length === 0) {
+    return (
+      <div className="page-content">
+        <div className="page-header">
+          <div>
+            <div className="page-title">Copy & Séquences</div>
+            <div className="page-subtitle">Éditeur de séquences et touchpoints</div>
+          </div>
+        </div>
+        <div className="empty-state" style={{ padding: '80px 0' }}>
+          <div className="empty-state-icon">✏️</div>
+          <div className="empty-state-title">Aucune campagne</div>
+          <div className="empty-state-desc">
+            Créez votre première campagne pour commencer à éditer vos séquences et touchpoints.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentCampaign) {
     return (
