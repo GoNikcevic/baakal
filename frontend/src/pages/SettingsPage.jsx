@@ -115,7 +115,7 @@ export default function SettingsPage() {
     return saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : { ...DEFAULT_PREFERENCES };
   });
   const [theme, setTheme] = useState(() =>
-    document.documentElement.getAttribute('data-theme') || 'dark'
+    document.documentElement.getAttribute('data-theme') || 'light'
   );
 
   /* ─── Load key status ─── */
@@ -610,13 +610,30 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
           <div className="card-title">Thème</div>
-        </div>
-        <div className="card-body">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>{theme === 'dark' ? 'Mode sombre activé' : 'Mode clair activé'}</span>
-            <div className="theme-toggle" onClick={toggleTheme} style={{ cursor: 'pointer', padding: '8px 16px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              {theme === 'dark' ? 'Passer en clair' : 'Passer en sombre'}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={toggleTheme}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 20,
+                background: theme === 'light' ? 'var(--bg-elevated)' : 'var(--bg-elevated)',
+                border: '1px solid var(--border)', cursor: 'pointer',
+                fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font)',
+                transition: 'all 0.2s',
+              }}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                  Clair
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  Sombre
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

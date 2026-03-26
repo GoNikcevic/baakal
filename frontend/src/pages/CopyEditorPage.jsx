@@ -679,7 +679,7 @@ function ParamsPanel({ params, onClose }) {
 
 export default function CopyEditorPage() {
   const { campaigns, backendAvailable, setCampaigns } = useApp();
-  const { demoMode } = useOutletContext?.() || {};
+  const { demoMode, setShowCreatorModal } = useOutletContext?.() || {};
 
   // Derive base editor data from campaigns context
   const baseEditorData = useMemo(() => {
@@ -1028,6 +1028,9 @@ export default function CopyEditorPage() {
           <div className="empty-state-desc">
             Créez votre première campagne pour commencer à éditer vos séquences et touchpoints.
           </div>
+          <button className="btn btn-primary" onClick={() => setShowCreatorModal?.(true)}>
+            Créer ma première campagne
+          </button>
         </div>
       </div>
     );
