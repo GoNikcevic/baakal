@@ -1864,6 +1864,42 @@ body {
   background: var(--accent-glow);
 }
 
+/* ── Quick reply buttons (in-message) ── */
+.chat-quick-replies {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;
+  animation: chatFadeIn 0.3s ease 0.1s both;
+}
+.chat-quick-reply {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+  border: 1px solid var(--border); background: var(--bg-elevated);
+  color: var(--text-secondary); white-space: nowrap;
+}
+.chat-quick-reply:hover:not(:disabled) {
+  border-color: var(--blue); color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+  transform: translateY(-1px);
+}
+.chat-quick-reply:active:not(:disabled) { transform: translateY(0); }
+.chat-quick-reply:disabled { opacity: 0.5; cursor: default; }
+.chat-quick-reply.confirm {
+  background: var(--text-primary); color: var(--bg-primary);
+  border-color: var(--text-primary); font-weight: 600;
+}
+.chat-quick-reply.confirm:hover:not(:disabled) {
+  opacity: 0.85; background: var(--text-primary); color: var(--bg-primary);
+  border-color: var(--text-primary); transform: translateY(-1px);
+}
+.chat-quick-reply.dismiss {
+  background: transparent; color: var(--text-muted);
+  border-color: var(--border);
+}
+.chat-quick-reply.dismiss:hover:not(:disabled) {
+  border-color: var(--border-light); color: var(--text-secondary);
+  background: var(--bg-elevated); transform: translateY(-1px);
+}
+
 /* ── Message bubbles ── */
 .chat-msg { display: flex; gap: 12px; margin-bottom: 20px; animation: chatFadeIn 0.2s ease; }
 .chat-msg.user { flex-direction: row-reverse; }
