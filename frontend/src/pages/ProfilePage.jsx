@@ -44,8 +44,17 @@ export default function ProfilePage() {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadedDocs, setUploadedDocs] = useState([]);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
   const fileInputRef = useRef(null);
   const dragCounterRef = useRef(0);
+
+  /* ─── Load uploaded documents ─── */
+  useEffect(() => {
+    request('/documents').then(data => {
+      if (data && data.documents) setUploadedDocs(data.documents);
+    }).catch(() => {});
+  }, []);
 
   /* ─── Load profile on mount ─── */
 
@@ -165,10 +174,19 @@ export default function ProfilePage() {
   const handleUpload = useCallback(async () => {
     if (files.length === 0) return;
     setUploading(true);
+    setUploadSuccess(null);
     try {
-      await uploadFiles(files);
+      const result = await uploadFiles(files);
+      const count = files.length;
       setFiles([]);
+      setUploadSuccess(`${count} fichier${count > 1 ? 's' : ''} envoyé${count > 1 ? 's' : ''}`);
+      setTimeout(() => setUploadSuccess(null), 4000);
+      // Refresh uploaded docs list
+      request('/documents').then(data => {
+        if (data && data.documents) setUploadedDocs(data.documents);
+      }).catch(() => {});
     } catch (err) {
+      setUploadSuccess(null);
       console.warn('Upload failed:', err.message);
     }
     setUploading(false);
@@ -413,6 +431,46 @@ export default function ProfilePage() {
               >
                 {uploading ? 'Upload en cours...' : `Envoyer ${files.length} fichier${files.length > 1 ? 's' : ''}`}
               </button>
+            </div>
+          )}
+
+          {/* Upload success message */}
+          {uploadSuccess && (
+            <div style={{
+              marginTop: 12, padding: '10px 14px', borderRadius: 8,
+              background: 'rgba(0,214,143,0.08)', border: '1px solid rgba(0,214,143,0.2)',
+              color: 'var(--success)', fontSize: 13, fontWeight: 500,
+              animation: 'fadeInUp 0.3s ease-out',
+            }}>
+              ✅ {uploadSuccess}
+            </div>
+          )}
+
+          {/* Already uploaded documents */}
+          {uploadedDocs.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Documents envoyés
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {uploadedDocs.map((doc, i) => (
+                  <div key={doc.id || i} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '6px 10px', background: 'var(--bg-elevated)',
+                    borderRadius: 6, fontSize: 13,
+                  }}>
+                    <span style={{ fontSize: 14 }}>
+                      {doc.mime_type?.includes('pdf') ? '📄' : doc.mime_type?.includes('spreadsheet') || doc.mime_type?.includes('excel') ? '📊' : doc.mime_type?.includes('presentation') ? '📽️' : '📎'}
+                    </span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {doc.original_name}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>
+                      {new Date(doc.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
