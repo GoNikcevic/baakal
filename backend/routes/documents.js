@@ -69,7 +69,27 @@ async function parseFile(filePath, mimeType) {
       return sheets.join('\n\n').slice(0, 100000);
     }
     if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
-      return '[PPTX file uploaded — content will be processed]';
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(filePath);
+      const entries = zip.getEntries();
+      const slides = entries
+        .filter(e => e.entryName.match(/ppt\/slides\/slide\d+\.xml/))
+        .sort((a, b) => {
+          const numA = parseInt(a.entryName.match(/slide(\d+)/)[1]);
+          const numB = parseInt(b.entryName.match(/slide(\d+)/)[1]);
+          return numA - numB;
+        });
+      const texts = slides.map(slide => {
+        const xml = slide.getData().toString('utf8');
+        const parts = [];
+        const regex = /<a:t>([^<]*)<\/a:t>/g;
+        let match;
+        while ((match = regex.exec(xml)) !== null) {
+          if (match[1].trim()) parts.push(match[1].trim());
+        }
+        return parts.join(' ');
+      }).filter(Boolean);
+      return texts.join('\n\n').slice(0, 100000);
     }
     if (mimeType.startsWith('image/')) {
       return '[Image uploaded]';
