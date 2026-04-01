@@ -16,8 +16,6 @@ const s3AccessKey = process.env.S3_ACCESS_KEY_ID;
 const s3Secret = process.env.S3_SECRET_ACCESS_KEY;
 const isS3 = !!(s3Bucket && s3AccessKey && s3Secret && S3Client);
 
-console.log('[storage] S3 config:', { isS3, bucket: s3Bucket, region: s3Region, endpoint: s3Endpoint ? s3Endpoint.slice(0, 30) + '...' : 'none', hasKey: !!s3AccessKey, hasSecret: !!s3Secret });
-
 let s3Client = null;
 if (isS3) {
   const clientConfig = {
