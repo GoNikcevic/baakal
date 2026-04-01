@@ -523,7 +523,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [streamingMsg, setStreamingMsg] = useState(null);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
@@ -569,6 +570,33 @@ export default function ChatPage() {
     return () => {
       socket.emit('chat:leave', currentThreadId);
       socket.off('chat:message', onMessage);
+    };
+  }, [socket, currentThreadId, scrollToBottom]);
+
+  /* ─── Socket: real-time streaming from Claude ─── */
+  useEffect(() => {
+    if (!socket) return;
+
+    const onChunk = (data) => {
+      if (data.threadId === currentThreadId || !currentThreadId) {
+        setStreamingContent(prev => prev + data.chunk);
+        setIsStreaming(true);
+        setShowTyping(false);
+        scrollToBottom();
+      }
+    };
+
+    const onStreamEnd = () => {
+      setIsStreaming(false);
+      // Don't clear streamingContent here — it will be cleared when the HTTP response arrives
+    };
+
+    socket.on('chat:stream', onChunk);
+    socket.on('chat:stream-end', onStreamEnd);
+
+    return () => {
+      socket.off('chat:stream', onChunk);
+      socket.off('chat:stream-end', onStreamEnd);
     };
   }, [socket, currentThreadId, scrollToBottom]);
 
@@ -626,7 +654,8 @@ export default function ChatPage() {
   /* ─── Select thread ─── */
   const selectThread = useCallback(async (threadId) => {
     setCurrentThreadId(threadId);
-    setStreamingMsg(null);
+    setStreamingContent('');
+    setIsStreaming(false);
 
     if (!backendAvailable) return;
     try {
@@ -817,7 +846,8 @@ export default function ChatPage() {
     }
 
     setShowWelcome(false);
-    setStreamingMsg(null);
+    setStreamingContent('');
+    setIsStreaming(false);
 
     let threadId = currentThreadId;
 
@@ -860,23 +890,18 @@ export default function ChatPage() {
         });
         setShowTyping(false);
 
+        // HTTP response arrived — add the complete message to the list
         const assistantMsg = {
           id: data.message.id || Date.now() + 1,
           role: 'assistant',
           content: data.message.content,
           metadata: data.message.metadata,
-          animate: true,
-          streaming: true,
+          animate: false, // User already saw it streaming
         };
-        setStreamingMsg(assistantMsg);
-
-        // After streaming completes, move to messages array
-        // The streaming message will be displayed separately, then converted
-        setTimeout(() => {
-          setStreamingMsg(null);
-          setMessages((prev) => [...prev, { ...assistantMsg, streaming: false }]);
-          scrollToBottom();
-        }, Math.max(500, (data.message.content || '').split(/\s+/).length * 25));
+        setMessages((prev) => [...prev, assistantMsg]);
+        setStreamingContent('');
+        setIsStreaming(false);
+        scrollToBottom();
 
         // Refresh thread list (title may have changed)
         loadThreads();
@@ -1161,22 +1186,26 @@ export default function ChatPage() {
                 />
               ))}
 
-              {/* Streaming message */}
-              {streamingMsg && (
-                <StreamingMessage
-                  content={streamingMsg.content}
-                  metadata={streamingMsg.metadata}
-                  onCreateCampaign={createCampaignFromChat}
-                  onSendMessage={sendMessage}
-                  onActionExecute={executeAction}
-                />
+              {/* Real-time streaming message */}
+              {(isStreaming || streamingContent) && streamingContent && (
+                <div className="chat-msg assistant" style={{ animation: 'chatFadeIn 0.25s ease' }}>
+                  <div className="chat-msg-avatar">b</div>
+                  <div className="chat-msg-body">
+                    <div
+                      className="chat-msg-content"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatMarkdown(
+                        streamingContent.replace(/```json\s*[\s\S]*?```/g, '').trim()
+                      )) }}
+                    />
+                  </div>
+                </div>
               )}
 
               {/* Typing indicator */}
-              {showTyping && !streamingMsg && <TypingIndicator />}
+              {showTyping && !isStreaming && !streamingContent && <TypingIndicator />}
 
               {/* Inline suggestions after last assistant message */}
-              {!showTyping && !streamingMsg && messages.length > 0 && (
+              {!showTyping && !isStreaming && !streamingContent && messages.length > 0 && (
                 <InlineSuggestions suggestions={inlineSuggestions} onSend={sendMessage} />
               )}
 

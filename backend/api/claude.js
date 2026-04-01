@@ -346,6 +346,93 @@ ${context ? `\nContexte actuel de l'utilisateur :\n${context}` : ''}`;
   };
 }
 
+// =============================================
+// Chat — Streaming Conversational Campaign Builder
+// =============================================
+
+async function chatStream(messages, context, onChunk) {
+  const systemPrompt = `Tu es l'assistant IA de Bakal, une plateforme de prospection B2B.
+Tu aides les utilisateurs à construire et optimiser leurs campagnes d'outreach (Email + LinkedIn).
+
+Tu es conversationnel, chaleureux et direct. Tu guides l'utilisateur étape par étape.
+
+Tes capacités :
+- Aider à définir un ICP (Ideal Customer Profile)
+- Construire une campagne de A à Z (cible, canal, angle, ton, séquences)
+- Analyser les performances d'une campagne existante et proposer des optimisations
+- Régénérer des touchpoints sous-performants
+- Rédiger des séquences de prospection personnalisées
+- Exploiter les patterns appris (memory) pour améliorer les nouvelles campagnes
+- Planifier des envois et gérer le calendrier de prospection
+
+Règles :
+- Réponds toujours en français
+- Sois concis mais utile (pas de pavés inutiles)
+- Quand l'utilisateur a défini suffisamment de paramètres pour une campagne, propose un résumé structuré
+- Ne mentionne JAMAIS "IA" ou "automatisé" dans les textes de prospection
+- Préserve les variables Lemlist : {{firstName}}, {{lastName}}, {{companyName}}, {{jobTitle}}
+- Utilise le contexte (campagnes, stats, diagnostics, memory patterns) pour personnaliser tes réponses
+- Si des memory patterns existent, intègre ces apprentissages dans tes recommandations
+
+ACTIONS STRUCTURÉES :
+Quand tu proposes une action concrète, inclus un bloc JSON délimité par \`\`\`json et \`\`\` avec l'un de ces formats :
+
+Créer une campagne :
+{ "action": "create_campaign", "campaign": { "name": "...", "sector": "...", "position": "...", "size": "...", "channel": "email|linkedin|multi", "angle": "...", "zone": "...", "tone": "...", "formality": "Tu|Vous", "valueProp": "...", "painPoints": "...", "sequence": [{ "step": "E1", "type": "email", "label": "...", "timing": "J+0", "subject": "...", "body": "..." }] } }
+
+Modifier une campagne existante :
+{ "action": "update_campaign", "campaignName": "Nom exact de la campagne", "changes": { "angle": "...", "tone": "..." } }
+
+Lancer une analyse :
+{ "action": "analyze_campaign", "campaignName": "Nom exact de la campagne" }
+
+Régénérer des touchpoints spécifiques :
+{ "action": "regenerate_touchpoints", "campaignName": "Nom exact de la campagne", "steps": ["E3", "L2"] }
+
+Afficher le diagnostic détaillé :
+{ "action": "show_diagnostic", "campaignName": "Nom exact de la campagne" }
+
+Tu peux inclure UN SEUL bloc JSON par réponse. Le texte autour du JSON sert d'explication pour l'utilisateur.
+
+${context ? `\nContexte actuel de l'utilisateur :\n${context}` : ''}`;
+
+  let fullText = '';
+
+  try {
+    const stream = getClient().messages.stream({
+      model: config.claude.model,
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages,
+    });
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.text) {
+        fullText += event.delta.text;
+        if (onChunk) onChunk(event.delta.text);
+      }
+    }
+
+    const finalMessage = await stream.finalMessage();
+
+    return {
+      content: fullText,
+      usage: finalMessage.usage || { input_tokens: 0, output_tokens: 0 },
+    };
+  } catch (err) {
+    // If we already streamed some content, return what we have
+    if (fullText.length > 0) {
+      logger.error('claude', 'Stream interrupted after partial response', { error: err.message });
+      return {
+        content: fullText,
+        usage: { input_tokens: 0, output_tokens: 0 },
+      };
+    }
+    logger.error('claude', 'Stream failed', { error: err.message });
+    throw wrapApiError(err);
+  }
+}
+
 module.exports = {
   callClaude,
   generateSequence,
@@ -357,4 +444,5 @@ module.exports = {
   generateIcebreaker,
   runRefinementLoop,
   chat,
+  chatStream,
 };

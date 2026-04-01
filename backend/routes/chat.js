@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const db = require('../db');
 const claude = require('../api/claude');
-const { emitToThread } = require('../socket');
+const { emitToThread, notifyUser } = require('../socket');
 const { sanitizeText } = require('../lib/sanitize');
 
 const router = Router();
@@ -188,7 +188,16 @@ router.post('/threads/:id/messages', async (req, res, next) => {
     }
 
     const context = contextParts.join('\n\n');
-    const aiResponse = await claude.chat(claudeMessages, context);
+    const userId = req.user.id;
+    const threadId = thread.id;
+
+    // Stream Claude response via Socket.io
+    const aiResponse = await claude.chatStream(claudeMessages, context, (chunk) => {
+      notifyUser(userId, 'chat:stream', { threadId, chunk });
+    });
+
+    // Notify stream end
+    notifyUser(userId, 'chat:stream-end', { threadId });
 
     let metadata = null;
     const jsonMatch = aiResponse.content.match(/```json\s*([\s\S]*?)```/);
