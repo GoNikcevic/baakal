@@ -25,6 +25,7 @@ const PROVIDER_MAP = {
   snovKey: 'snov',
   // ── Outreach ──
   instantlyKey: 'instantly',
+  smartleadKey: 'smartlead',
   lgmKey: 'lgm',
   waalaxyKey: 'waalaxy',
   // ── LinkedIn / Scraping ──
@@ -152,6 +153,24 @@ router.post('/keys/sync-lemlist', async (req, res, next) => {
   }
 });
 
+// POST /api/settings/keys/sync-outreach — trigger background outreach analysis (Apollo/Instantly/Smartlead)
+router.post('/keys/sync-outreach', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { provider } = req.body;
+    if (!provider || !['apollo', 'instantly', 'smartlead'].includes(provider)) {
+      return res.status(400).json({ error: 'Invalid provider' });
+    }
+    const { syncOutreach } = require('../lib/outreach-sync');
+    syncOutreach(userId, provider).catch(err => {
+      console.error(`[sync-outreach] Background error (${provider}):`, err.message);
+    });
+    res.json({ status: 'started', provider });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/settings/keys/sync-crm — trigger background CRM analysis
 router.post('/keys/sync-crm', async (req, res, next) => {
   try {
@@ -264,6 +283,12 @@ async function testKey(field, key) {
       });
       if (resp.ok) return { status: 'connected' };
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
+      return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+    if (field === 'smartleadKey') {
+      const resp = await fetch(`https://server.smartlead.ai/api/v1/campaigns?api_key=${key}&limit=1`);
+      if (resp.ok) return { status: 'connected' };
+      if (resp.status === 401 || resp.status === 403) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: `HTTP ${resp.status}` };
     }
     if (['salesforceKey', 'waalaxyKey', 'mailreachKey', 'warmboxKey'].includes(field)) {

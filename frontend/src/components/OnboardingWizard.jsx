@@ -39,6 +39,7 @@ const OUTREACH_OPTIONS = [
   { value: 'lemlist', label: 'Lemlist', field: 'lemlistKey', placeholder: 'Votre clé API Lemlist' },
   { value: 'apollo', label: 'Apollo', field: 'apolloKey', placeholder: 'Votre clé API Apollo' },
   { value: 'instantly', label: 'Instantly', field: 'instantlyKey', placeholder: 'Votre clé API Instantly' },
+  { value: 'smartlead', label: 'Smartlead', field: 'smartleadKey', placeholder: 'Votre clé API Smartlead' },
   { value: 'lgm', label: 'La Growth Machine', field: 'lgmKey', placeholder: 'Votre clé API LGM' },
   { value: 'waalaxy', label: 'Waalaxy', field: 'waalaxyKey', placeholder: 'Votre clé API Waalaxy' },
 ];
@@ -138,15 +139,25 @@ export default function OnboardingWizard({ onComplete }) {
     }).catch(() => {/* ignore */});
 
     // Trigger auto-sync in background if keys were provided
-    if (outreachKey && outreachProvider === 'lemlist') {
-      // Only trigger lemlist sync if they chose Lemlist
-      fetch('/api/settings/keys/sync-lemlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      }).catch(() => {});
+    if (outreachKey && outreachProvider) {
+      if (outreachProvider === 'lemlist') {
+        fetch('/api/settings/keys/sync-lemlist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }).catch(() => {});
+      } else if (['apollo', 'instantly', 'smartlead'].includes(outreachProvider)) {
+        fetch('/api/settings/keys/sync-outreach', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ provider: outreachProvider }),
+        }).catch(() => {});
+      }
     }
     if (crmKey && crmProvider) {
       fetch('/api/settings/keys/sync-crm', {

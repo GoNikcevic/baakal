@@ -576,6 +576,14 @@ export async function syncCRM() {
   return request('/settings/keys/sync-crm', { method: 'POST' });
 }
 
+/** Trigger background outreach sync and analysis (Apollo/Instantly/Smartlead) */
+export async function syncOutreach(provider) {
+  return request('/settings/keys/sync-outreach', {
+    method: 'POST',
+    body: JSON.stringify({ provider }),
+  });
+}
+
 /** Test API key connectivity */
 export async function testKeys() {
   return request('/settings/keys/test', { method: 'POST' });
@@ -713,6 +721,7 @@ const BakalAPI = {
   saveKeys,
   syncLemlist,
   syncCRM,
+  syncOutreach,
   testKeys,
   uploadFiles,
   fetchVariables,

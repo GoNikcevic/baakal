@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM } from '../services/api-client';
+import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM, syncOutreach } from '../services/api-client';
 import { useNotifications } from '../context/NotificationContext';
 import { useSocket } from '../context/SocketContext';
 
@@ -19,6 +19,7 @@ const MAIN_TOOLS = [
   { field: 'apolloKey', label: 'Apollo', desc: 'Base B2B + séquences email automatisées', placeholder: 'Votre clé API Apollo', color: '#6C5CE7', icon: 'A', category: 'Outreach' },
   { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email à grande échelle', placeholder: 'Votre clé API Instantly', color: '#0984E3', icon: 'In', category: 'Outreach' },
   { field: 'lgmKey', label: 'La Growth Machine', desc: 'Séquences multi-canal automatisées', placeholder: 'Votre clé API LGM', color: '#6C5CE7', icon: 'LG', category: 'Outreach' },
+  { field: 'smartleadKey', label: 'Smartlead', desc: 'Cold email avec inbox rotation', placeholder: 'Votre clé API Smartlead', color: '#4F46E5', icon: 'Sm', category: 'Outreach' },
   { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre clé API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach' },
   { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM complet + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM' },
   { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise + reporting avancé', placeholder: 'Votre clé API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM' },
@@ -139,6 +140,32 @@ export default function SettingsPage() {
     return () => socket.off('lemlist:sync', onSync);
   }, [socket, notifyToast]);
 
+  /* ─── Socket listener for outreach sync progress (Apollo/Instantly/Smartlead) ─── */
+
+  useEffect(() => {
+    if (!socket) return;
+    const onOutreachSync = (data) => {
+      setSyncStatus(data);
+      if (data.status === 'done') {
+        notifyToast({
+          type: 'success',
+          title: `Synchronisation ${data.provider || 'Outreach'}`,
+          message: data.message,
+          duration: 5000,
+        });
+      } else if (data.status === 'error') {
+        notifyToast({
+          type: 'danger',
+          title: `Erreur ${data.provider || 'Outreach'}`,
+          message: data.message,
+          duration: 5000,
+        });
+      }
+    };
+    socket.on('outreach:sync', onOutreachSync);
+    return () => socket.off('outreach:sync', onOutreachSync);
+  }, [socket, notifyToast]);
+
   /* ─── Socket listener for CRM sync progress ─── */
 
   useEffect(() => {
@@ -165,12 +192,16 @@ export default function SettingsPage() {
     return () => socket.off('crm:sync', onCrmSync);
   }, [socket, notifyToast]);
 
-  /* ─── Lemlist sync handler ─── */
+  /* ─── Outreach sync handler ─── */
 
-  async function handleSyncLemlist() {
+  async function handleSyncOutreach() {
     setSyncStatus({ status: 'starting', progress: 0, message: 'Lancement...' });
     try {
-      await syncLemlist();
+      if (connectedOutreach && connectedOutreach.provider !== 'lemlist') {
+        await syncOutreach(connectedOutreach.provider);
+      } else {
+        await syncLemlist();
+      }
     } catch (err) {
       setSyncStatus({ status: 'error', progress: 0, message: err.message });
     }
@@ -315,6 +346,17 @@ export default function SettingsPage() {
   const [showMore, setShowMore] = useState(false);
   const configuredCount = Object.values(keyStatus).filter(k => k.configured).length;
   const totalCount = Object.keys(keyStatus).length || allKeyDefs.length;
+
+  /* ─── Detect connected outreach tool ─── */
+
+  const outreachFieldMap = {
+    lemlistKey: { provider: 'lemlist', label: 'Lemlist' },
+    apolloKey: { provider: 'apollo', label: 'Apollo' },
+    instantlyKey: { provider: 'instantly', label: 'Instantly' },
+    smartleadKey: { provider: 'smartlead', label: 'Smartlead' },
+  };
+  const connectedOutreachField = Object.keys(outreachFieldMap).find(f => keyStatus[f]?.configured);
+  const connectedOutreach = connectedOutreachField ? outreachFieldMap[connectedOutreachField] : null;
 
   /* ─── Detect connected CRM ─── */
 
@@ -581,12 +623,12 @@ export default function SettingsPage() {
           </div>
           <button
             className="btn btn-primary btn-sm"
-            onClick={handleSyncLemlist}
+            onClick={handleSyncOutreach}
             disabled={syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'}
           >
             {syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'
               ? 'Synchronisation...'
-              : 'Synchroniser Lemlist'}
+              : `Synchroniser ${connectedOutreach ? connectedOutreach.label : 'Outreach'}`}
           </button>
         </div>
         {syncStatus && (
