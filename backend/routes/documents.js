@@ -109,16 +109,15 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
     }
 
     const results = [];
-    for (const file of req.files) {
-      const parsedText = await parseFile(file.path, file.mimetype);
+    const filesToProcess = [];
 
-      // Upload to S3 if configured, otherwise keep local
+    // Step 1: Save metadata + upload to S3 quickly (no parsing yet)
+    for (const file of req.files) {
       const storageKey = file.filename;
+
       if (isS3) {
         const buffer = fs.readFileSync(file.path);
         await uploadFile(storageKey, buffer, file.mimetype);
-        // Remove local temp file after successful S3 upload
-        try { fs.unlinkSync(file.path); } catch {}
       }
 
       const doc = await db.documents.create({
@@ -128,18 +127,35 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
         mimeType: file.mimetype,
         fileSize: file.size,
         filePath: isS3 ? `s3://${storageKey}` : file.path,
-        parsedText,
+        parsedText: null,
       });
+
+      filesToProcess.push({ id: doc.id, path: file.path, mimeType: file.mimetype });
       results.push({
         id: doc.id,
         originalName: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        parsed: !!parsedText,
+        parsed: false,
       });
     }
 
+    // Step 2: Respond immediately
     res.status(201).json({ uploaded: results });
+
+    // Step 3: Parse files in background (after response sent)
+    for (const f of filesToProcess) {
+      try {
+        const parsedText = await parseFile(f.path, f.mimeType);
+        if (parsedText) {
+          await db.query('UPDATE documents SET parsed_text = $1 WHERE id = $2', [parsedText, f.id]);
+        }
+        // Clean up local temp file after S3 upload
+        if (isS3) { try { fs.unlinkSync(f.path); } catch {} }
+      } catch (err) {
+        console.error(`[documents] Background parse error for ${f.id}:`, err.message);
+      }
+    }
   } catch (err) {
     next(err);
   }
