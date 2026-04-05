@@ -196,9 +196,6 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       notifyUser(userId, 'chat:stream', { threadId, chunk });
     });
 
-    // Notify stream end
-    notifyUser(userId, 'chat:stream-end', { threadId });
-
     let metadata = null;
     const jsonMatch = aiResponse.content.match(/```json\s*([\s\S]*?)```/);
     if (jsonMatch) {
@@ -206,6 +203,14 @@ router.post('/threads/:id/messages', async (req, res, next) => {
     }
 
     const saved = await db.chatMessages.create(thread.id, 'assistant', aiResponse.content, metadata);
+
+    // Notify stream end with full content so frontend can add the message
+    notifyUser(userId, 'chat:stream-end', {
+      threadId,
+      fullContent: aiResponse.content,
+      metadata,
+      messageId: saved.id || Date.now(),
+    });
 
     if (history.length <= 1) {
       const title = trimmedMessage.slice(0, 60) + (trimmedMessage.length > 60 ? '...' : '');
