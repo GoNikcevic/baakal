@@ -525,6 +525,7 @@ export default function ChatPage() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamedMessageAdded, setStreamedMessageAdded] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
@@ -586,9 +587,20 @@ export default function ChatPage() {
       }
     };
 
-    const onStreamEnd = () => {
+    const onStreamEnd = (data) => {
       setIsStreaming(false);
-      // Don't clear streamingContent here — it will be cleared when the HTTP response arrives
+      // Add the complete message from stream-end and clear streaming content
+      if (data && data.fullContent) {
+        setMessages(prev => [...prev, {
+          id: data.messageId || Date.now(),
+          role: 'assistant',
+          content: data.fullContent,
+          metadata: data.metadata || null,
+          animate: false,
+        }]);
+      }
+      setStreamingContent('');
+      setStreamedMessageAdded(true);
     };
 
     socket.on('chat:stream', onChunk);
@@ -853,6 +865,7 @@ export default function ChatPage() {
     setShowWelcome(false);
     setStreamingContent('');
     setIsStreaming(false);
+    setStreamedMessageAdded(false);
 
     let threadId = currentThreadId;
 
@@ -895,17 +908,20 @@ export default function ChatPage() {
         });
         setShowTyping(false);
 
-        // HTTP response arrived — add the complete message to the list
-        const assistantMsg = {
-          id: data.message.id || Date.now() + 1,
-          role: 'assistant',
-          content: data.message.content,
-          metadata: data.message.metadata,
-          animate: false, // User already saw it streaming
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
+        // HTTP response arrived — only add if stream didn't already add it
+        if (!streamedMessageAdded) {
+          const assistantMsg = {
+            id: data.message.id || Date.now() + 1,
+            role: 'assistant',
+            content: data.message.content,
+            metadata: data.message.metadata,
+            animate: false,
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
         setStreamingContent('');
         setIsStreaming(false);
+        setStreamedMessageAdded(false);
         scrollToBottom();
 
         // Refresh thread list (title may have changed)
