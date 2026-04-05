@@ -111,6 +111,9 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
     const results = [];
     const filesToProcess = [];
 
+    // Get doc types from form data
+    const docTypes = req.body.docTypes ? JSON.parse(req.body.docTypes) : {};
+
     // Step 1: Save metadata + upload to S3 quickly (no parsing yet)
     for (const file of req.files) {
       const storageKey = file.filename;
@@ -128,6 +131,7 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
         fileSize: file.size,
         filePath: isS3 ? `s3://${storageKey}` : file.path,
         parsedText: null,
+        docType: docTypes[file.originalname] || 'other',
       });
 
       filesToProcess.push({ id: doc.id, path: file.path, mimeType: file.mimetype });

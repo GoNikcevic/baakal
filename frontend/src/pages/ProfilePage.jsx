@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../context/useApp';
-import { request, uploadFiles } from '../services/api-client';
+import { request } from '../services/api-client';
 
 /* ─── Default empty profile ─── */
 
@@ -43,6 +43,7 @@ export default function ProfilePage() {
 
   /* ─── File upload state ─── */
   const [files, setFiles] = useState([]);
+  const [fileTypes, setFileTypes] = useState({}); // { filename: 'company' | 'prospects' | 'brief' | 'other' }
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState([]);
@@ -177,12 +178,25 @@ export default function ProfilePage() {
     setUploading(true);
     setUploadSuccess(null);
     try {
-      const result = await uploadFiles(files);
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+      formData.append('docTypes', JSON.stringify(fileTypes));
+
+      const token = localStorage.getItem('bakal_token');
+      const res = await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+
       const count = files.length;
       setFiles([]);
+      setFileTypes({});
       setUploadSuccess(`${count} fichier${count > 1 ? 's' : ''} envoyé${count > 1 ? 's' : ''}`);
       setTimeout(() => setUploadSuccess(null), 4000);
-      // Refresh uploaded docs list
       request('/documents').then(data => {
         if (data && data.documents) setUploadedDocs(data.documents);
       }).catch(() => {});
@@ -191,7 +205,7 @@ export default function ProfilePage() {
       console.warn('Upload failed:', err.message);
     }
     setUploading(false);
-  }, [files]);
+  }, [files, fileTypes]);
 
   const removeFile = useCallback((i) => {
     setFiles(prev => prev.filter((_, idx) => idx !== i));
@@ -438,6 +452,17 @@ export default function ProfilePage() {
                   border: '1px solid var(--border)', borderRadius: 8, fontSize: 13,
                 }}>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <select
+                    value={fileTypes[f.name] || 'other'}
+                    onChange={e => setFileTypes(prev => ({ ...prev, [f.name]: e.target.value }))}
+                    onClick={e => e.stopPropagation()}
+                    style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+                  >
+                    <option value="company">Présentation entreprise</option>
+                    <option value="prospects">Liste prospects</option>
+                    <option value="brief">Brief campagne</option>
+                    <option value="other">Autre</option>
+                  </select>
                   <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>{formatSize(f.size)}</span>
                   <button onClick={() => removeFile(i)} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -487,6 +512,13 @@ export default function ProfilePage() {
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {doc.original_name}
                     </span>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10,
+                      background: doc.doc_type === 'company' ? 'rgba(0,214,143,0.1)' : 'var(--bg-elevated)',
+                      color: doc.doc_type === 'company' ? 'var(--success)' : 'var(--text-muted)',
+                      border: `1px solid ${doc.doc_type === 'company' ? 'rgba(0,214,143,0.2)' : 'var(--border)'}`,
+                    }}>
+                      {doc.doc_type === 'company' ? 'Entreprise' : doc.doc_type === 'prospects' ? 'Prospects' : doc.doc_type === 'brief' ? 'Brief' : 'Autre'}
+                    </span>
                     <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>
                       {new Date(doc.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
@@ -515,7 +547,7 @@ export default function ProfilePage() {
                 disabled={autoFilling}
                 style={{ marginTop: 12 }}
               >
-                {autoFilling ? 'Analyse en cours...' : 'Auto-remplir le profil avec mes documents'}
+                {autoFilling ? 'Analyse en cours...' : '\uD83E\uDDE0 Auto-remplir avec mes documents entreprise'}
               </button>
             </div>
           )}

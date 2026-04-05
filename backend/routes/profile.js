@@ -45,9 +45,13 @@ router.post('/auto-fill', async (req, res, next) => {
     const userId = req.user.id;
 
     // Get parsed text from uploaded documents
-    const docs = await db.documents.getParsedTextByUser(userId, 10);
-    if (!docs || docs.length === 0) {
+    const allDocs = await db.documents.getParsedTextByUser(userId, 10);
+    if (!allDocs || allDocs.length === 0) {
       return res.status(400).json({ error: 'Aucun document uploadé' });
+    }
+    const docs = allDocs.filter(d => d.doc_type === 'company');
+    if (docs.length === 0) {
+      return res.status(400).json({ error: 'Aucun document de type "Présentation entreprise" trouvé. Taggez vos documents avant d\'auto-remplir.' });
     }
 
     const docText = docs

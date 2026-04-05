@@ -832,7 +832,7 @@ const refreshTokens = {
 const documents = {
   async listByUser(userId) {
     const result = await query(
-      'SELECT id, filename, original_name, mime_type, file_size, created_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT id, filename, original_name, mime_type, file_size, doc_type, created_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
     return result.rows;
@@ -845,8 +845,8 @@ const documents = {
 
   async create(data) {
     const result = await query(
-      'INSERT INTO documents (user_id, filename, original_name, mime_type, file_size, file_path, parsed_text) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [data.userId, data.filename, data.originalName, data.mimeType, data.fileSize, data.filePath, data.parsedText || null]
+      'INSERT INTO documents (user_id, filename, original_name, mime_type, file_size, file_path, parsed_text, doc_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [data.userId, data.filename, data.originalName, data.mimeType, data.fileSize, data.filePath, data.parsedText || null, data.docType || 'other']
     );
     return result.rows[0];
   },
@@ -858,7 +858,7 @@ const documents = {
 
   async getParsedTextByUser(userId, limit = 10) {
     const result = await query(
-      'SELECT original_name, parsed_text FROM documents WHERE user_id = $1 AND parsed_text IS NOT NULL ORDER BY created_at DESC LIMIT $2',
+      'SELECT original_name, parsed_text, doc_type FROM documents WHERE user_id = $1 AND parsed_text IS NOT NULL ORDER BY created_at DESC LIMIT $2',
       [userId, limit]
     );
     return result.rows;

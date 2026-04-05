@@ -3,3 +3,4 @@ node_modules/
 *.sqlite
 *.db
 n8n/.env
+client_secret_*.json
