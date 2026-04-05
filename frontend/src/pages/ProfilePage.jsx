@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
+  const [autoFilling, setAutoFilling] = useState(false);
 
   /* ─── File upload state ─── */
   const [files, setFiles] = useState([]);
@@ -194,6 +195,27 @@ export default function ProfilePage() {
 
   const removeFile = useCallback((i) => {
     setFiles(prev => prev.filter((_, idx) => idx !== i));
+  }, []);
+
+  const handleAutoFill = useCallback(async () => {
+    setAutoFilling(true);
+    try {
+      const data = await request('/profile/auto-fill', { method: 'POST' });
+      if (data.profile) {
+        setProfile(prev => {
+          const updated = { ...prev };
+          for (const [key, value] of Object.entries(data.profile)) {
+            if (value && typeof value === 'string') {
+              updated[key] = value;
+            }
+          }
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.warn('Auto-fill failed:', err.message);
+    }
+    setAutoFilling(false);
   }, []);
 
   const formatSize = (bytes) => {
@@ -471,6 +493,14 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+              <button
+                className="btn btn-primary"
+                onClick={handleAutoFill}
+                disabled={autoFilling}
+                style={{ marginTop: 12 }}
+              >
+                {autoFilling ? 'Analyse en cours...' : 'Auto-remplir le profil avec mes documents'}
+              </button>
             </div>
           )}
         </div>
