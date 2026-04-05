@@ -553,9 +553,9 @@ router.post('/score-leads', async (req, res, next) => {
 router.post('/export-scores-crm', async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { exportScoresToHubSpot } = require('../lib/crm-export');
+    const { exportScoresToCRM } = require('../lib/crm-export');
     const opps = await db.opportunities.listByUser(userId, 100, 0);
-    const result = await exportScoresToHubSpot(userId, opps);
+    const result = await exportScoresToCRM(userId, opps);
     res.json(result);
   } catch (err) {
     next(err);
