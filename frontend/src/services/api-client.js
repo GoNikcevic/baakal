@@ -198,7 +198,7 @@ export function campaignToBackend(values) {
     length: values.length || 'Standard',
     cta: values.cta || null,
     lemlistId: values.lemlistId || null,
-    startDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+    startDate: new Date().toISOString().split('T')[0],
     planned: values.volume === 'Agressif (~200/semaine)' ? 200
            : values.volume === 'Modéré (~50/semaine)' ? 50
            : 100,
