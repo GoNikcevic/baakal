@@ -109,20 +109,29 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
     }
 
     const results = [];
-    const filesToProcess = [];
 
     // Get doc types from form data
     const docTypes = req.body.docTypes ? JSON.parse(req.body.docTypes) : {};
 
-    // Step 1: Save metadata + upload to S3 quickly (no parsing yet)
     for (const file of req.files) {
-      const storageKey = file.filename;
+      // Step 1: Parse file FIRST (while temp file still exists)
+      let parsedText = null;
+      try {
+        parsedText = await parseFile(file.path, file.mimetype);
+      } catch (err) {
+        console.error(`[documents] Parse error for ${file.originalname}:`, err.message);
+      }
 
+      // Step 2: Upload to S3
+      const storageKey = file.filename;
       if (isS3) {
         const buffer = fs.readFileSync(file.path);
         await uploadFile(storageKey, buffer, file.mimetype);
+        // Clean up temp file
+        try { fs.unlinkSync(file.path); } catch {}
       }
 
+      // Step 3: Save to DB with parsed text
       const doc = await db.documents.create({
         userId: req.user.id,
         filename: file.filename,
@@ -130,36 +139,20 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
         mimeType: file.mimetype,
         fileSize: file.size,
         filePath: isS3 ? `s3://${storageKey}` : file.path,
-        parsedText: null,
+        parsedText,
         docType: docTypes[file.originalname] || 'other',
       });
 
-      filesToProcess.push({ id: doc.id, path: file.path, mimeType: file.mimetype });
       results.push({
         id: doc.id,
         originalName: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        parsed: false,
+        parsed: !!parsedText,
       });
     }
 
-    // Step 2: Respond immediately
     res.status(201).json({ uploaded: results });
-
-    // Step 3: Parse files in background (after response sent)
-    for (const f of filesToProcess) {
-      try {
-        const parsedText = await parseFile(f.path, f.mimeType);
-        if (parsedText) {
-          await db.query('UPDATE documents SET parsed_text = $1 WHERE id = $2', [parsedText, f.id]);
-        }
-        // Clean up local temp file after S3 upload
-        if (isS3) { try { fs.unlinkSync(f.path); } catch {} }
-      } catch (err) {
-        console.error(`[documents] Background parse error for ${f.id}:`, err.message);
-      }
-    }
   } catch (err) {
     next(err);
   }
