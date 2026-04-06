@@ -235,7 +235,162 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
     );
   }
 
+  // Search prospects (Apollo) card
+  if (action === 'search_prospects') {
+    return <ProspectSearchCard metadata={metadata} onActionExecute={onActionExecute} />;
+  }
+
   return null;
+}
+
+function ProspectSearchCard({ metadata, onActionExecute }) {
+  const [searching, setSearching] = useState(false);
+  const [contacts, setContacts] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [saving, setSaving] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+  const [error, setError] = useState(null);
+
+  const criteriaSummary = [
+    metadata.titles?.join(', '),
+    metadata.sectors?.join(', '),
+    metadata.companySizes?.join(', '),
+    metadata.locations?.join(', '),
+  ].filter(Boolean);
+
+  const handleSearch = async () => {
+    setSearching(true);
+    setError(null);
+    try {
+      const data = await api.searchProspects({
+        titles: metadata.titles || [],
+        sectors: metadata.sectors || [],
+        locations: metadata.locations || [],
+        companySizes: metadata.companySizes || [],
+        limit: metadata.limit || 25,
+      });
+      const list = data.contacts || [];
+      setContacts(list);
+      setSelected(new Set(list.map(c => c.id)));
+    } catch (err) {
+      setError(err.message || 'Recherche échouée');
+    }
+    setSearching(false);
+  };
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const chosen = contacts.filter(c => selected.has(c.id));
+      if (metadata.campaignId) {
+        const r = await api.addProspectsToCampaign(metadata.campaignId, chosen);
+        setSavedCount(r.created || 0);
+      } else {
+        // No campaign linked — trigger parent to pick one via action execute
+        if (onActionExecute) onActionExecute({ ...metadata, contacts: chosen });
+      }
+    } catch (err) {
+      setError(err.message || 'Sauvegarde échouée');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="chat-action-card">
+      <div className="chat-action-title">🎯 Recherche de prospects (Apollo)</div>
+      <div className="chat-action-params">
+        {criteriaSummary.map((s, i) => (
+          <span key={i} className="chat-action-param">{escapeHtml(s)}</span>
+        ))}
+      </div>
+
+      {!contacts && (
+        <div className="chat-action-buttons">
+          <button
+            className="chat-action-btn primary"
+            onClick={handleSearch}
+            disabled={searching}
+          >
+            {searching ? 'Recherche...' : `🔍 Lancer la recherche (${metadata.limit || 25} max)`}
+          </button>
+        </div>
+      )}
+
+      {contacts && contacts.length === 0 && (
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+          Aucun contact trouvé pour ces critères.
+        </div>
+      )}
+
+      {contacts && contacts.length > 0 && (
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+            {contacts.length} résultats · {selected.size} sélectionnés
+          </div>
+          <div style={{ maxHeight: 240, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
+            {contacts.map(c => (
+              <div
+                key={c.id}
+                onClick={() => toggleSelect(c.id)}
+                style={{
+                  padding: '8px 10px',
+                  borderBottom: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  background: selected.has(c.id) ? 'var(--bg-elevated)' : 'transparent',
+                }}
+              >
+                <input type="checkbox" checked={selected.has(c.id)} readOnly />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>
+                    {c.name} {!c.email && <span style={{ color: 'var(--warning)', fontSize: 10 }}>(sans email)</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    {c.title} · {c.company}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {savedCount > 0 ? (
+            <div style={{ color: 'var(--success)', fontSize: 12, marginTop: 8, fontWeight: 600 }}>
+              ✅ {savedCount} prospects ajoutés à la campagne
+            </div>
+          ) : (
+            <div className="chat-action-buttons" style={{ marginTop: 10 }}>
+              <button
+                className="chat-action-btn primary"
+                onClick={handleSave}
+                disabled={saving || selected.size === 0}
+              >
+                {saving ? 'Ajout...' : metadata.campaignId
+                  ? `➕ Ajouter ${selected.size} à la campagne`
+                  : `➕ Ajouter ${selected.size} (choisir une campagne)`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 8 }}>
+          ⚠️ {error}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TypingIndicator() {
