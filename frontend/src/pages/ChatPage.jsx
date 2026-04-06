@@ -1032,7 +1032,7 @@ export default function ChatPage() {
             formality: 'Vous',
             length: 'Standard',
             cta: '',
-            volume: { sent: 0, planned: 100 },
+            volume: { sent: 0, planned: 0 },
             iteration: 0,
             startDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
             lemlistRef: null,
