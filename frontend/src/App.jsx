@@ -13,7 +13,6 @@ const ChatPage = lazy(() => import('./pages/ChatPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const CampaignsList = lazy(() => import('./pages/CampaignsList'))
 const CampaignDetailRoute = lazy(() => import('./pages/CampaignDetailRoute'))
-const CopyEditorPage = lazy(() => import('./pages/CopyEditorPage'))
 const PerformancePage = lazy(() => import('./pages/PerformancePage'))
 const RecosPage = lazy(() => import('./pages/RecosPage'))
 const MemoryExplorerPage = lazy(() => import('./pages/MemoryExplorerPage'))
@@ -145,7 +144,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/campaigns" element={<CampaignsList />} />
             <Route path="/campaigns/:id" element={<CampaignDetailRoute />} />
-            <Route path="/copyeditor" element={<CopyEditorPage />} />
+            <Route path="/copyeditor" element={<Navigate to="/campaigns" replace />} />
             <Route path="/performance" element={<PerformancePage />} />
             <Route path="/recos" element={<RecosPage />} />
             <Route path="/memory" element={<MemoryExplorerPage />} />

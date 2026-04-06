@@ -1,11 +1,10 @@
 /* ===============================================================================
    BAKAL — Campaign Detail Page (React)
-   Thin orchestrator that delegates to ActiveCampaignDetail / PrepCampaignDetail.
+   Single tabbed page for campaign settings, copy, prospects, performance, history.
    =============================================================================== */
 
 import { useApp } from '../context/useApp';
-import ActiveCampaignDetail from '../components/campaigns/ActiveCampaignDetail';
-import PrepCampaignDetail from '../components/campaigns/PrepCampaignDetail';
+import CampaignDetailLayout from '../components/campaigns/CampaignDetailLayout';
 
 export default function CampaignDetail({ campaignId, onBack }) {
   const { campaigns, setCampaigns } = useApp();
@@ -22,9 +21,5 @@ export default function CampaignDetail({ campaignId, onBack }) {
     );
   }
 
-  if (campaign.status === 'prep') {
-    return <PrepCampaignDetail campaign={campaign} onBack={onBack} setCampaigns={setCampaigns} />;
-  }
-
-  return <ActiveCampaignDetail campaign={campaign} onBack={onBack} setCampaigns={setCampaigns} />;
+  return <CampaignDetailLayout campaign={campaign} onBack={onBack} setCampaigns={setCampaigns} />;
 }

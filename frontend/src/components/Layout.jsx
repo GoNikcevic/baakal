@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { label: 'Assistant',           to: '/chat',         icon: 'chat' },
   { label: 'Dashboard',           to: '/dashboard',    icon: 'dashboard',  end: true },
   { label: 'Campagnes',           to: '/campaigns',    icon: 'campaigns' },
-  { label: 'Copy & S\u00e9quences', to: '/copyeditor', icon: 'copy' },
   { label: 'Performance',         to: '/performance',  icon: 'reports' },
   { label: 'M\u00e9moire IA',     to: '/memory',       icon: 'memory' },
   { label: 'CRM Analytics',       to: '/crm-analytics', icon: 'crm' },
