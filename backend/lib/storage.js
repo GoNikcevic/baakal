@@ -66,6 +66,21 @@ async function getFileUrl(key, expiresIn = 3600) {
   return `/uploads/${key}`;
 }
 
+async function getFileBuffer(key) {
+  if (isS3) {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET,
+      Key: key,
+    });
+    const response = await s3Client.send(command);
+    const chunks = [];
+    for await (const chunk of response.Body) chunks.push(chunk);
+    return Buffer.concat(chunks);
+  }
+  const filePath = path.join(UPLOAD_DIR, key);
+  return fs.readFileSync(filePath);
+}
+
 async function deleteFile(key) {
   if (isS3) {
     await s3Client.send(new DeleteObjectCommand({
@@ -79,4 +94,4 @@ async function deleteFile(key) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
-module.exports = { uploadFile, getFileUrl, deleteFile, isS3 };
+module.exports = { uploadFile, getFileUrl, getFileBuffer, deleteFile, isS3 };

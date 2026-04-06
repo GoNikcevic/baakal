@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const db = require('../db');
-const { uploadFile, deleteFile, isS3 } = require('../lib/storage');
+const { uploadFile, deleteFile, getFileBuffer, isS3 } = require('../lib/storage');
 
 const router = express.Router();
 
@@ -44,61 +44,58 @@ const upload = multer({
 });
 
 async function parseFile(filePath, mimeType) {
-  try {
-    if (mimeType === 'text/plain' || mimeType === 'text/csv') {
-      return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
-    }
-    if (mimeType === 'application/pdf') {
-      const pdfParse = require('pdf-parse');
-      const buffer = fs.readFileSync(filePath);
-      const data = await pdfParse(buffer);
-      return (data.text || '').slice(0, 100000);
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ path: filePath });
-      return (result.value || '').slice(0, 100000);
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-      const XLSX = require('xlsx');
-      const workbook = XLSX.readFile(filePath);
-      const sheets = workbook.SheetNames.map(name => {
-        const sheet = workbook.Sheets[name];
-        return `[${name}]\n${XLSX.utils.sheet_to_csv(sheet)}`;
-      });
-      return sheets.join('\n\n').slice(0, 100000);
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
-      const AdmZip = require('adm-zip');
-      const zip = new AdmZip(filePath);
-      const entries = zip.getEntries();
-      const slides = entries
-        .filter(e => e.entryName.match(/ppt\/slides\/slide\d+\.xml/))
-        .sort((a, b) => {
-          const numA = parseInt(a.entryName.match(/slide(\d+)/)[1]);
-          const numB = parseInt(b.entryName.match(/slide(\d+)/)[1]);
-          return numA - numB;
-        });
-      const texts = slides.map(slide => {
-        const xml = slide.getData().toString('utf8');
-        const parts = [];
-        const regex = /<a:t>([^<]*)<\/a:t>/g;
-        let match;
-        while ((match = regex.exec(xml)) !== null) {
-          if (match[1].trim()) parts.push(match[1].trim());
-        }
-        return parts.join(' ');
-      }).filter(Boolean);
-      return texts.join('\n\n').slice(0, 100000);
-    }
-    if (mimeType.startsWith('image/')) {
-      return '[Image uploaded]';
-    }
-    return null;
-  } catch (err) {
-    console.error(`Parse error for ${filePath}:`, err.message);
-    return null;
+  // Errors bubble up to caller so upload route can log + return them
+  if (mimeType === 'text/plain' || mimeType === 'text/csv') {
+    return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
   }
+  if (mimeType === 'application/pdf') {
+    // Bypass pdf-parse index.js which runs a broken debug test on require
+    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+    const buffer = fs.readFileSync(filePath);
+    const data = await pdfParse(buffer);
+    return (data.text || '').slice(0, 100000);
+  }
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const mammoth = require('mammoth');
+    const result = await mammoth.extractRawText({ path: filePath });
+    return (result.value || '').slice(0, 100000);
+  }
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    const XLSX = require('xlsx');
+    const workbook = XLSX.readFile(filePath);
+    const sheets = workbook.SheetNames.map(name => {
+      const sheet = workbook.Sheets[name];
+      return `[${name}]\n${XLSX.utils.sheet_to_csv(sheet)}`;
+    });
+    return sheets.join('\n\n').slice(0, 100000);
+  }
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+    const AdmZip = require('adm-zip');
+    const zip = new AdmZip(filePath);
+    const entries = zip.getEntries();
+    const slides = entries
+      .filter(e => e.entryName.match(/ppt\/slides\/slide\d+\.xml/))
+      .sort((a, b) => {
+        const numA = parseInt(a.entryName.match(/slide(\d+)/)[1]);
+        const numB = parseInt(b.entryName.match(/slide(\d+)/)[1]);
+        return numA - numB;
+      });
+    const texts = slides.map(slide => {
+      const xml = slide.getData().toString('utf8');
+      const parts = [];
+      const regex = /<a:t>([^<]*)<\/a:t>/g;
+      let match;
+      while ((match = regex.exec(xml)) !== null) {
+        if (match[1].trim()) parts.push(match[1].trim());
+      }
+      return parts.join(' ');
+    }).filter(Boolean);
+    return texts.join('\n\n').slice(0, 100000);
+  }
+  if (mimeType.startsWith('image/')) {
+    return '[Image uploaded]';
+  }
+  return null;
 }
 
 // POST /api/documents/upload
@@ -198,6 +195,55 @@ router.delete('/:id', async (req, res, next) => {
 
     await db.documents.delete(doc.id);
     res.json({ deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/documents/reparse — retry parsing for all docs with NULL parsed_text
+router.post('/reparse', async (req, res, next) => {
+  try {
+    const all = await db.documents.listByUser(req.user.id);
+    const results = [];
+    for (const doc of all) {
+      const fullDoc = await db.documents.get(doc.id);
+      if (fullDoc.parsed_text) {
+        results.push({ id: doc.id, name: doc.original_name, status: 'already_parsed' });
+        continue;
+      }
+      try {
+        // Load buffer from S3 or local path
+        let buffer;
+        if (fullDoc.file_path && fullDoc.file_path.startsWith('s3://')) {
+          const key = fullDoc.file_path.replace('s3://', '');
+          buffer = await getFileBuffer(key);
+        } else if (fullDoc.file_path && fs.existsSync(fullDoc.file_path)) {
+          buffer = fs.readFileSync(fullDoc.file_path);
+        } else {
+          results.push({ id: doc.id, name: doc.original_name, status: 'file_missing' });
+          continue;
+        }
+
+        // Write to temp and parse
+        const tempPath = path.join(UPLOAD_DIR, `reparse-${Date.now()}-${fullDoc.filename}`);
+        fs.writeFileSync(tempPath, buffer);
+        try {
+          const parsedText = await parseFile(tempPath, fullDoc.mime_type);
+          if (parsedText) {
+            await db.documents.updateParsedText(doc.id, parsedText);
+            results.push({ id: doc.id, name: doc.original_name, status: 'reparsed', chars: parsedText.length });
+          } else {
+            results.push({ id: doc.id, name: doc.original_name, status: 'empty_parse' });
+          }
+        } finally {
+          try { fs.unlinkSync(tempPath); } catch {}
+        }
+      } catch (err) {
+        console.error(`[reparse] ${doc.original_name}:`, err.message);
+        results.push({ id: doc.id, name: doc.original_name, status: 'error', message: err.message });
+      }
+    }
+    res.json({ results });
   } catch (err) {
     next(err);
   }

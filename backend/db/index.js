@@ -856,6 +856,14 @@ const documents = {
     return { changes: result.rowCount };
   },
 
+  async updateParsedText(id, parsedText) {
+    const result = await query(
+      'UPDATE documents SET parsed_text = $1 WHERE id = $2 RETURNING *',
+      [parsedText, id]
+    );
+    return result.rows[0] || null;
+  },
+
   async getParsedTextByUser(userId, limit = 10) {
     const result = await query(
       'SELECT original_name, parsed_text, doc_type FROM documents WHERE user_id = $1 AND parsed_text IS NOT NULL ORDER BY created_at DESC LIMIT $2',

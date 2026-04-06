@@ -228,6 +228,33 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.warn('Auto-fill failed:', err.message);
+      // Auto-retry: reparse docs then try once more
+      if (err.message && err.message.includes('parsing a échoué')) {
+        try {
+          const reparseData = await request('/documents/reparse', { method: 'POST' });
+          console.log('Reparse results:', reparseData.results);
+          const anyReparsed = reparseData.results?.some(r => r.status === 'reparsed');
+          if (anyReparsed) {
+            const retryData = await request('/profile/auto-fill', { method: 'POST' });
+            if (retryData.profile) {
+              setProfile(prev => {
+                const updated = { ...prev };
+                for (const [key, value] of Object.entries(retryData.profile)) {
+                  if (value && typeof value === 'string') updated[key] = value;
+                }
+                return updated;
+              });
+            }
+          } else {
+            alert('Impossible de parser vos documents. Vérifiez qu\'ils ne sont pas scannés/image.');
+          }
+        } catch (retryErr) {
+          console.warn('Reparse failed:', retryErr.message);
+          alert('Erreur: ' + err.message);
+        }
+      } else {
+        alert('Auto-fill: ' + err.message);
+      }
     }
     setAutoFilling(false);
   }, []);
