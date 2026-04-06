@@ -5,13 +5,24 @@
 import { StepStat } from './shared';
 import { sanitizeHtml } from '../../services/sanitize';
 
-export default function SequenceStep({ step: s, faded }) {
+const TYPE_META = {
+  email: { label: 'Email', color: 'var(--blue)', icon: '📧' },
+  linkedin_visit: { label: 'Visite profil', color: 'var(--purple)', icon: '👁️' },
+  linkedin_invite: { label: 'Note connexion', color: 'var(--purple)', icon: '🤝' },
+  linkedin_message: { label: 'Message LinkedIn', color: 'var(--purple)', icon: '💬' },
+  // Legacy fallback
+  linkedin: { label: 'LinkedIn', color: 'var(--purple)', icon: '💬' },
+};
+
+export default function SequenceStep({ step: s, faded, depth = 0 }) {
   const hasStats = s.stats !== null && s.stats !== undefined;
 
-  const typeLabel =
-    s.type === 'linkedin'
-      ? `${s.label} — ${s.subType}`
-      : `${s.label} — ${s.subType}`;
+  const meta = TYPE_META[s.type] || TYPE_META.email;
+  const typeLabel = `${meta.icon} ${meta.label}${s.subType ? ' — ' + s.subType : ''}`;
+  const isLinkedinInvite = s.type === 'linkedin_invite';
+  const isLinkedinVisit = s.type === 'linkedin_visit';
+  const charCount = (s.body || '').length;
+  const charLimitExceeded = isLinkedinInvite && charCount > 300;
 
   let statsContent;
   if (!hasStats) {
@@ -91,20 +102,73 @@ export default function SequenceStep({ step: s, faded }) {
   }
 
   return (
-    <div className="sequence-step" style={faded ? { opacity: 0.5 } : undefined}>
+    <div
+      className="sequence-step"
+      style={{
+        ...(faded ? { opacity: 0.5 } : {}),
+        ...(depth > 0
+          ? {
+              marginLeft: `${depth * 24}px`,
+              borderLeft: '2px solid var(--border)',
+              paddingLeft: '14px',
+            }
+          : {}),
+      }}
+    >
       <div className="step-indicator">
-        <div className={`step-dot ${s.type}`}>{s.id}</div>
+        <div
+          className={`step-dot ${s.type}`}
+          style={{ background: meta.color }}
+        >
+          {s.id}
+        </div>
         <div className="step-label">{s.timing}</div>
       </div>
       <div className="step-content">
+        {s.branchLabel && (
+          <div
+            style={{
+              display: 'inline-block',
+              fontSize: '10px',
+              fontWeight: 600,
+              color: 'var(--accent)',
+              background: 'rgba(108, 92, 231, 0.12)',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              marginBottom: '6px',
+            }}
+          >
+            ↳ {s.branchLabel}
+          </div>
+        )}
         {s.subject && (
           <div className="step-subject">Objet : {s.subject}</div>
         )}
         <div className="step-type">{typeLabel}</div>
-        <div
-          className="step-preview"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.body) }}
-        />
+        {isLinkedinVisit ? (
+          <div
+            style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}
+          >
+            Visite automatique du profil — pas de message
+          </div>
+        ) : (
+          <div
+            className="step-preview"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.body) }}
+          />
+        )}
+        {isLinkedinInvite && (
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              marginTop: '4px',
+              color: charLimitExceeded ? 'var(--danger)' : charCount > 250 ? 'var(--warning)' : 'var(--text-muted)',
+            }}
+          >
+            {charCount}/300 caractères {charLimitExceeded && '⚠️ DÉPASSE LA LIMITE'}
+          </div>
+        )}
       </div>
       {statsContent}
     </div>

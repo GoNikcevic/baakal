@@ -128,6 +128,10 @@ export function transformTouchpoint(tp) {
     subject: tp.subject || null,
     body: tp.body || '',
     maxChars: tp.max_chars || undefined,
+    parentStepId: tp.parent_step_id || null,
+    conditionType: tp.condition_type || null,
+    branchLabel: tp.branch_label || null,
+    isRoot: tp.is_root !== false,
     stats: (tp.open_rate != null || tp.reply_rate != null || tp.accept_rate != null)
       ? {
           open: tp.open_rate ?? undefined,

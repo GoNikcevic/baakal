@@ -59,8 +59,22 @@ router.post('/', async (req, res, next) => {
     const campaign = await db.campaigns.create({ ...sanitized, userId: req.user.id });
 
     if (Array.isArray(req.body.sequence)) {
-      for (let i = 0; i < req.body.sequence.length; i++) {
-        await db.touchpoints.create(campaign.id, { ...req.body.sequence[i], sortOrder: i });
+      let sortCounter = 0;
+      const createNode = async (tp, parentBackendId = null, isRoot = true) => {
+        const created = await db.touchpoints.create(campaign.id, {
+          ...tp,
+          sortOrder: sortCounter++,
+          parentStepId: parentBackendId,
+          isRoot,
+        });
+        if (Array.isArray(tp.children) && tp.children.length > 0) {
+          for (const child of tp.children) {
+            await createNode(child, created.id, false);
+          }
+        }
+      };
+      for (const tp of req.body.sequence) {
+        await createNode(tp, null, true);
       }
     }
 
@@ -104,9 +118,23 @@ router.put('/:id/sequence', async (req, res, next) => {
     await db.touchpoints.deleteByCampaign(campaign.id);
     const sequence = [];
     const tps = req.body.sequence || [];
-    for (let i = 0; i < tps.length; i++) {
-      const created = await db.touchpoints.create(campaign.id, { ...tps[i], sortOrder: i });
-      sequence.push({ ...tps[i], id: created.id });
+    let sortCounter = 0;
+    const createNode = async (tp, parentBackendId = null, isRoot = true) => {
+      const created = await db.touchpoints.create(campaign.id, {
+        ...tp,
+        sortOrder: sortCounter++,
+        parentStepId: parentBackendId,
+        isRoot,
+      });
+      sequence.push({ ...tp, id: created.id, parentStepId: parentBackendId });
+      if (Array.isArray(tp.children) && tp.children.length > 0) {
+        for (const child of tp.children) {
+          await createNode(child, created.id, false);
+        }
+      }
+    };
+    for (const tp of tps) {
+      await createNode(tp, null, true);
     }
 
     res.json({ sequence });

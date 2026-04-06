@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════ */
 
 import { useState } from 'react';
-import SequenceStep from './SequenceStep';
+import SequenceTree from './SequenceTree';
 import EditParamsPanel from './EditParamsPanel';
 import ProspectGenerator from './ProspectGenerator';
 import { InfoRow, CheckItem } from './shared';
@@ -28,7 +28,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
 
   const emailCount = (c.sequence || []).filter((s) => s.type === 'email').length;
   const linkedinCount = (c.sequence || []).filter(
-    (s) => s.type === 'linkedin'
+    (s) => s.type && s.type.startsWith('linkedin')
   ).length;
 
   /* ── Launch handler — deploys to Lemlist ── */
@@ -233,9 +233,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
           </div>
         </div>
         <div className="sequence-steps">
-          {(c.sequence || []).map((step, i) => (
-            <SequenceStep key={step.id} step={step} faded={i >= 3} />
-          ))}
+          <SequenceTree sequence={c.sequence || []} />
         </div>
       </div>
 

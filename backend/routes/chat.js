@@ -276,9 +276,10 @@ router.post('/threads/:id/create-campaign', async (req, res, next) => {
     });
 
     if (Array.isArray(data.sequence)) {
-      for (let i = 0; i < data.sequence.length; i++) {
-        const tp = data.sequence[i];
-        await db.touchpoints.create(campaign.id, {
+      // Recursively create touchpoints with parent/child links from Claude's nested JSON
+      let sortCounter = 0;
+      const createNode = async (tp, parentBackendId = null, isRoot = true) => {
+        const created = await db.touchpoints.create(campaign.id, {
           step: tp.step,
           type: tp.type,
           label: tp.label || '',
@@ -286,9 +287,20 @@ router.post('/threads/:id/create-campaign', async (req, res, next) => {
           timing: tp.timing || '',
           subject: tp.subject || null,
           body: tp.body || '',
-          maxChars: tp.type === 'linkedin' && tp.step?.startsWith('L') ? 300 : null,
-          sortOrder: i,
+          sortOrder: sortCounter++,
+          parentStepId: parentBackendId,
+          conditionType: tp.conditionType || null,
+          branchLabel: tp.branchLabel || null,
+          isRoot,
         });
+        if (Array.isArray(tp.children) && tp.children.length > 0) {
+          for (const child of tp.children) {
+            await createNode(child, created.id, false);
+          }
+        }
+      };
+      for (const tp of data.sequence) {
+        await createNode(tp, null, true);
       }
     }
 

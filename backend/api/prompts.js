@@ -33,9 +33,22 @@ function masterPrompt(params) {
   } = params;
 
   const channelInstructions = {
-    email: `Génère une séquence EMAIL uniquement avec ${touchpointCount} touchpoints (E1 à E${touchpointCount}).`,
-    linkedin: 'Génère une séquence LINKEDIN uniquement : L1 (note de connexion, max 300 chars) + L2 (message post-connexion).',
-    multi: `Génère une séquence MULTI-CANAL avec ${touchpointCount} touchpoints au total, combinant email et LinkedIn. Structure recommandée : E1 (email initial) → L1 (note connexion LinkedIn) → E2 (email valeur) → L2 (message LinkedIn) → E3 (email relance) → E4 (email break-up). Adapte selon le nombre de touchpoints demandé.`,
+    email: `Génère une séquence EMAIL uniquement avec ${touchpointCount} touchpoints (E1 à E${touchpointCount}). Tous les types doivent être "email".`,
+    linkedin: `Génère une séquence LINKEDIN uniquement avec cette structure OBLIGATOIRE :
+- LV1 (linkedin_visit, J+0) — visite de profil, PAS de body, PAS de subject (juste un signal de visibilité)
+- LI1 (linkedin_invite, J+1) — note de connexion, MAX 300 caractères, PAS de subject, PAS de pitch commercial
+- LM1 (linkedin_message, J+3, conditionType "accepted") — message post-connexion conversationnel
+- Optionnel : LM2 (linkedin_message, J+7) en relance
+JAMAIS de type "linkedin" générique. Toujours linkedin_visit, linkedin_invite, ou linkedin_message.`,
+    multi: `Génère une séquence MULTI-CANAL combinant email et LinkedIn avec ${touchpointCount} touchpoints au total. Structure RECOMMANDÉE :
+- LV1 (linkedin_visit, J+0) — visite de profil discrète
+- LI1 (linkedin_invite, J+1) — note de connexion MAX 300 chars (pas de pitch)
+- E1 (email, J+2) — email initial avec hook personnalisé
+- LM1 (linkedin_message, J+4, conditionType "accepted") — message LinkedIn si la connexion a été acceptée
+- E2 (email, J+5) — email de valeur (preuve / case study)
+- E3 (email, J+9) — email de relance avec angle différent
+- E4 (email, J+14) — break-up email court
+Adapte selon le nombre de touchpoints demandé. JAMAIS de type "linkedin" générique — utilise linkedin_visit, linkedin_invite, ou linkedin_message.`,
   };
 
   return `Tu es un copywriter expert en prospection B2B multicanal (Email + LinkedIn).
@@ -92,15 +105,26 @@ Chaque touchpoint doit suivre un rôle précis dans la séquence :
 - Structure : Message court, pas culpabilisant → Bénéfice rappelé → Porte ouverte
 - Longueur : 3-4 phrases MAX (même si "Long" demandé)
 
-### Note de connexion LinkedIn (L1)
-- Max 300 caractères ABSOLUS (contrainte plateforme)
-- JAMAIS de pitch commercial
-- Trouver un point commun ou complimenter un aspect pro
+### Visite de profil LinkedIn (linkedin_visit)
+- AUCUN body, AUCUN subject — c'est juste une action automatique
+- Sert à apparaître dans les "qui a consulté votre profil" du prospect avant la note de connexion
+- Toujours type "linkedin_visit", body vide ""
 
-### Message LinkedIn post-connexion (L2)
-- Conversationnel, comme un vrai message LinkedIn
-- Pas de copier-coller d'email
+### Note de connexion LinkedIn (linkedin_invite)
+- MAX 300 CARACTÈRES ABSOLUS — c'est une contrainte plateforme NON NÉGOCIABLE
+- COMPTE LES CARACTÈRES AVANT D'ÉCRIRE LA RÉPONSE
+- JAMAIS de pitch commercial, jamais de "j'aimerais vous présenter notre solution"
+- Structure idéale : Salutation courte → Point commun OU compliment pro spécifique → Question ouverte légère
+- Exemples valides (TOUS sous 300 chars) :
+  * "Bonjour {{firstName}}, j'ai vu votre poste de {{jobTitle}} chez {{companyName}}. Je travaille avec d'autres acteurs du secteur sur la qualité microbiologique en bioproduction. Ouvert à connecter ?" (210 chars)
+  * "Bonjour {{firstName}}, votre parcours en {{jobTitle}} m'intéresse — j'échange en ce moment avec plusieurs équipes biotech sur les défis de contrôle qualité. Heureux de connecter." (192 chars)
+- INTERDIT : pitch produit, mention de prix, mention "automatisé/IA", phrase >300 chars
+
+### Message LinkedIn post-connexion (linkedin_message)
+- Conversationnel, comme un vrai message LinkedIn (pas un email déguisé)
+- Pas de copier-coller d'email, pas de signature formelle
 - CTA : question ouverte liée au métier du prospect
+- 3-5 phrases max
 
 ## Règles impératives
 
@@ -168,9 +192,9 @@ Chaque touchpoint doit suivre un rôle précis dans la séquence :
 }
 \`\`\`
 
-## Séquences conditionnelles (optionnel)
+## Séquences conditionnelles (OBLIGATOIRE pour multi-canal)
 
-Si le canal est "multi" ou si le nombre de touchpoints >= 5, tu PEUX proposer des branches conditionnelles.
+Si le canal est "multi" ou "linkedin", tu DOIS générer AU MOINS UNE branche conditionnelle.
 Utilise la propriété "children" avec "conditionType" et "branchLabel" pour créer des embranchements.
 
 Conditions disponibles :
@@ -179,16 +203,17 @@ Conditions disponibles :
 - "clicked" / "not_clicked" — basé sur le clic d'un lien
 - "accepted" / "not_accepted" — basé sur l'acceptation LinkedIn
 
-Exemples de scénarios avec branches :
-1. Email → SI ouvert → relance douce / SI PAS ouvert → nouvel objet
-2. LinkedIn connexion → SI accepté → message / SI PAS accepté → email
-3. Email initial → SI répondu → FIN / SI PAS répondu → Email relance → LinkedIn
+Scénarios standards à appliquer :
+1. **linkedin_invite → SI accepté → linkedin_message / SI PAS accepté → email** (à utiliser systématiquement en multi-canal)
+2. Email initial → SI ouvert → relance douce / SI PAS ouvert → relance avec nouvel objet
+3. Email initial → SI répondu → STOP / SI PAS répondu → relance
 
 Règles pour les branches :
-- Maximum 2 branches par noeud (un noeud a au plus 2 enfants)
+- Maximum 2 branches par noeud (un noeud a au plus 2 enfants directs)
 - Maximum 3 niveaux de profondeur
-- Chaque branche DOIT avoir un branchLabel en français
-- Les séquences linéaires (sans branche) restent VALIDES — ne rajoute PAS children si la séquence est simple`;
+- Chaque branche DOIT avoir un branchLabel en français ("Si accepté", "Si pas répondu", etc.)
+- Pour une séquence email-only courte (<4 touchpoints), une séquence linéaire reste acceptable
+- Pour multi-canal et linkedin-only : branches OBLIGATOIRES`;
 }
 
 // =============================================

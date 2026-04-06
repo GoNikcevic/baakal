@@ -37,14 +37,39 @@ async function createCampaign(name, apiKey) {
   }, apiKey);
 }
 
+// Map Baakal touchpoint types → Lemlist API step types
+const LEMLIST_STEP_TYPE_MAP = {
+  email: 'email',
+  linkedin_visit: 'linkedinVisit',
+  linkedin_invite: 'linkedinInvite',
+  linkedin_message: 'linkedinSendMessage',
+  // Legacy fallback
+  linkedin: 'linkedinInvite',
+};
+
 async function addSequenceStep(campaignId, step, apiKey) {
-  // Lemlist sequence step API — basic shape
+  const lemlistType = LEMLIST_STEP_TYPE_MAP[step.type] || 'email';
+
+  // Truncate connection invites to 300 chars as a safety net
+  let text = step.body || '';
+  if (lemlistType === 'linkedinInvite' && text.length > 300) {
+    text = text.slice(0, 300);
+  }
+  if (lemlistType === 'linkedinVisit') {
+    text = ''; // visits have no body
+  }
+
   const body = {
-    type: step.type === 'linkedin' ? 'linkedinInvite' : 'email',
-    subject: step.subject || undefined,
-    text: step.body || '',
+    type: lemlistType,
+    text,
     delay: typeof step.delay === 'number' ? step.delay : parseDelayFromTiming(step.timing),
   };
+
+  // Subject only for emails
+  if (lemlistType === 'email' && step.subject) {
+    body.subject = step.subject;
+  }
+
   return lemlistFetch(`/campaigns/${campaignId}/sequences`, {
     method: 'POST',
     body: JSON.stringify(body),

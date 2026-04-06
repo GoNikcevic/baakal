@@ -245,6 +245,36 @@ const touchpoints = {
   },
 
   async create(campaignId, data) {
+    // Normalize legacy "linkedin" type — infer from step prefix
+    let type = data.type;
+    if (type === 'linkedin') {
+      const stepStr = String(data.step || '').toUpperCase();
+      if (stepStr.startsWith('LV')) type = 'linkedin_visit';
+      else if (stepStr.startsWith('LI') || stepStr === 'L1') type = 'linkedin_invite';
+      else type = 'linkedin_message';
+    }
+
+    // Enforce 300-char limit on connection invites + null subject
+    let body = data.body || '';
+    let subject = data.subject || null;
+    let maxChars = data.maxChars || null;
+
+    if (type === 'linkedin_invite') {
+      maxChars = 300;
+      subject = null;
+      if (body.length > 300) {
+        console.warn(`[touchpoints] Truncating linkedin_invite body from ${body.length} to 300 chars (step: ${data.step})`);
+        body = body.slice(0, 300);
+      }
+    }
+    if (type === 'linkedin_visit') {
+      body = '';
+      subject = null;
+    }
+    if (type === 'linkedin_message') {
+      subject = null;
+    }
+
     const result = await query(`
       INSERT INTO touchpoints (campaign_id, step, type, label, sub_type, timing,
         subject, body, max_chars, sort_order,
@@ -254,13 +284,13 @@ const touchpoints = {
     `, [
       campaignId,
       data.step,
-      data.type,
+      type,
       data.label || null,
       data.subType || null,
       data.timing || null,
-      data.subject || null,
-      data.body || '',
-      data.maxChars || null,
+      subject,
+      body,
+      maxChars,
       data.sortOrder || 0,
       data.parentStepId || null,
       data.conditionType || null,
