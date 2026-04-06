@@ -246,7 +246,10 @@ export default function ProfilePage() {
               });
             }
           } else {
-            alert('Impossible de parser vos documents. Vérifiez qu\'ils ne sont pas scannés/image.');
+            const details = (reparseData.results || [])
+              .map(r => `• ${r.name}: ${r.status}${r.message ? ' (' + r.message + ')' : ''}${r.chars ? ' — ' + r.chars + ' chars' : ''}`)
+              .join('\n');
+            alert('Reparse a échoué pour tous les docs:\n\n' + details);
           }
         } catch (retryErr) {
           console.warn('Reparse failed:', retryErr.message);
