@@ -49,11 +49,12 @@ async function parseFile(filePath, mimeType) {
     return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
   }
   if (mimeType === 'application/pdf') {
-    // Bypass pdf-parse index.js which runs a broken debug test on require
-    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+    // pdf-parse 2.x API: new PDFParse({ data }).getText()
+    const { PDFParse } = require('pdf-parse');
     const buffer = fs.readFileSync(filePath);
-    const data = await pdfParse(buffer);
-    return (data.text || '').slice(0, 100000);
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    return (result.text || '').slice(0, 100000);
   }
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
     const mammoth = require('mammoth');
