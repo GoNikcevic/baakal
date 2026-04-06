@@ -686,6 +686,24 @@ export async function searchProspects(criteria) {
   });
 }
 
+/** Add prospects to a campaign (bulk) */
+export async function addProspectsToCampaign(campaignId, contacts) {
+  return request(`/campaigns/${campaignId}/prospects`, {
+    method: 'POST',
+    body: JSON.stringify({ contacts }),
+  });
+}
+
+/** List prospects linked to a campaign */
+export async function listCampaignProspects(campaignId) {
+  return request(`/campaigns/${campaignId}/prospects`);
+}
+
+/** Launch campaign to Lemlist: create campaign + push sequence + push leads */
+export async function launchCampaignToLemlist(campaignId) {
+  return request(`/campaigns/${campaignId}/launch-lemlist`, { method: 'POST' });
+}
+
 /** Enrich a single contact by email via Apollo */
 export async function enrichContact(email) {
   return request('/ai/enrich-contact', {
@@ -774,6 +792,9 @@ const BakalAPI = {
   sendRecoFeedback,
   searchProspects,
   enrichContact,
+  addProspectsToCampaign,
+  listCampaignProspects,
+  launchCampaignToLemlist,
 };
 
 export default BakalAPI;

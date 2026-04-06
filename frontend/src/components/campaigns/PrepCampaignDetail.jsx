@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import SequenceStep from './SequenceStep';
 import EditParamsPanel from './EditParamsPanel';
+import ProspectGenerator from './ProspectGenerator';
 import { InfoRow, CheckItem } from './shared';
 import api from '../../services/api-client';
 import { sanitizeHtml } from '../../services/sanitize';
@@ -14,6 +15,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
   const [launchAlert, setLaunchAlert] = useState(null);
   const [recoApplied, setRecoApplied] = useState(false);
   const [recoDismissed, setRecoDismissed] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
   /* ── Tags ── */
   const tags = [
@@ -29,8 +31,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     (s) => s.type === 'linkedin'
   ).length;
 
-  /* ── Launch handler ── */
-  const handleLaunch = () => {
+  /* ── Launch handler — deploys to Lemlist ── */
+  const handleLaunch = async () => {
     if (!c.sequence || c.sequence.length === 0) {
       setLaunchAlert({
         type: 'error',
@@ -40,44 +42,37 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
       return;
     }
 
-    const notDone = (c.prepChecklist || []).filter((ch) => !ch.done);
-    if (notDone.length > 1) {
-      setLaunchAlert({
-        type: 'warning',
-        title: 'Étapes de préparation incomplètes',
-        desc: `${notDone.length} étape(s) restante(s) : ${notDone.map((n) => n.title).join(', ')}`,
-      });
-      return;
-    }
-
-    // Launch the campaign — persist to backend then update local state
-    const updates = {
-      status: 'active',
-      iteration: 1,
-      startDate: new Date().toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-      }),
-      kpis: {
-        contacts: 0,
-        openRate: 0,
-        replyRate: 0,
-        interested: 0,
-        meetings: 0,
-        stops: 0,
-      },
-    };
-
-    // Persist to backend
+    setLaunching(true);
+    setLaunchAlert(null);
     const backendId = c._backendId || c.id;
-    api.updateCampaign(backendId, { status: 'active', iteration: 1 }).catch((err) => {
-      console.warn('Failed to persist campaign launch:', err.message);
-    });
 
-    setCampaigns((prev) => ({
-      ...prev,
-      [c.id]: { ...prev[c.id], ...updates },
-    }));
+    try {
+      const result = await api.launchCampaignToLemlist(backendId);
+
+      // Update local state
+      setCampaigns((prev) => ({
+        ...prev,
+        [c.id]: {
+          ...prev[c.id],
+          status: 'active',
+          iteration: 1,
+          kpis: { contacts: result.leads?.pushed || 0, openRate: 0, replyRate: 0, interested: 0, meetings: 0, stops: 0 },
+        },
+      }));
+
+      setLaunchAlert({
+        type: 'success',
+        title: '🚀 Campagne déployée vers Lemlist',
+        desc: `${result.leads?.pushed || 0} prospects ajoutés · ${(result.sequenceSteps || []).filter(s => s.ok).length}/${(result.sequenceSteps || []).length} étapes de séquence créées`,
+      });
+    } catch (err) {
+      setLaunchAlert({
+        type: 'error',
+        title: 'Échec du lancement Lemlist',
+        desc: err.message || 'Erreur inconnue — vérifiez votre clé API Lemlist dans Intégrations.',
+      });
+    }
+    setLaunching(false);
   };
 
   return (
@@ -120,8 +115,9 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             className="btn btn-success"
             style={{ fontSize: '12px', padding: '8px 14px' }}
             onClick={handleLaunch}
+            disabled={launching}
           >
-            🚀 Lancer la campagne
+            {launching ? '⏳ Déploiement Lemlist...' : '🚀 Lancer vers Lemlist'}
           </button>
         </div>
       </div>
@@ -133,8 +129,16 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             background:
               launchAlert.type === 'error'
                 ? 'var(--danger-bg)'
-                : 'var(--warning-bg)',
-            border: `1px solid ${launchAlert.type === 'error' ? 'rgba(255,107,107,0.3)' : 'rgba(255,170,0,0.3)'}`,
+                : launchAlert.type === 'success'
+                  ? 'rgba(0, 214, 143, 0.1)'
+                  : 'var(--warning-bg)',
+            border: `1px solid ${
+              launchAlert.type === 'error'
+                ? 'rgba(255,107,107,0.3)'
+                : launchAlert.type === 'success'
+                  ? 'rgba(0, 214, 143, 0.3)'
+                  : 'rgba(255,170,0,0.3)'
+            }`,
             borderRadius: '12px',
             padding: '16px',
             margin: '16px 0',
@@ -144,14 +148,14 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
           }}
         >
           <span style={{ fontSize: '18px' }}>
-            {launchAlert.type === 'error' ? '⚠️' : '⏳'}
+            {launchAlert.type === 'error' ? '⚠️' : launchAlert.type === 'success' ? '✅' : '⏳'}
           </span>
           <div>
             <div
               style={{
                 fontSize: '14px',
                 fontWeight: 600,
-                color: `var(--${launchAlert.type === 'error' ? 'danger' : 'warning'})`,
+                color: `var(--${launchAlert.type === 'error' ? 'danger' : launchAlert.type === 'success' ? 'success' : 'warning'})`,
               }}
             >
               {launchAlert.title}
@@ -213,6 +217,9 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
           ))}
         </div>
       </div>
+
+      {/* Prospect generator — Apollo search + bulk add */}
+      <ProspectGenerator campaign={c} />
 
       {/* Sequence preview */}
       <div className="sequence-card">

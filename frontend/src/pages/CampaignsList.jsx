@@ -78,6 +78,8 @@ export default function CampaignsList({ onNavigateCampaign }) {
   const handleRowClick = (campaignId) => {
     if (onNavigateCampaign) {
       onNavigateCampaign(campaignId);
+    } else {
+      navigate(`/campaigns/${campaignId}`);
     }
   };
 

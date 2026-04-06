@@ -3,15 +3,16 @@ const { withRetry } = require('../lib/retry');
 
 const BASE_URL = config.lemlist.baseUrl;
 
-async function lemlistFetch(endpoint, options = {}) {
+async function lemlistFetch(endpoint, options = {}, apiKey = null) {
   const url = `${BASE_URL}${endpoint}`;
+  const key = apiKey || config.lemlist.apiKey;
   return withRetry(async () => {
     const res = await fetch(url, {
       ...options,
       // Lemlist uses API key as basic auth password
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${Buffer.from(`:${config.lemlist.apiKey}`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`:${key}`).toString('base64')}`,
         ...options.headers,
       },
     });
@@ -25,6 +26,53 @@ async function lemlistFetch(endpoint, options = {}) {
     }
     return res.json();
   }, { maxRetries: 2, baseDelay: 1000 });
+}
+
+// --- Create / deploy ---
+
+async function createCampaign(name, apiKey) {
+  return lemlistFetch('/campaigns', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  }, apiKey);
+}
+
+async function addSequenceStep(campaignId, step, apiKey) {
+  // Lemlist sequence step API — basic shape
+  const body = {
+    type: step.type === 'linkedin' ? 'linkedinInvite' : 'email',
+    subject: step.subject || undefined,
+    text: step.body || '',
+    delay: typeof step.delay === 'number' ? step.delay : parseDelayFromTiming(step.timing),
+  };
+  return lemlistFetch(`/campaigns/${campaignId}/sequences`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }, apiKey);
+}
+
+function parseDelayFromTiming(timing) {
+  if (!timing) return 0;
+  const match = String(timing).match(/J\+?(\d+)/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+async function addLead(campaignId, lead, apiKey) {
+  // Lemlist v1: POST /campaigns/{id}/leads/{email}
+  const email = lead.email;
+  if (!email) throw new Error('Lead must have an email');
+  const body = {
+    firstName: lead.firstName || '',
+    lastName: lead.lastName || '',
+    companyName: lead.company || lead.companyName || '',
+    jobTitle: lead.title || lead.jobTitle || '',
+    linkedinUrl: lead.linkedinUrl || undefined,
+    phone: lead.phone || undefined,
+  };
+  return lemlistFetch(`/campaigns/${campaignId}/leads/${encodeURIComponent(email)}?verify=false`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }, apiKey);
 }
 
 // --- Campaign endpoints ---
@@ -199,6 +247,9 @@ module.exports = {
   getSequences,
   updateSequenceStep,
   getWorkflow,
+  createCampaign,
+  addSequenceStep,
+  addLead,
   transformCampaignStats,
   transformStepStats,
   transformWorkflowToTree,

@@ -4,6 +4,8 @@ const lemlist = require('../api/lemlist');
 const notionSync = require('../api/notion-sync');
 const { notifyCampaignUpdate, notifyUser } = require('../socket');
 const { sanitizeObject } = require('../lib/sanitize');
+const { getUserKey } = require('../config');
+const logger = require('../lib/logger');
 
 const router = Router();
 
@@ -159,6 +161,163 @@ router.post('/:id/versions', async (req, res, next) => {
     notionSync.syncVersion(version.id, campaign.id).catch(console.error);
     res.status(201).json(version);
   } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/campaigns/:id/prospects — list opportunities linked to a campaign
+router.get('/:id/prospects', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const prospects = await db.opportunities.listByCampaign(req.params.id);
+    res.json({ prospects });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/campaigns/:id/prospects — bulk add prospects to a campaign
+// body: { contacts: [{ name, firstName, lastName, email, title, company, ... }] }
+router.post('/:id/prospects', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const contacts = Array.isArray(req.body.contacts) ? req.body.contacts : [];
+    if (contacts.length === 0) return res.status(400).json({ error: 'No contacts provided' });
+
+    const created = [];
+    for (const c of contacts) {
+      try {
+        const opp = await db.opportunities.create({
+          userId: req.user.id,
+          campaignId: campaign.id,
+          name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unknown',
+          title: c.title || null,
+          company: c.company || null,
+          companySize: c.companySize ? String(c.companySize) : null,
+          email: c.email || null,
+          status: 'new',
+        });
+        created.push(opp);
+      } catch (err) {
+        logger.warn('campaigns', `Failed to create prospect: ${err.message}`);
+      }
+    }
+
+    // Update campaign nb_prospects
+    await db.campaigns.update(campaign.id, { nb_prospects: (campaign.nb_prospects || 0) + created.length });
+
+    res.status(201).json({ created: created.length, prospects: created });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/campaigns/:id/launch-lemlist
+// Creates the Lemlist campaign, deploys sequences, pushes prospects, flips status to active
+router.post('/:id/launch-lemlist', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const apiKey = await getUserKey(req.user.id, 'lemlist');
+    if (!apiKey) return res.status(400).json({ error: 'Lemlist non configuré. Ajoutez votre clé API dans Intégrations.' });
+
+    // Load sequence + prospects
+    const [touchpoints, prospects] = await Promise.all([
+      db.touchpoints.listByCampaign(campaign.id),
+      db.opportunities.listByCampaign(campaign.id),
+    ]);
+
+    if (touchpoints.length === 0) {
+      return res.status(400).json({ error: 'Aucune séquence générée. Générez les messages avant de lancer.' });
+    }
+
+    const eligibleProspects = prospects.filter(p => p.email);
+    if (eligibleProspects.length === 0) {
+      return res.status(400).json({ error: 'Aucun prospect avec email. Ajoutez des prospects avant de lancer.' });
+    }
+
+    let lemlistCampaignId = campaign.lemlist_id;
+
+    // 1) Create Lemlist campaign if not already linked
+    if (!lemlistCampaignId) {
+      const created = await lemlist.createCampaign(campaign.name, apiKey);
+      lemlistCampaignId = created._id || created.id;
+      if (!lemlistCampaignId) {
+        return res.status(500).json({ error: 'Lemlist did not return a campaign id' });
+      }
+      await db.campaigns.update(campaign.id, { lemlist_id: lemlistCampaignId });
+    }
+
+    // 2) Push sequence steps
+    const sequenceResults = [];
+    for (const tp of touchpoints) {
+      try {
+        const step = {
+          type: tp.type,
+          subject: tp.subject,
+          body: tp.body,
+          timing: tp.timing,
+        };
+        const r = await lemlist.addSequenceStep(lemlistCampaignId, step, apiKey);
+        sequenceResults.push({ step: tp.step, ok: true, id: r._id || r.id });
+      } catch (err) {
+        sequenceResults.push({ step: tp.step, ok: false, error: err.message });
+        logger.warn('launch-lemlist', `Sequence step failed: ${err.message}`);
+      }
+    }
+
+    // 3) Push leads
+    const leadResults = { pushed: 0, skipped: 0, errors: [] };
+    for (const p of eligibleProspects) {
+      try {
+        const [firstName, ...rest] = (p.name || '').split(' ');
+        await lemlist.addLead(lemlistCampaignId, {
+          email: p.email,
+          firstName: firstName || '',
+          lastName: rest.join(' ') || '',
+          company: p.company || '',
+          title: p.title || '',
+        }, apiKey);
+        leadResults.pushed++;
+      } catch (err) {
+        leadResults.skipped++;
+        leadResults.errors.push({ email: p.email, error: err.message });
+      }
+    }
+
+    // 4) Flip campaign to active
+    await db.campaigns.update(campaign.id, {
+      status: 'active',
+      start_date: new Date().toISOString().split('T')[0],
+      nb_prospects: eligibleProspects.length,
+      planned: eligibleProspects.length,
+    });
+
+    const updated = await db.campaigns.get(campaign.id);
+    notifyCampaignUpdate(req.user.id, updated);
+
+    res.json({
+      success: true,
+      lemlistCampaignId,
+      sequenceSteps: sequenceResults,
+      leads: leadResults,
+      campaign: updated,
+    });
+  } catch (err) {
+    logger.error('launch-lemlist', `Fatal: ${err.message}`);
     next(err);
   }
 });

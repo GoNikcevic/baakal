@@ -1089,6 +1089,14 @@ const opportunities = {
     return result.rows;
   },
 
+  async listByCampaign(campaignId) {
+    const result = await query(
+      'SELECT * FROM opportunities WHERE campaign_id = $1 ORDER BY created_at DESC',
+      [campaignId]
+    );
+    return result.rows;
+  },
+
   async get(id) {
     const result = await query('SELECT * FROM opportunities WHERE id = $1', [id]);
     return result.rows[0] || null;
