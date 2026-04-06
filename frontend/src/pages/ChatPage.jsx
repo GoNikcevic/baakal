@@ -276,12 +276,14 @@ function ChooseSourceCard({ metadata, onActionExecute }) {
 }
 
 function ProspectSearchCard({ metadata, onActionExecute }) {
+  const { campaigns } = useApp();
   const [searching, setSearching] = useState(false);
   const [contacts, setContacts] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState(null);
+  const [showCampaignPicker, setShowCampaignPicker] = useState(false);
 
   const criteriaSummary = [
     metadata.titles?.join(', '),
@@ -319,23 +321,39 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
     });
   };
 
-  const handleSave = async () => {
+  const saveToCampaign = async (campaignBackendId) => {
     setSaving(true);
     setError(null);
     try {
       const chosen = contacts.filter(c => selected.has(c.id));
-      if (metadata.campaignId) {
-        const r = await api.addProspectsToCampaign(metadata.campaignId, chosen);
-        setSavedCount(r.created || 0);
-      } else {
-        // No campaign linked — trigger parent to pick one via action execute
-        if (onActionExecute) onActionExecute({ ...metadata, contacts: chosen });
-      }
+      const r = await api.addProspectsToCampaign(campaignBackendId, chosen);
+      setSavedCount(r.created || 0);
+      setShowCampaignPicker(false);
     } catch (err) {
       setError(err.message || 'Sauvegarde échouée');
     }
     setSaving(false);
   };
+
+  const handleSaveClick = async () => {
+    if (metadata.campaignId) {
+      // Pre-linked campaign — save directly
+      await saveToCampaign(metadata.campaignId);
+    } else {
+      // No campaign linked — show picker
+      setShowCampaignPicker(true);
+    }
+  };
+
+  // Build list of pickable campaigns (only prep campaigns make sense before launch)
+  const pickableCampaigns = Object.values(campaigns || {})
+    .filter(c => c.status === 'prep')
+    .map(c => ({
+      id: c._backendId || c.id,
+      name: c.name,
+      sector: c.sector,
+      size: c.size,
+    }));
 
   const sourceLabel = metadata.source
     ? metadata.source.charAt(0).toUpperCase() + metadata.source.slice(1)
@@ -405,11 +423,46 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
             <div style={{ color: 'var(--success)', fontSize: 12, marginTop: 8, fontWeight: 600 }}>
               ✅ {savedCount} prospects ajoutés à la campagne
             </div>
+          ) : showCampaignPicker ? (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                Choisis la campagne où ajouter les {selected.size} prospects :
+              </div>
+              {pickableCampaigns.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>
+                  Aucune campagne en préparation. Crée d'abord une campagne via le chat.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflow: 'auto' }}>
+                  {pickableCampaigns.map(c => (
+                    <button
+                      key={c.id}
+                      className="chat-action-btn ghost"
+                      onClick={() => saveToCampaign(c.id)}
+                      disabled={saving}
+                      style={{ textAlign: 'left', padding: '10px 12px' }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>{c.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        {[c.sector, c.size].filter(Boolean).join(' · ')}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className="chat-action-btn ghost"
+                onClick={() => setShowCampaignPicker(false)}
+                style={{ marginTop: 8, fontSize: 11 }}
+              >
+                Annuler
+              </button>
+            </div>
           ) : (
             <div className="chat-action-buttons" style={{ marginTop: 10 }}>
               <button
                 className="chat-action-btn primary"
-                onClick={handleSave}
+                onClick={handleSaveClick}
                 disabled={saving || selected.size === 0}
               >
                 {saving ? 'Ajout...' : metadata.campaignId
