@@ -58,16 +58,23 @@ export default function MemoryExplorerPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const demoMode = localStorage.getItem('bakal_demo_mode') === 'true';
     async function load() {
+      if (demoMode) {
+        if (!cancelled) {
+          setPatterns(DEMO_PATTERNS);
+          setLoading(false);
+        }
+        return;
+      }
       try {
         const res = await api.getMemory();
         if (!cancelled) {
-          const fetched = res.patterns || [];
-          setPatterns(fetched.length > 0 ? fetched : DEMO_PATTERNS);
+          setPatterns(res.patterns || []);
         }
       } catch {
         if (!cancelled) {
-          setPatterns(DEMO_PATTERNS);
+          setPatterns([]);
         }
       } finally {
         if (!cancelled) setLoading(false);

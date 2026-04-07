@@ -31,11 +31,26 @@ export function AppProvider({ children }) {
       setUser(getUser());
     }
 
+    const demoMode = localStorage.getItem('bakal_demo_mode') === 'true';
+
     try {
       const health = await api.checkHealth();
 
       if (health) {
         setBackendAvailable(true);
+
+        // If demo mode toggled ON, always show demo data (even if backend is up)
+        if (demoMode) {
+          const { DEMO_DATA } = await import('../data/demo-data');
+          setCampaigns(DEMO_DATA.campaigns || {});
+          setProjects(DEMO_DATA.projects || {});
+          setGlobalKpis(DEMO_DATA.globalKpis || {});
+          setOpportunities(DEMO_DATA.opportunities || []);
+          setRecommendations(DEMO_DATA.recommendations || []);
+          setReports(DEMO_DATA.reports || []);
+          setChartData(DEMO_DATA.chartData || []);
+          return;
+        }
 
         // Fetch campaigns first, then projects (which needs campaign data for linking)
         const [campaignsData, kpisData, oppsData, reportsData, chartDataResult, recosData] = await Promise.all([
@@ -60,17 +75,29 @@ export function AppProvider({ children }) {
         throw new Error('Backend unreachable');
       }
     } catch {
-      // Backend not available — load demo data
+      // Backend not available
       setBackendAvailable(false);
 
-      const { DEMO_DATA } = await import('../data/demo-data');
-      setCampaigns(DEMO_DATA.campaigns || {});
-      setProjects(DEMO_DATA.projects || {});
-      setGlobalKpis(DEMO_DATA.globalKpis || {});
-      setOpportunities(DEMO_DATA.opportunities || []);
-      setRecommendations(DEMO_DATA.recommendations || []);
-      setReports(DEMO_DATA.reports || []);
-      setChartData(DEMO_DATA.chartData || []);
+      // Only load demo data if user has explicitly toggled demo mode
+      if (demoMode) {
+        const { DEMO_DATA } = await import('../data/demo-data');
+        setCampaigns(DEMO_DATA.campaigns || {});
+        setProjects(DEMO_DATA.projects || {});
+        setGlobalKpis(DEMO_DATA.globalKpis || {});
+        setOpportunities(DEMO_DATA.opportunities || []);
+        setRecommendations(DEMO_DATA.recommendations || []);
+        setReports(DEMO_DATA.reports || []);
+        setChartData(DEMO_DATA.chartData || []);
+      } else {
+        // Leave everything empty — user gets empty states
+        setCampaigns({});
+        setProjects({});
+        setGlobalKpis({});
+        setOpportunities([]);
+        setRecommendations([]);
+        setReports([]);
+        setChartData([]);
+      }
     }
   }, []);
 

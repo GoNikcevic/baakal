@@ -150,8 +150,11 @@ export default function CRMAnalyticsPage() {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
 
+  const demoMode = typeof window !== 'undefined' && localStorage.getItem('bakal_demo_mode') === 'true';
+
   const fetchData = useCallback(async (tab) => {
-    if (!backendAvailable) {
+    // Demo mode: always show demo data regardless of backend
+    if (demoMode) {
       setData({
         pipeline: DEMO_PIPELINE,
         attribution: DEMO_ATTRIBUTION,
@@ -162,36 +165,26 @@ export default function CRMAnalyticsPage() {
       });
       return;
     }
+    // No backend + no demo → leave empty
+    if (!backendAvailable) {
+      setData({});
+      return;
+    }
     if (data[tab]) return; // cached
     setLoading(true);
     try {
       const result = await api.request('/analytics/' + tab);
       setData(prev => ({ ...prev, [tab]: result }));
     } catch {
-      // fallback to demo
-      const demos = { pipeline: DEMO_PIPELINE, attribution: DEMO_ATTRIBUTION, scoring: DEMO_SCORING, channels: DEMO_CHANNELS, health: DEMO_HEALTH, trends: DEMO_TRENDS };
-      setData(prev => ({ ...prev, [tab]: demos[tab] }));
+      // Don't fall back to demo — leave the tab empty and let the UI render its empty state
+      setData(prev => ({ ...prev, [tab]: null }));
     }
     setLoading(false);
-  }, [backendAvailable, data]);
+  }, [backendAvailable, data, demoMode]);
 
   useEffect(() => {
     fetchData(activeTab);
   }, [activeTab, fetchData]);
-
-  // Init all demo data if offline
-  useEffect(() => {
-    if (!backendAvailable) {
-      setData({
-        pipeline: DEMO_PIPELINE,
-        attribution: DEMO_ATTRIBUTION,
-        scoring: DEMO_SCORING,
-        channels: DEMO_CHANNELS,
-        health: DEMO_HEALTH,
-        trends: DEMO_TRENDS,
-      });
-    }
-  }, [backendAvailable]);
 
   const tabData = data[activeTab];
 

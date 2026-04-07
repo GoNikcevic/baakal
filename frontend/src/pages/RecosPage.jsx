@@ -106,9 +106,10 @@ const PRIORITY_MAP = {
 export default function RecosPage() {
   const { campaigns, backendAvailable } = useApp();
 
-  // Local state
-  const [recos, setRecos] = useState(DEMO_RECOS);
-  const [insights, setInsights] = useState(INSIGHTS);
+  // Local state — start empty unless demo mode is toggled
+  const demoMode = typeof window !== 'undefined' && localStorage.getItem('bakal_demo_mode') === 'true';
+  const [recos, setRecos] = useState(demoMode ? DEMO_RECOS : []);
+  const [insights, setInsights] = useState(demoMode ? INSIGHTS : []);
   const [activeFilter, setActiveFilter] = useState('Toutes');
   const [activeCampaign, setActiveCampaign] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -120,6 +121,7 @@ export default function RecosPage() {
   /* ─── Fetch real diagnostics & memory from backend ─── */
 
   const fetchRecos = useCallback(async () => {
+    if (demoMode) return; // demo data already set
     if (!backendAvailable) return;
     try {
       const campaignEntries = Object.values(campaigns);
@@ -153,21 +155,20 @@ export default function RecosPage() {
         });
       });
 
-      if (realRecos.length > 0) {
-        setRecos(realRecos);
-      }
+      // Always sync — even if empty (user should see empty state, not stale demo)
+      setRecos(realRecos);
 
       // Build insights from memory patterns
       const patterns = memoryRes.patterns || [];
-      if (patterns.length > 0) {
-        setInsights(patterns.map(p => ({
+      setInsights(
+        patterns.map(p => ({
           title: p.pattern || p.title || '',
           text: p.data || p.description || '',
           confidence: (p.confidence || '').toLowerCase() === 'haute' ? 'high'
             : (p.confidence || '').toLowerCase() === 'moyenne' ? 'medium' : 'low',
           confidenceLabel: `Confiance ${p.confidence || 'inconnue'}`,
-        })));
-      }
+        }))
+      );
 
       setDataLoaded(true);
     } catch (err) {
