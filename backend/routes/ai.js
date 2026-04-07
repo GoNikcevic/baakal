@@ -648,6 +648,100 @@ router.get('/prospect-sources', async (req, res, next) => {
   }
 });
 
+// GET /api/ai/ab-categories — return the closed set of A/B test categories
+router.get('/ab-categories', async (req, res, next) => {
+  try {
+    const { AB_CATEGORIES } = require('../lib/ab-memory');
+    res.json({ categories: AB_CATEGORIES });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/ab-recommendations — get recommendations for a segment
+// Body: { sectors: [], targets: [], size: '' }
+router.post('/ab-recommendations', async (req, res, next) => {
+  try {
+    const { getAllRecommendations } = require('../lib/ab-memory');
+    const segment = req.body || {};
+    const recommendations = await getAllRecommendations(segment);
+    res.json({ recommendations });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/ab-record-winner — record the winner of an A/B test
+// Body: { campaignId, winner: 'A'|'B' }
+router.post('/ab-record-winner', async (req, res, next) => {
+  try {
+    const { recordABPattern } = require('../lib/ab-memory');
+    const { forceSelectWinner } = require('../lib/ab-testing');
+    const { campaignId, winner } = req.body;
+    if (!campaignId || !['A', 'B'].includes(winner)) {
+      return res.status(400).json({ error: 'campaignId and winner (A|B) required' });
+    }
+
+    // Run the Lemlist promotion first
+    const result = await forceSelectWinner(campaignId, req.user.id, winner);
+
+    // Fetch campaign + versions to extract the test metadata
+    const campaign = await db.campaigns.get(campaignId);
+    const versions = await db.versions.listByCampaign(campaignId);
+    const activeTest = versions.find(v => v.result === 'testing' || v.result === 'improved' || v.result === 'neutral');
+
+    if (activeTest && campaign?.ab_config) {
+      const config = typeof campaign.ab_config === 'string' ? JSON.parse(campaign.ab_config) : campaign.ab_config;
+      const touchpoints = await db.touchpoints.listByCampaign(campaignId);
+
+      // Compute improvement based on reply rates on tested steps
+      const testedTps = touchpoints.filter(tp => (config.tested_steps || []).includes(tp.step));
+      let aReplyAvg = 0, bReplyAvg = 0, count = 0;
+      for (const tp of testedTps) {
+        if (tp.reply_rate != null) aReplyAvg += Number(tp.reply_rate);
+        if (tp.reply_rate_b != null) bReplyAvg += Number(tp.reply_rate_b);
+        count++;
+      }
+      if (count > 0) {
+        aReplyAvg /= count;
+        bReplyAvg /= count;
+      }
+      const winnerRate = winner === 'B' ? bReplyAvg : aReplyAvg;
+      const loserRate = winner === 'B' ? aReplyAvg : bReplyAvg;
+      const improvement_pct = loserRate > 0 ? Number(((winnerRate - loserRate) / loserRate * 100).toFixed(1)) : 0;
+
+      // Record one pattern per tested category
+      for (const category of (config.categories_tested || [])) {
+        const aStrat = (config.variant_a_strategy || {})[category];
+        const bStrat = (config.variant_b_strategy || {})[category];
+        if (!aStrat || !bStrat) continue;
+
+        await recordABPattern({
+          segment: {
+            sectors: campaign.sector ? [campaign.sector] : [],
+            targets: campaign.position ? [campaign.position] : [],
+            size: campaign.size,
+          },
+          category,
+          variantA: aStrat,
+          variantB: bStrat,
+          winner,
+          improvement_pct: Math.max(0, improvement_pct),
+          sample_size: campaign.nb_prospects || 0,
+          metric: 'reply_rate',
+          sourceTestId: activeTest.id,
+          testedOn: (config.tested_steps || [])[0] || 'E1',
+        });
+      }
+    }
+
+    res.json({ ...result, patternRecorded: true });
+  } catch (err) {
+    console.error('[ab-record-winner] error:', err.message);
+    next(err);
+  }
+});
+
 // GET /api/ai/lemlist-credits — return user's Lemlist credit balance
 router.get('/lemlist-credits', async (req, res, next) => {
   try {

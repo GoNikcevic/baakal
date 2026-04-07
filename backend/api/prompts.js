@@ -143,6 +143,24 @@ Chaque touchpoint doit suivre un rôle précis dans la séquence :
 - Pas de mots spam : "gratuit", "offre", "urgent", "dernière chance"
 - Inclure {{firstName}} ou {{companyName}} dans au moins 1 objet sur 2
 
+## Configuration A/B testing (OBLIGATOIRE)
+
+Baakal pilote un système d'A/B testing natif. Tu dois :
+
+1. **Identifier 1 à 3 catégories pertinentes à tester** parmi : angle, tone, length, hook, specificity
+2. **Pour chaque catégorie**, proposer une hypothèse précise (ex: "Tester Douleur client vs Preuve sociale")
+3. Si la mémoire cross-campagne contient des recommandations pour ce segment, les citer et les appliquer par défaut
+4. **Les variantes A et B concernent UNIQUEMENT E1 (premier email) et LI1 (note de connexion LinkedIn)**
+5. Les autres touchpoints ne sont pas testés (une seule version)
+6. Dans variant A vs B, ne changer QUE les dimensions choisies (pas tout le texte)
+
+### Catégories disponibles (closed set v1)
+- **angle** : Douleur client | Preuve sociale | Opportunité | Curiosité | Urgence
+- **tone** : Formel | Décontracté | Direct | Empathique
+- **length** : Court | Standard | Développé
+- **hook** : Question ouverte | Statistique chiffrée | Affirmation provocatrice | Observation personnalisée
+- **specificity** : Générique | Secteur-spécifique | Hyper-personnalisé
+
 ## Format de sortie JSON
 
 \`\`\`json
@@ -188,9 +206,30 @@ Chaque touchpoint doit suivre un rôle précis dans la séquence :
   "hypotheses": [
     "Hypothèse 1 : ...",
     "Hypothèse 2 : ..."
-  ]
+  ],
+  "ab_config": {
+    "categories_tested": ["angle", "hook"],
+    "tested_steps": ["E1", "LI1"],
+    "variant_a_strategy": {
+      "angle": "Douleur client",
+      "hook": "Question ouverte"
+    },
+    "variant_b_strategy": {
+      "angle": "Preuve sociale",
+      "hook": "Statistique chiffrée"
+    },
+    "hypothesis": "Phrase claire : Tester si sur ce segment, un angle de preuve sociale avec une stat chiffrée en hook génère plus de réponses qu'un angle douleur avec question ouverte",
+    "memory_used": "Si un pattern mémoire a été appliqué, cite-le ici. Sinon null.",
+    "recommendation_source": "memory" | "default"
+  }
 }
 \`\`\`
+
+IMPORTANT pour ab_config :
+- Les touchpoints E1 et LI1 de la sequence doivent OBLIGATOIREMENT avoir leurs champs "subjectB" et "bodyB" remplis
+- Les autres touchpoints peuvent avoir subjectB/bodyB à null
+- variant_a_strategy et variant_b_strategy doivent différer UNIQUEMENT sur les catégories listées dans categories_tested
+- Si MEMORY PATTERNS contient une reco pour ce segment → categories_tested doit inclure au moins cette catégorie et variant_a/b doivent refléter la reco
 
 ## Séquences conditionnelles (OBLIGATOIRE pour multi-canal)
 

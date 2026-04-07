@@ -106,6 +106,9 @@ export function transformCampaign(c, sequence, diagnostics, history) {
     sequence: (sequence || []).map(transformTouchpoint),
     diagnostics: (diagnostics || []).map(transformDiagnostic),
     history: (history || []).map(transformVersion),
+    abConfig: c.ab_config
+      ? (typeof c.ab_config === 'string' ? JSON.parse(c.ab_config) : c.ab_config)
+      : null,
     prepChecklist: c.status === 'prep' ? buildDefaultChecklist(c) : undefined,
     info: {
       period: c.start_date || '',
@@ -127,6 +130,8 @@ export function transformTouchpoint(tp) {
     subType: tp.sub_type || '',
     subject: tp.subject || null,
     body: tp.body || '',
+    subjectB: tp.subject_b || null,
+    bodyB: tp.body_b || null,
     maxChars: tp.max_chars || undefined,
     parentStepId: tp.parent_step_id || null,
     conditionType: tp.condition_type || null,
@@ -139,6 +144,13 @@ export function transformTouchpoint(tp) {
           stop: tp.stop_rate ?? undefined,
           accept: tp.accept_rate ?? undefined,
           interested: tp.interested || undefined,
+        }
+      : null,
+    statsB: (tp.open_rate_b != null || tp.reply_rate_b != null || tp.accept_rate_b != null)
+      ? {
+          open: tp.open_rate_b ?? undefined,
+          reply: tp.reply_rate_b ?? undefined,
+          accept: tp.accept_rate_b ?? undefined,
         }
       : null,
   };
@@ -726,6 +738,27 @@ export async function pollRevealEmails(jobId) {
   return request(`/ai/reveal-emails/${jobId}`);
 }
 
+/** Get A/B test category definitions */
+export async function getABCategories() {
+  return request('/ai/ab-categories');
+}
+
+/** Get memory-based recommendations for a segment (all categories) */
+export async function getABRecommendations(segment) {
+  return request('/ai/ab-recommendations', {
+    method: 'POST',
+    body: JSON.stringify(segment),
+  });
+}
+
+/** Record the A/B winner (promotes on Lemlist + writes pattern to memory) */
+export async function recordABWinner(campaignId, winner) {
+  return request('/ai/ab-record-winner', {
+    method: 'POST',
+    body: JSON.stringify({ campaignId, winner }),
+  });
+}
+
 /** Enrich a single contact by email via Apollo */
 export async function enrichContact(email) {
   return request('/ai/enrich-contact', {
@@ -820,6 +853,9 @@ const BakalAPI = {
   getLemlistCredits,
   revealEmails,
   pollRevealEmails,
+  getABCategories,
+  getABRecommendations,
+  recordABWinner,
 };
 
 export default BakalAPI;

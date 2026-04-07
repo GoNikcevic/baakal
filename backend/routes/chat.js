@@ -163,10 +163,13 @@ router.post('/threads/:id/messages', async (req, res, next) => {
 
     // Memory patterns (already bounded by limit in query)
     if (patterns.length > 0) {
-      const patternLines = patterns.map(p =>
-        `- [${p.confidence}] ${p.pattern} (catégorie: ${p.category})`
-      );
-      contextParts.push(`MEMORY PATTERNS (ce que l'IA a appris):\n${patternLines.join('\n')}`);
+      const patternLines = patterns.map(p => {
+        const conf = p.confidence === 'Haute' ? '✅ HAUTE' : p.confidence === 'Moyenne' ? '🟡 MOYENNE' : '⚪ FAIBLE';
+        const improvement = p.improvement_pct ? ` (+${p.improvement_pct}% ${p.ab_category ? 'sur '+p.ab_category : ''})` : '';
+        const confirmations = p.confirmations > 1 ? ` [confirmé ${p.confirmations}x]` : '';
+        return `- [${conf}] ${p.pattern}${improvement}${confirmations}`;
+      });
+      contextParts.push(`MEMORY PATTERNS APPRIS (à appliquer pour les recommandations A/B) :\n${patternLines.join('\n')}\n\nUtilise les patterns HAUTE confiance comme baseline automatique. Pour les MOYENNE, propose-les comme test A/B. Pour les FAIBLE, ignore ou teste avec prudence.`);
     }
 
     // Recent diagnostics — single query with JOIN (no N+1)
@@ -288,6 +291,26 @@ router.post('/threads/:id/create-campaign', async (req, res, next) => {
       userId: req.user.id,
     });
 
+    // Persist A/B config if Claude proposed one
+    if (data.ab_config) {
+      try {
+        await db.campaigns.update(campaign.id, {
+          ab_config: typeof data.ab_config === 'string' ? data.ab_config : JSON.stringify(data.ab_config),
+        });
+        // Create a versions entry marking the test as active
+        await db.versions.create(campaign.id, {
+          version: 1,
+          hypotheses: data.ab_config.hypothesis || 'Test A/B initial',
+          result: 'testing',
+          messagesModified: data.ab_config.tested_steps || [],
+          testedSteps: data.ab_config.tested_steps || [],
+          abCategories: data.ab_config.categories_tested || [],
+        });
+      } catch (err) {
+        console.warn('[chat] Failed to persist ab_config:', err.message);
+      }
+    }
+
     if (Array.isArray(data.sequence)) {
       // Recursively create touchpoints with parent/child links from Claude's nested JSON
       let sortCounter = 0;
@@ -300,6 +323,8 @@ router.post('/threads/:id/create-campaign', async (req, res, next) => {
           timing: tp.timing || '',
           subject: tp.subject || null,
           body: tp.body || '',
+          subjectB: tp.subjectB || null,
+          bodyB: tp.bodyB || null,
           sortOrder: sortCounter++,
           parentStepId: parentBackendId,
           conditionType: tp.conditionType || null,

@@ -11,6 +11,7 @@ import CopyTab from './tabs/CopyTab';
 import ProspectsTab from './tabs/ProspectsTab';
 import PerformanceTab from './tabs/PerformanceTab';
 import HistoryTab from './tabs/HistoryTab';
+import ABTestTab from './tabs/ABTestTab';
 
 export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns }) {
   const isPrep = c.status === 'prep';
@@ -22,11 +23,15 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   const [launching, setLaunching] = useState(false);
   const [launchAlert, setLaunchAlert] = useState(null);
 
+  // Show A/B tab if campaign has an active test config
+  const hasABTest = !!c.abConfig;
+
   // Tab definitions — show conditionally based on status
   const tabs = [
     { key: 'settings', label: 'Paramètres', icon: '⚙️' },
     { key: 'copy', label: 'Copy & Séquences', icon: '✉️' },
     { key: 'prospects', label: 'Prospects', icon: '👥' },
+    ...(hasABTest ? [{ key: 'abtest', label: 'A/B Test', icon: '🧬' }] : []),
     ...(isActive
       ? [
           { key: 'performance', label: 'Performance', icon: '📊' },
@@ -241,6 +246,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
         {activeTab === 'settings' && <SettingsTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'copy' && <CopyTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'prospects' && <ProspectsTab campaign={c} />}
+        {activeTab === 'abtest' && <ABTestTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'performance' && <PerformanceTab campaign={c} />}
         {activeTab === 'history' && <HistoryTab campaign={c} />}
       </div>

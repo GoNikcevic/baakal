@@ -206,6 +206,7 @@ const campaigns = {
       last_collected: 'last_collected', lastCollected: 'last_collected',
       notion_page_id: 'notion_page_id', notionPageId: 'notion_page_id',
       project_id: 'project_id', projectId: 'project_id',
+      ab_config: 'ab_config', abConfig: 'ab_config',
     };
 
     const seen = new Set();
@@ -260,29 +261,38 @@ const touchpoints = {
     // Enforce 300-char limit on connection invites + null subject
     let body = data.body || '';
     let subject = data.subject || null;
+    let bodyB = data.bodyB || data.body_b || null;
+    let subjectB = data.subjectB || data.subject_b || null;
     let maxChars = data.maxChars || null;
 
     if (type === 'linkedin_invite') {
       maxChars = 300;
       subject = null;
+      subjectB = null;
       if (body.length > 300) {
         console.warn(`[touchpoints] Truncating linkedin_invite body from ${body.length} to 300 chars (step: ${data.step})`);
         body = body.slice(0, 300);
+      }
+      if (bodyB && bodyB.length > 300) {
+        bodyB = bodyB.slice(0, 300);
       }
     }
     if (type === 'linkedin_visit') {
       body = '';
       subject = null;
+      bodyB = null;
+      subjectB = null;
     }
     if (type === 'linkedin_message') {
       subject = null;
+      subjectB = null;
     }
 
     const result = await query(`
       INSERT INTO touchpoints (campaign_id, step, type, label, sub_type, timing,
-        subject, body, max_chars, sort_order,
+        subject, body, subject_b, body_b, max_chars, sort_order,
         parent_step_id, condition_type, condition_value, branch_label, is_root)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `, [
       campaignId,
@@ -293,6 +303,8 @@ const touchpoints = {
       data.timing || null,
       subject,
       body,
+      subjectB,
+      bodyB,
       maxChars,
       data.sortOrder || 0,
       data.parentStepId || null,
@@ -472,8 +484,8 @@ const versions = {
 
   async create(campaignId, data) {
     const result = await query(`
-      INSERT INTO versions (campaign_id, version, date, messages_modified, hypotheses, result, rollback_data)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO versions (campaign_id, version, date, messages_modified, hypotheses, result, rollback_data, tested_steps, ab_categories)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `, [
       campaignId,
@@ -483,6 +495,8 @@ const versions = {
       data.hypotheses || '',
       data.result || 'testing',
       data.rollbackData || null,
+      data.testedSteps || [],
+      data.abCategories || [],
     ]);
     return result.rows[0];
   },
@@ -587,8 +601,9 @@ const memoryPatterns = {
 
   async create(data) {
     const result = await query(`
-      INSERT INTO memory_patterns (pattern, category, data, confidence, date_discovered, sectors, targets)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO memory_patterns (pattern, category, data, confidence, date_discovered, sectors, targets,
+        ab_category, custom_category, source_test_id, sample_size, improvement_pct, confirmations)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `, [
       data.pattern,
@@ -598,6 +613,12 @@ const memoryPatterns = {
       data.dateDiscovered || new Date().toISOString().split('T')[0],
       data.sectors || [],
       data.targets || [],
+      data.ab_category || data.abCategory || null,
+      data.custom_category || data.customCategory || null,
+      data.sourceTestId || data.source_test_id || null,
+      data.sample_size || data.sampleSize || 0,
+      data.improvement_pct || data.improvementPct || null,
+      data.confirmations || 1,
     ]);
     return result.rows[0];
   },
@@ -611,6 +632,12 @@ const memoryPatterns = {
       confidence: 'confidence',
       date_discovered: 'date_discovered', dateDiscovered: 'date_discovered',
       sectors: 'sectors', targets: 'targets',
+      ab_category: 'ab_category', abCategory: 'ab_category',
+      custom_category: 'custom_category', customCategory: 'custom_category',
+      source_test_id: 'source_test_id', sourceTestId: 'source_test_id',
+      sample_size: 'sample_size', sampleSize: 'sample_size',
+      improvement_pct: 'improvement_pct', improvementPct: 'improvement_pct',
+      confirmations: 'confirmations',
     };
     const seen = new Set();
     for (const [inputKey, col] of Object.entries(mapping)) {
