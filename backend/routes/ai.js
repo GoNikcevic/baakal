@@ -696,37 +696,83 @@ router.post('/reveal-emails', async (req, res, next) => {
     const apiKey = await getUserKey(req.user.id, 'lemlist');
     if (!apiKey) return res.status(400).json({ error: 'Lemlist non configuré' });
 
-    const items = leads.map(l => ({
-      input: {
-        firstName: l.firstName || '',
-        lastName: l.lastName || '',
-        companyName: l.company || l.companyName || '',
-        linkedinUrl: l.linkedinUrl || undefined,
-      },
-      metadata: { leadId: l.id },
-    }));
+    const items = leads.map(l => {
+      const input = {};
+      if (l.linkedinUrl) input.linkedinUrl = l.linkedinUrl;
+      if (l.firstName) input.firstName = l.firstName;
+      if (l.lastName) input.lastName = l.lastName;
+      if (l.company || l.companyName) input.companyName = l.company || l.companyName;
+      if (l.companyDomain) input.companyDomain = l.companyDomain;
+      return {
+        input,
+        metadata: { leadId: l.id },
+      };
+    });
 
-    const enrichmentResults = await bulkEnrichLeads(apiKey, items);
+    // Filter out items that don't meet Lemlist's requirements
+    // (either linkedinUrl alone OR firstName+lastName+companyName+companyDomain)
+    const validItems = [];
+    const preErrors = {};
+    items.forEach((item, idx) => {
+      const leadId = leads[idx].id;
+      const has = item.input;
+      const ok = has.linkedinUrl || (has.firstName && has.lastName && has.companyName && has.companyDomain);
+      if (ok) {
+        validItems.push(item);
+      } else {
+        preErrors[leadId] = {
+          status: 'error',
+          email: null,
+          error: 'MISSING_INPUTS: Lemlist requires linkedinUrl OR (firstName+lastName+companyName+companyDomain)',
+        };
+      }
+    });
+
+    let enrichmentResults = [];
+    if (validItems.length > 0) {
+      try {
+        enrichmentResults = await bulkEnrichLeads(apiKey, validItems);
+        console.log('[reveal-emails] Bulk enrich returned:', JSON.stringify(enrichmentResults).slice(0, 500));
+      } catch (err) {
+        console.error('[reveal-emails] Bulk enrich failed:', err.message);
+        return res.status(500).json({ error: `Lemlist bulk enrich failed: ${err.message}` });
+      }
+    }
 
     const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const enrichMap = {};
-    enrichmentResults.forEach((r, idx) => {
-      const leadId = leads[idx].id;
-      enrichMap[leadId] = r.id || null;
-    });
+    let validIdx = 0;
+    for (const lead of leads) {
+      if (preErrors[lead.id]) {
+        enrichMap[lead.id] = null;
+        continue;
+      }
+      const r = enrichmentResults[validIdx++] || {};
+      if (r.id) {
+        enrichMap[lead.id] = r.id;
+      } else {
+        enrichMap[lead.id] = null;
+        preErrors[lead.id] = {
+          status: 'error',
+          email: null,
+          error: r.error || 'Unknown enrich error',
+        };
+      }
+    }
 
     _revealJobs.set(jobId, {
       userId: req.user.id,
       enrichMap,
       leads,
       createdAt: Date.now(),
-      results: {},
+      results: preErrors, // pre-populate with errors for failed items
     });
 
     res.json({
       jobId,
       total: leads.length,
       dispatched: Object.values(enrichMap).filter(Boolean).length,
+      errors: Object.keys(preErrors).length,
     });
   } catch (err) {
     next(err);

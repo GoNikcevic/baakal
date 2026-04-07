@@ -78,15 +78,19 @@ router.post('/collect', async (req, res, next) => {
               userId: req.user.id,
             });
           } else {
-            await db.campaigns.update(campaign.id, {
+            // Preserve archived status — don't un-archive on sync
+            const updates = {
               nb_prospects: stats.contacts,
               open_rate: stats.openRate,
               reply_rate: stats.replyRate,
               accept_rate_lk: stats.acceptRate,
               interested: stats.interested,
               meetings: stats.meetings,
-              status: 'active',
-            });
+            };
+            if (campaign.status !== 'archived') {
+              updates.status = 'active';
+            }
+            await db.campaigns.update(campaign.id, updates);
           }
 
           const isEligible = stats.contacts > 50;

@@ -107,6 +107,11 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       setRevealJobId(data.jobId);
       setRevealProgress({ done: 0, total: leadsToReveal.length });
 
+      // If no enrichment was dispatched (all failed pre-validation), show error
+      if (data.dispatched === 0) {
+        setError(`Impossible de révéler : Lemlist exige un profil LinkedIn OU (nom + entreprise + domaine). ${data.errors || leadsToReveal.length} contacts ne respectent pas ces critères.`);
+      }
+
       // Mark them as pending in UI
       setResults(prev => prev.map(c =>
         leadsToReveal.find(l => l.id === c.id) ? { ...c, revealStatus: 'revealing' } : c
@@ -126,6 +131,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
               ...c,
               email: r.email || c.email,
               revealStatus: r.status,
+              revealError: r.error || null,
             };
           }));
 
@@ -358,7 +364,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {c.name}
-                    <RevealBadge status={c.revealStatus} email={c.email} />
+                    <RevealBadge status={c.revealStatus} email={c.email} error={c.revealError} />
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                     {c.title} · {c.company} · {c.location}
@@ -468,7 +474,7 @@ function Stepper({ step }) {
   );
 }
 
-function RevealBadge({ status, email }) {
+function RevealBadge({ status, email, error }) {
   if (status === 'verified' && email) {
     return <span style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600 }}>✅ Verified</span>;
   }
@@ -476,7 +482,14 @@ function RevealBadge({ status, email }) {
     return <span style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 600 }}>❌ Email non trouvé</span>;
   }
   if (status === 'error') {
-    return <span style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600 }}>⚠️ Erreur</span>;
+    return (
+      <span
+        style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600, cursor: 'help' }}
+        title={error || 'Erreur inconnue'}
+      >
+        ⚠️ Erreur
+      </span>
+    );
   }
   if (status === 'revealing') {
     return <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>⏳ Révélation…</span>;

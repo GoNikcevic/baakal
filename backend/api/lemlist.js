@@ -160,21 +160,33 @@ async function searchPeopleDatabase(apiKey, criteria) {
   }, apiKey);
 
   // Transform Lemlist results into Baakal's contact format
-  const contacts = (result.results || []).map(p => ({
-    id: String(p.lead_id || p.id || Math.random()),
-    firstName: (p.full_name || '').split(' ')[0] || '',
-    lastName: (p.full_name || '').split(' ').slice(1).join(' ') || '',
-    name: p.full_name || '',
-    email: p.email || null,
-    phone: p.phone || null,
-    title: p.title || '',
-    company: p.company || '',
-    companySize: p.company_size || null,
-    sector: p.industry || p.department || '',
-    location: p.location || '',
-    linkedinUrl: p.linkedin_url || null,
-    source: 'lemlist',
-  }));
+  // Schema: p.lead_linkedin_url (root), p.current_exp_company_name (root),
+  // p.experiences[0].company_domain / company_website_url (nested)
+  const contacts = (result.results || []).map(p => {
+    const exp0 = Array.isArray(p.experiences) && p.experiences[0] ? p.experiences[0] : {};
+    const companyDomain = exp0.company_domain || exp0.company_website_url || null;
+    // Clean domain: strip protocol + trailing slash
+    const cleanDomain = companyDomain
+      ? String(companyDomain).replace(/^https?:\/\//, '').replace(/\/$/, '')
+      : null;
+    return {
+      id: String(p.lead_id || p._id || Math.random()),
+      firstName: (p.full_name || '').split(' ')[0] || '',
+      lastName: (p.full_name || '').split(' ').slice(1).join(' ') || '',
+      name: p.full_name || '',
+      email: p.email || null,
+      phone: p.phone || null,
+      title: p.title || '',
+      company: p.current_exp_company_name || exp0.company_name || '',
+      companyDomain: cleanDomain,
+      companySize: p.company_size || p.connections_count_bucket || null,
+      sector: p.lead_industry || p.department || '',
+      location: p.location || p.country || '',
+      linkedinUrl: p.lead_linkedin_url || null,
+      qualityScore: p.lead_quality_score || null,
+      source: 'lemlist',
+    };
+  });
 
   return contacts;
 }
