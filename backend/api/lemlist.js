@@ -24,6 +24,17 @@ async function lemlistFetch(endpoint, options = {}, apiKey = null) {
 
     if (!res.ok) {
       const body = await res.text();
+      // 503 with empty body on database endpoints = plan doesn't include Leads add-on
+      if (res.status === 503 && endpoint.startsWith('/database/')) {
+        throw Object.assign(
+          new Error(
+            "Lemlist Leads Database non accessible avec ce plan. " +
+            "L'accès à la base de 600M contacts nécessite l'add-on \"Find leads\" / \"Reveal\" sur Lemlist. " +
+            "Vérifie ton plan sur app.lemlist.com → Settings → Billing, ou utilise Apollo comme source de prospects."
+          ),
+          { status: 503, endpoint, code: 'LEMLIST_LEADS_UNAVAILABLE' }
+        );
+      }
       throw Object.assign(
         new Error(`Lemlist API ${res.status} on ${endpoint}: ${body || '(empty body)'}`),
         { status: res.status, endpoint }
@@ -104,7 +115,7 @@ async function getDatabaseFilters(apiKey) {
   if (_filtersCache.data && Date.now() < _filtersCache.expiresAt) {
     return _filtersCache.data;
   }
-  const filters = await lemlistFetch('/v2/database/filters', {}, apiKey);
+  const filters = await lemlistFetch('/database/filters', {}, apiKey);
   _filtersCache = { data: filters, expiresAt: Date.now() + 3600 * 1000 };
   return filters;
 }
@@ -165,7 +176,7 @@ async function searchPeopleDatabase(apiKey, criteria) {
     size: Math.min(criteria.limit || 25, 100),
   };
 
-  const result = await lemlistFetch('/v2/database/people', {
+  const result = await lemlistFetch('/database/people', {
     method: 'POST',
     body: JSON.stringify(body),
   }, apiKey);
