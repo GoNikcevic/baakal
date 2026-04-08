@@ -181,7 +181,7 @@ export function transformVersion(v) {
 export function buildDefaultChecklist() {
   return [
     { icon: '✅', title: 'Paramètres de campagne configurés', desc: 'Cible, canal, angle, ton — tout est défini', status: 'Fait', statusColor: 'success', done: true },
-    { icon: '⬜', title: 'Séquences à générer par Baakal', desc: 'En attente de génération IA', status: 'À faire', statusColor: 'text-muted', done: false },
+    { icon: '⬜', title: 'Séquences à générer par Baakalai', desc: 'En attente de génération IA', status: 'À faire', statusColor: 'text-muted', done: false },
     { icon: '⬜', title: 'Liste de prospects à importer', desc: 'Import Lemlist en attente', status: 'À faire', statusColor: 'text-muted', done: false },
     { icon: '⬜', title: 'Validation par le client', desc: 'Après génération des séquences', status: 'À faire', statusColor: 'text-muted', done: false },
     { icon: '⬜', title: 'Déploiement sur Lemlist', desc: 'Automatique après validation', status: 'À faire', statusColor: 'text-muted', done: false },

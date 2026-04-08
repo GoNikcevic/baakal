@@ -382,7 +382,7 @@ export default function RecosPage() {
                 </div>
                 <div className="reco-diff-panel">
                   <div className={`reco-diff-label ${isEditing ? 'after' : 'after'}`}>
-                    {isEditing ? 'Votre version (modifiable)' : 'Proposition Baakal'}
+                    {isEditing ? 'Votre version (modifiable)' : 'Proposition Baakalai'}
                   </div>
                   {isEditing ? (
                     <textarea
@@ -465,8 +465,8 @@ export default function RecosPage() {
           <div className="reco-page-title">Recommandations IA</div>
           <div className="reco-page-subtitle" style={analysisRunning ? { color: 'var(--text-secondary)' } : undefined}>
             {analysisRunning
-              ? 'Baakal analyse vos campagnes... Veuillez patienter.'
-              : "Baakal analyse vos campagnes et propose des optimisations · Mis à jour il y a 2h"
+              ? 'Baakalai analyse vos campagnes... Veuillez patienter.'
+              : "Baakalai analyse vos campagnes et propose des optimisations · Mis à jour il y a 2h"
             }
           </div>
         </div>

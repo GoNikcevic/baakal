@@ -71,7 +71,7 @@ describe('DashboardPage', () => {
     renderDashboard();
 
     expect(screen.getByText(/Cr.ez votre campagne/)).toBeInTheDocument();
-    expect(screen.getByText(/Baakal g.n.re vos s.quences/)).toBeInTheDocument();
+    expect(screen.getByText(/Baakalai g.n.re vos s.quences/)).toBeInTheDocument();
     expect(screen.getByText('Importez vos prospects')).toBeInTheDocument();
     expect(screen.getByText('Lancez et optimisez')).toBeInTheDocument();
   });

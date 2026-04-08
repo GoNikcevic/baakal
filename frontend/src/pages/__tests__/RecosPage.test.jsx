@@ -39,7 +39,7 @@ describe('RecosPage', () => {
   it('renders the page subtitle', () => {
     renderRecos();
 
-    expect(screen.getByText(/Baakal analyse vos campagnes et propose des optimisations/)).toBeInTheDocument();
+    expect(screen.getByText(/Baakalai analyse vos campagnes et propose des optimisations/)).toBeInTheDocument();
   });
 
   it('renders recommendation stats cards', () => {
@@ -156,7 +156,7 @@ describe('RecosPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Relancer/ }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Baakal analyse vos campagnes.*Veuillez patienter/)).toBeInTheDocument();
+      expect(screen.getByText(/Baakalai analyse vos campagnes.*Veuillez patienter/)).toBeInTheDocument();
     });
   });
 });

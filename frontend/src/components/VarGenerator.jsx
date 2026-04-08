@@ -540,7 +540,7 @@ export default function VarGenerator({
             <div style={{ fontSize: 36, marginBottom: 16 }}>{'🧠'}</div>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Analyse en cours...</div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
-              Baakal analyse l'industrie, les données de campagne et la mémoire cross-campagne pour suggérer les meilleures variables.
+              Baakalai analyse l'industrie, les données de campagne et la mémoire cross-campagne pour suggérer les meilleures variables.
             </div>
           </div>
         ) : (

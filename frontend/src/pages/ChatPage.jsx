@@ -51,7 +51,7 @@ const DEFAULT_SUGGESTIONS = [
 ];
 
 const ONBOARDING_SUGGESTIONS = [
-  'Comment fonctionne Baakal ?',
+  'Comment fonctionne Baakalai ?',
   'Quel secteur cibler en premier ?',
   'Aide-moi à définir mon ICP',
 ];
@@ -67,7 +67,7 @@ const ACTION_PROMPTS = {
   optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je améliorer ?',
   analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
   setup_profile: 'Je viens de m\'inscrire. Aide-moi à configurer mon profil entreprise pour personnaliser mes campagnes.',
-  explore: 'Explique-moi les fonctionnalités de Baakal et comment tirer le meilleur parti de la plateforme.',
+  explore: 'Explique-moi les fonctionnalités de Baakalai et comment tirer le meilleur parti de la plateforme.',
   create_from_insights: 'Tu as analysé mes campagnes précédentes et identifié des patterns qui fonctionnent. Crée-moi une nouvelle campagne optimisée en t\'appuyant sur ces insights et la mémoire cross-campagne. Propose-moi le meilleur angle, ton et séquence basés sur ce qui a marché.',
 };
 
@@ -683,7 +683,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
   const { userName, campaignCount, hasProfile, activeCampaigns, topCampaign, insights } = userState || {};
 
   // Contextual greeting based on user state
-  let title = 'Assistant Baakal';
+  let title = 'Assistant Baakalai';
   let subtitle = 'Je peux vous aider à créer des campagnes, optimiser vos séquences et analyser vos performances.';
   let actions = [
     { key: 'create', label: 'Créer une campagne' },
@@ -692,7 +692,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
   ];
 
   if (!hasProfile && campaignCount === 0) {
-    title = userName ? `Bienvenue ${userName} !` : 'Bienvenue sur Baakal !';
+    title = userName ? `Bienvenue ${userName} !` : 'Bienvenue sur Baakalai !';
     subtitle = 'Commencez par configurer votre profil entreprise, puis créez votre première campagne de prospection. Je vous guide étape par étape.';
     actions = [
       { key: 'setup_profile', label: 'Configurer mon profil' },
@@ -1201,7 +1201,7 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Baakal est configurée.\n\n`' + err.message + '`',
+            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Baakalai est configurée.\n\n`' + err.message + '`',
             metadata: null,
             animate: true,
           },

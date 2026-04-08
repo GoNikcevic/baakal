@@ -26,9 +26,9 @@ const SECTOR_SUGGESTIONS = [
 /* ─── Step config ─── */
 
 const STEP_META = [
-  { title: 'Bienvenue sur Baakal', desc: 'Quelques informations pour personnaliser votre expérience.' },
+  { title: 'Bienvenue sur Baakalai', desc: 'Quelques informations pour personnaliser votre expérience.' },
   { title: 'Connexion aux outils', desc: 'Connectez vos outils principaux. Vous pourrez en ajouter d\'autres plus tard.' },
-  { title: 'Votre cible', desc: 'Aidez Baakal à comprendre qui vous cherchez à atteindre.' },
+  { title: 'Votre cible', desc: 'Aidez Baakalai à comprendre qui vous cherchez à atteindre.' },
   { title: 'Style de communication', desc: 'Définissez le ton de vos campagnes.' },
   { title: 'Tout est prêt !', desc: '' },
 ];
@@ -428,7 +428,7 @@ export default function OnboardingWizard({ onComplete }) {
             </div>
             <div className="wizard-complete-title">Tout est prêt !</div>
             <div className="wizard-complete-desc">
-              Votre espace Baakal est configuré. Vous pouvez maintenant créer votre première campagne.
+              Votre espace Baakalai est configuré. Vous pouvez maintenant créer votre première campagne.
             </div>
             <div className="wizard-checklist">
               <div className="wizard-check-item">

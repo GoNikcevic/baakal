@@ -951,7 +951,7 @@ export default function CopyEditorPage() {
     if (!currentCampaign || !activeCampaign) return;
 
     setRegenAllStatus('loading');
-    setRegenAllMessage('Baakal analyse la campagne et régénère les touchpoints.');
+    setRegenAllMessage('Baakalai analyse la campagne et régénère les touchpoints.');
 
     if (backendAvailable) {
       const backendId = currentCampaign._backendId || activeCampaign;

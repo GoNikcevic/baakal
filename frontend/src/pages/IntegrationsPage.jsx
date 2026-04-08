@@ -18,7 +18,7 @@ const CATEGORIES = [
         status: 'natif',
         features: [
           'Analyse vos stats de campagne en temps réel',
-          'Génère et optimise vos séquences avec Baakal',
+          'Génère et optimise vos séquences avec Baakalai',
           'Déploie les variantes A/B directement dans Lemlist',
           'Collecte quotidienne des taux d\'ouverture, réponse et conversion',
         ],
@@ -72,7 +72,7 @@ const CATEGORIES = [
         features: [
           'Pull des deals et contacts pour enrichir l\'ICP',
           'Push des scores de leads (/100) vers les contacts HubSpot',
-          'Analyse des patterns de conversion par Baakal',
+          'Analyse des patterns de conversion par Baakalai',
           'Synchronisation bidirectionnelle des opportunités',
         ],
       },
@@ -267,7 +267,7 @@ export default function IntegrationsPage() {
         <p style={{
           fontSize: 14, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5,
         }}>
-          Découvrez comment Baakal se connecte à vos outils
+          Découvrez comment Baakalai se connecte à vos outils
         </p>
       </div>
 

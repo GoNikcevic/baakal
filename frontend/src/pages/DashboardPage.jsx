@@ -271,7 +271,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         {/* AI Recommendations */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">{'\u{1F4A1}'} Recommandations Baakal</div>
+            <div className="card-title">{'\u{1F4A1}'} Recommandations Baakalai</div>
             <Link
               to="/recos"
               className="btn btn-ghost"
@@ -464,7 +464,7 @@ function CampaignTableRow({ campaign: c }) {
 function WelcomeBanner({ onCreateCampaign }) {
   return (
     <div className="welcome-banner">
-      <div className="welcome-title">Bienvenue sur Baakal</div>
+      <div className="welcome-title">Bienvenue sur Baakalai</div>
       <div className="welcome-subtitle">
         Votre plateforme de prospection intelligente est prête. Suivez ces étapes
         pour lancer votre première campagne et commencer à générer des RDV
@@ -483,7 +483,7 @@ function WelcomeBanner({ onCreateCampaign }) {
         <div className="onboarding-step">
           <div className="onboarding-step-number">2</div>
           <div className="onboarding-step-title">
-            Baakal génère vos séquences
+            Baakalai génère vos séquences
           </div>
           <div className="onboarding-step-desc">
             L'IA rédige des messages personnalisés et adaptés à votre cible et
@@ -504,7 +504,7 @@ function WelcomeBanner({ onCreateCampaign }) {
           <div className="onboarding-step-number">4</div>
           <div className="onboarding-step-title">Lancez et optimisez</div>
           <div className="onboarding-step-desc">
-            Baakal analyse les performances et optimise automatiquement vos
+            Baakalai analyse les performances et optimise automatiquement vos
             messages.
           </div>
         </div>
@@ -591,12 +591,12 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
 
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F4A1}'} Recommandations Baakal</div>
+          <div className="card-title">{'\u{1F4A1}'} Recommandations Baakalai</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F916}'}</div>
           <div className="empty-text">
-            Baakal analysera vos campagnes et proposera des optimisations dès
+            Baakalai analysera vos campagnes et proposera des optimisations dès
             qu'il aura suffisamment de données (&gt;50 prospects, &gt;7 jours).
           </div>
         </div>
