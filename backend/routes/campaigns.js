@@ -173,6 +173,306 @@ router.post('/:id/sync-stats', async (req, res, next) => {
   }
 });
 
+// --- Campaign optimization (manual trigger from Active campaign detail) ---
+
+const OPTIMIZE_MIN_SENT_HARD = 20;   // below this: button blocked
+const OPTIMIZE_MIN_SENT_SOFT = 50;   // below this: warning + no memory pattern
+const OPTIMIZE_COOLDOWN_DAYS = 7;    // rate limit between optimizations
+
+// Sector benchmarks for diagnostic comparisons
+const BENCHMARKS = {
+  open_rate: 52,    // average open rate
+  reply_rate: 6,    // average reply rate
+  accept_rate: 32,  // LinkedIn connection acceptance
+};
+
+function scoreTouchpoint(tp) {
+  // Compute how far below benchmark each metric is
+  const type = tp.type || 'email';
+  const isLinkedinInvite = type === 'linkedin_invite' || type === 'linkedin';
+  const open = tp.open_rate != null ? Number(tp.open_rate) : null;
+  const reply = tp.reply_rate != null ? Number(tp.reply_rate) : null;
+  const accept = tp.accept_rate != null ? Number(tp.accept_rate) : null;
+
+  const signals = [];
+  let weakness = 0;
+
+  if (isLinkedinInvite) {
+    if (accept != null && accept < BENCHMARKS.accept_rate) {
+      const delta = BENCHMARKS.accept_rate - accept;
+      signals.push(`Acceptation ${accept}% (bench ${BENCHMARKS.accept_rate}%, ${delta}pt en dessous)`);
+      weakness += delta * 3;
+    }
+  } else if (type === 'email') {
+    if (open != null && open < BENCHMARKS.open_rate) {
+      const delta = BENCHMARKS.open_rate - open;
+      signals.push(`Ouverture ${open}% (bench ${BENCHMARKS.open_rate}%, ${delta}pt en dessous)`);
+      weakness += delta;
+    }
+    if (reply != null && reply < BENCHMARKS.reply_rate) {
+      const delta = BENCHMARKS.reply_rate - reply;
+      signals.push(`Réponse ${reply}% (bench ${BENCHMARKS.reply_rate}%, ${delta}pt en dessous)`);
+      weakness += delta * 3;
+    }
+  }
+
+  return { weakness, signals };
+}
+
+// POST /api/campaigns/:id/diagnose — analyze stats and propose optimization
+router.post('/:id/diagnose', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const sent = campaign.sent || 0;
+    const lastOpt = campaign.last_optimized_at ? new Date(campaign.last_optimized_at) : null;
+    const daysSinceLastOpt = lastOpt ? (Date.now() - lastOpt.getTime()) / 86400000 : null;
+
+    // Guard: minimum volume
+    if (sent < OPTIMIZE_MIN_SENT_HARD) {
+      return res.json({
+        guards: {
+          canOptimize: false,
+          blockedReason: `Au moins ${OPTIMIZE_MIN_SENT_HARD} prospects contactés nécessaires pour optimiser (actuellement : ${sent})`,
+        },
+        stats: { sent },
+      });
+    }
+
+    // Check existing A/B test status
+    const { resolveActiveABTest } = require('../lib/ab-testing');
+    const abStatus = await resolveActiveABTest(campaign.id, req.user.id, { force: false });
+    // Dry-run: we don't actually resolve yet, but we check what would happen
+    // resolveActiveABTest auto-resolves if significant. If not significant we get { canForce: true }
+    // The real resolution happens in /optimize; here we just report the status.
+
+    // Fetch touchpoints to compute diagnostic
+    const touchpoints = await db.touchpoints.listByCampaign(campaign.id);
+
+    // Score each touchpoint (skip linkedin_visit since they have no message)
+    const scored = touchpoints
+      .filter(tp => tp.type !== 'linkedin_visit')
+      .map(tp => {
+        const { weakness, signals } = scoreTouchpoint(tp);
+        return {
+          step: tp.step,
+          type: tp.type,
+          label: tp.label,
+          stats: {
+            open: tp.open_rate,
+            reply: tp.reply_rate,
+            accept: tp.accept_rate,
+          },
+          weakness,
+          signals,
+        };
+      })
+      .sort((a, b) => b.weakness - a.weakness);
+
+    // Recommendation: the weakest touchpoint with real signals
+    const recommendations = scored
+      .filter(s => s.signals.length > 0)
+      .slice(0, 1)
+      .map(s => ({
+        step: s.step,
+        severity: s.weakness > 20 ? 'high' : s.weakness > 10 ? 'medium' : 'low',
+        reason: s.signals.join(' · '),
+      }));
+
+    const warningReason = sent < OPTIMIZE_MIN_SENT_SOFT
+      ? `Données limitées (${sent} prospects). Les recommandations seront indicatives. Cette optimisation ne sera pas ajoutée à la mémoire collective.`
+      : null;
+
+    const cooldownActive = daysSinceLastOpt !== null && daysSinceLastOpt < OPTIMIZE_COOLDOWN_DAYS;
+    const cooldownWarning = cooldownActive
+      ? `Dernière optimisation il y a ${Math.round(daysSinceLastOpt)} jours. Il est recommandé d'attendre ${OPTIMIZE_COOLDOWN_DAYS} jours entre deux optimisations pour générer de la data fiable.`
+      : null;
+
+    res.json({
+      guards: {
+        canOptimize: true,
+        warningReason,
+        cooldownActive,
+        cooldownWarning,
+      },
+      stats: {
+        sent,
+        touchpoints: scored,
+      },
+      recommendations,
+      abTest: abStatus.hadTest
+        ? {
+            hadTest: true,
+            resolved: abStatus.resolved,
+            canForce: abStatus.canForce,
+            leader: abStatus.leader,
+            improvement: abStatus.improvement,
+            daysSinceStart: abStatus.daysSinceStart,
+            audience: abStatus.audience,
+          }
+        : { hadTest: false },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/campaigns/:id/optimize — run the optimization
+// Body: { touchpointSteps: ['E2'], hypothesis: '...', forceResolveExisting: bool }
+router.post('/:id/optimize', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { touchpointSteps = [], hypothesis = '', forceResolveExisting = false } = req.body;
+    if (!Array.isArray(touchpointSteps) || touchpointSteps.length === 0) {
+      return res.status(400).json({ error: 'touchpointSteps required' });
+    }
+    if (touchpointSteps.length > 2) {
+      return res.status(400).json({ error: 'Maximum 2 touchpoints per optimization' });
+    }
+
+    const sent = campaign.sent || 0;
+    if (sent < OPTIMIZE_MIN_SENT_HARD) {
+      return res.status(400).json({ error: `Au moins ${OPTIMIZE_MIN_SENT_HARD} prospects contactés requis` });
+    }
+
+    // Step 1: Resolve any active A/B test
+    const { resolveActiveABTest } = require('../lib/ab-testing');
+    const abResult = await resolveActiveABTest(campaign.id, req.user.id, { force: forceResolveExisting });
+    if (abResult.hadTest && !abResult.resolved && !forceResolveExisting) {
+      return res.status(409).json({
+        error: 'Active A/B test not significant yet',
+        code: 'ACTIVE_TEST',
+        abResult,
+      });
+    }
+
+    // Step 2: Fetch touchpoints to optimize
+    const touchpoints = await db.touchpoints.listByCampaign(campaign.id);
+    const targetTps = touchpoints.filter(tp => touchpointSteps.includes(tp.step));
+    if (targetTps.length === 0) {
+      return res.status(400).json({ error: 'No matching touchpoints found' });
+    }
+
+    // Step 3: Regenerate via Claude
+    const claude = require('../api/claude');
+    const originalMessages = targetTps.map(tp => ({
+      step: tp.step,
+      type: tp.type,
+      subject: tp.subject,
+      body: tp.body,
+      openRate: tp.open_rate,
+      replyRate: tp.reply_rate,
+      acceptRate: tp.accept_rate,
+    }));
+
+    const regenResult = await claude.regenerateSequence({
+      sector: campaign.sector || '',
+      position: campaign.position || '',
+      size: campaign.size || '',
+      angle: campaign.angle || '',
+      tone: campaign.tone || 'Pro décontracté',
+      formality: campaign.formality || 'Vous',
+      valueProp: '',
+      painPoints: '',
+      originalMessages,
+      diagnostic: hypothesis || 'Optimisation manuelle déclenchée par l\'utilisateur',
+      memory: [],
+      touchpointsToRegenerate: touchpointSteps,
+    });
+
+    // Step 4: Parse regen result and update touchpoints with variant B
+    const regenMessages = regenResult.parsed?.messages || [];
+    const updatedVariants = [];
+
+    for (const tp of targetTps) {
+      const msg = regenMessages.find(m => m.step === tp.step);
+      if (!msg || !msg.variantB) continue;
+
+      const variantB = msg.variantB;
+      const subjectB = variantB.subject || null;
+      const bodyB = variantB.body || '';
+
+      await db.touchpoints.update(tp.id, {
+        subject_b: tp.type === 'email' ? subjectB : null,
+        body_b: bodyB,
+      });
+
+      updatedVariants.push({
+        step: tp.step,
+        a: { subject: tp.subject, body: tp.body },
+        b: { subject: tp.type === 'email' ? subjectB : null, body: bodyB },
+        hypothesis: variantB.hypothesis || hypothesis,
+      });
+
+      // Push variant B to Lemlist if the campaign is linked
+      if (campaign.lemlist_id) {
+        try {
+          const apiKey = await getUserKey(req.user.id, 'lemlist');
+          if (apiKey) {
+            const lemlistSequences = await lemlist.getSequences(campaign.lemlist_id);
+            const stepIndex = parseInt((tp.step || '').replace(/[^\d]/g, ''), 10) - 1;
+            const lemlistStep = Array.isArray(lemlistSequences) ? lemlistSequences[stepIndex] : null;
+            if (lemlistStep && lemlistStep._id) {
+              await lemlist.updateSequenceStep(campaign.lemlist_id, lemlistStep._id, {
+                subjectB: tp.type === 'email' ? (subjectB || '') : '',
+                textB: bodyB,
+                messageB: bodyB,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn('optimize', `Lemlist variant B push failed for ${tp.step}: ${err.message}`);
+        }
+      }
+    }
+
+    if (updatedVariants.length === 0) {
+      return res.status(500).json({ error: 'Claude did not generate any valid variants' });
+    }
+
+    // Step 5: Create a new versions entry
+    const existing = await db.versions.listByCampaign(campaign.id);
+    const nextVersion = (existing[0]?.version || 0) + 1;
+    const version = await db.versions.create(campaign.id, {
+      version: nextVersion,
+      hypotheses: hypothesis || updatedVariants.map(v => v.hypothesis).filter(Boolean).join(' · '),
+      result: 'testing',
+      messagesModified: touchpointSteps,
+      testedSteps: touchpointSteps,
+    });
+
+    // Step 6: Update last_optimized_at
+    await db.campaigns.update(campaign.id, {
+      last_optimized_at: new Date().toISOString(),
+    });
+
+    notifyUser(req.user.id, 'campaign:optimized', {
+      campaignId: campaign.id,
+      steps: touchpointSteps,
+      versionId: version.id,
+    });
+
+    res.json({
+      success: true,
+      variants: updatedVariants,
+      version,
+      abResolved: abResult.resolved ? { winner: abResult.winner, improvement: abResult.improvement, auto: abResult.auto, forced: abResult.forced } : null,
+    });
+  } catch (err) {
+    logger.error('optimize', `Failed for campaign ${req.params.id}: ${err.message}`);
+    next(err);
+  }
+});
+
 // POST /api/campaigns/:id/versions
 router.post('/:id/versions', async (req, res, next) => {
   try {

@@ -211,4 +211,118 @@ async function forceSelectWinner(campaignId, userId, winner) {
   return { winner, versionId: activeTest.id };
 }
 
-module.exports = { evaluateABTests, forceSelectWinner };
+/**
+ * Resolve the currently-active A/B test on a campaign.
+ * Used before starting a new optimization so we don't pile up conflicting tests.
+ *
+ * Behavior:
+ *  - No active test → returns { resolved: false, hadTest: false }
+ *  - Significant (meets dynamic thresholds) → auto-promotes the winner
+ *  - Not significant + options.force → promotes the current leader
+ *  - Not significant + no force → returns { resolved: false, canForce: true, leader, stats }
+ *
+ * @param {string} campaignId
+ * @param {string} userId
+ * @param {object} options - { force: bool }
+ */
+async function resolveActiveABTest(campaignId, userId, options = {}) {
+  const versions = await db.versions.listByCampaign(campaignId);
+  const activeTest = versions.find(v => v.result === 'testing');
+  if (!activeTest) {
+    return { resolved: false, hadTest: false };
+  }
+
+  const campaign = await db.campaigns.get(campaignId);
+  if (!campaign) throw new Error('Campaign not found');
+
+  const touchpoints = await db.touchpoints.listByCampaign(campaignId);
+
+  // Compute scores
+  let aScore = 0;
+  let bScore = 0;
+  let hasVariantData = false;
+  for (const tp of touchpoints) {
+    const aOpen = tp.open_rate || 0;
+    const bOpen = tp.open_rate_b || 0;
+    const aReply = tp.reply_rate || 0;
+    const bReply = tp.reply_rate_b || 0;
+    if (bOpen > 0 || bReply > 0) hasVariantData = true;
+    aScore += aOpen + (aReply * 3);
+    bScore += bOpen + (bReply * 3);
+  }
+
+  const audience = campaign.nb_prospects || 0;
+  const { minDays, minProspects } = getTestThresholds(audience);
+  const createdAt = new Date(activeTest.created_at || activeTest.date);
+  const daysSinceStart = (Date.now() - createdAt.getTime()) / 86400000;
+
+  const timeReached = daysSinceStart >= minDays;
+  const volumeReached = audience >= minProspects;
+  const significant = timeReached && volumeReached && hasVariantData;
+
+  const leader = bScore > aScore ? 'B' : 'A';
+  const improvement = aScore > 0 ? Number(((bScore - aScore) / aScore * 100).toFixed(1)) : 0;
+
+  // Case 1: Significant → auto-promote
+  if (significant) {
+    const winner = bScore > aScore * B_WIN_THRESHOLD ? 'B' : 'A';
+    if (winner === 'B') {
+      await promoteVariantB(campaignId, campaign, touchpoints, userId);
+      await db.versions.update(activeTest.id, { result: 'improved' });
+    } else {
+      await clearVariantB(campaignId, campaign, touchpoints, userId);
+      await db.versions.update(activeTest.id, { result: 'neutral' });
+    }
+    logger.info('ab-test', `Campaign ${campaignId}: Auto-resolved on optimize. Winner=${winner}, Improvement=${improvement}%`);
+    return {
+      resolved: true,
+      hadTest: true,
+      auto: true,
+      winner,
+      improvement,
+      aScore: Number(aScore.toFixed(1)),
+      bScore: Number(bScore.toFixed(1)),
+    };
+  }
+
+  // Case 2: Not significant + force → promote the leader anyway
+  if (options.force) {
+    if (leader === 'B') {
+      await promoteVariantB(campaignId, campaign, touchpoints, userId);
+      await db.versions.update(activeTest.id, { result: 'improved' });
+    } else {
+      await clearVariantB(campaignId, campaign, touchpoints, userId);
+      await db.versions.update(activeTest.id, { result: 'neutral' });
+    }
+    logger.info('ab-test', `Campaign ${campaignId}: Force-resolved on optimize. Leader=${leader}, Improvement=${improvement}%`);
+    return {
+      resolved: true,
+      hadTest: true,
+      auto: false,
+      forced: true,
+      winner: leader,
+      improvement,
+      aScore: Number(aScore.toFixed(1)),
+      bScore: Number(bScore.toFixed(1)),
+    };
+  }
+
+  // Case 3: Not significant + no force → return data so the frontend can prompt
+  return {
+    resolved: false,
+    hadTest: true,
+    canForce: true,
+    leader,
+    improvement,
+    aScore: Number(aScore.toFixed(1)),
+    bScore: Number(bScore.toFixed(1)),
+    daysSinceStart: Number(daysSinceStart.toFixed(1)),
+    minDays,
+    audience,
+    minProspects,
+    hasVariantData,
+    versionId: activeTest.id,
+  };
+}
+
+module.exports = { evaluateABTests, forceSelectWinner, resolveActiveABTest };

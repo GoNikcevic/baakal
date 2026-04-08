@@ -207,6 +207,7 @@ const campaigns = {
       notion_page_id: 'notion_page_id', notionPageId: 'notion_page_id',
       project_id: 'project_id', projectId: 'project_id',
       ab_config: 'ab_config', abConfig: 'ab_config',
+      last_optimized_at: 'last_optimized_at', lastOptimizedAt: 'last_optimized_at',
     };
 
     const seen = new Set();

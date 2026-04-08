@@ -751,6 +751,19 @@ export async function getABRecommendations(segment) {
   });
 }
 
+/** Diagnose a campaign and return touchpoint analysis + recommendation */
+export async function diagnoseCampaign(campaignId) {
+  return request(`/campaigns/${campaignId}/diagnose`, { method: 'POST' });
+}
+
+/** Run the optimization: regenerate variant B and push to Lemlist */
+export async function optimizeCampaign(campaignId, payload) {
+  return request(`/campaigns/${campaignId}/optimize`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 /** Record the A/B winner (promotes on Lemlist + writes pattern to memory) */
 export async function recordABWinner(campaignId, winner) {
   return request('/ai/ab-record-winner', {
@@ -856,6 +869,8 @@ const BakalAPI = {
   getABCategories,
   getABRecommendations,
   recordABWinner,
+  diagnoseCampaign,
+  optimizeCampaign,
 };
 
 export default BakalAPI;

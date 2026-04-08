@@ -12,6 +12,7 @@ import ProspectsTab from './tabs/ProspectsTab';
 import PerformanceTab from './tabs/PerformanceTab';
 import HistoryTab from './tabs/HistoryTab';
 import ABTestTab from './tabs/ABTestTab';
+import OptimizeCampaignModal from './OptimizeCampaignModal';
 
 export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns }) {
   const isPrep = c.status === 'prep';
@@ -22,6 +23,9 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   const [archiving, setArchiving] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [launchAlert, setLaunchAlert] = useState(null);
+  const [showOptimize, setShowOptimize] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [optimizeBanner, setOptimizeBanner] = useState(null);
 
   // Show A/B tab if campaign has an active test config
   const hasABTest = !!c.abConfig;
@@ -139,7 +143,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {!isArchived && (
             <button
               className="btn btn-ghost"
@@ -149,6 +153,41 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             >
               {archiving ? '...' : '📦 Archiver'}
             </button>
+          )}
+          {isActive && (
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: '12px', padding: '8px 14px' }}
+                onClick={() => setShowOptimize(true)}
+              >
+                🔄 Optimiser la campagne
+              </button>
+              <button
+                onClick={() => setShowHelp(prev => !prev)}
+                onMouseEnter={() => setShowHelp(true)}
+                onMouseLeave={() => setShowHelp(false)}
+                aria-label="Aide — Comment fonctionne l'optimisation"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text-muted)',
+                  cursor: 'help',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                }}
+              >
+                ?
+              </button>
+              {showHelp && <OptimizeHelpTooltip />}
+            </div>
           )}
           {isPrep && (
             <button
@@ -162,6 +201,58 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
           )}
         </div>
       </div>
+
+      {/* Optimization banner */}
+      {optimizeBanner && (
+        <div
+          style={{
+            background: 'rgba(0, 214, 143, 0.1)',
+            border: '1px solid rgba(0, 214, 143, 0.3)',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            margin: '16px 0',
+            fontSize: 13,
+            color: 'var(--success)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>✅</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>{optimizeBanner.title}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+              {optimizeBanner.desc}
+            </div>
+          </div>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 11, padding: '6px 12px' }}
+            onClick={() => setOptimizeBanner(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Optimize modal */}
+      {showOptimize && (
+        <OptimizeCampaignModal
+          campaign={c}
+          onClose={() => setShowOptimize(false)}
+          onSuccess={(result) => {
+            const stepsCount = result?.variants?.length || 0;
+            setOptimizeBanner({
+              title: `Optimisation déployée — ${stepsCount} touchpoint${stepsCount > 1 ? 's' : ''} mis à jour`,
+              desc: 'Le nouveau test A/B est visible dans l\'onglet 🧬 A/B Test. Les stats arriveront après les prochains envois Lemlist.',
+            });
+            // Optionally switch to A/B tab if it's visible
+            if (hasABTest || result?.variants?.length) {
+              setActiveTab('abtest');
+            }
+          }}
+        />
+      )}
 
       {/* Launch alert */}
       {launchAlert && (
@@ -252,6 +343,42 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
         {activeTab === 'abtest' && <ABTestTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'performance' && <PerformanceTab campaign={c} />}
         {activeTab === 'history' && <HistoryTab campaign={c} />}
+      </div>
+    </div>
+  );
+}
+
+function OptimizeHelpTooltip() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        right: 0,
+        width: 340,
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: 16,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        zIndex: 1000,
+        fontSize: 12,
+        lineHeight: 1.55,
+        color: 'var(--text-secondary)',
+      }}
+    >
+      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>
+        Comment fonctionne l'optimisation
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        Baakalai analyse les performances de ta campagne et identifie le touchpoint qui performe le moins.
+        Il propose ensuite une nouvelle variante que tu peux valider avant de la pousser vers Lemlist
+        en A/B testing.
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        <div>• Min. 20 prospects contactés</div>
+        <div>• 1 optimisation / 7 jours recommandée</div>
+        <div>• Au-delà de 50 prospects, le pattern alimente la mémoire collective</div>
       </div>
     </div>
   );
