@@ -327,7 +327,7 @@ export default function ProfilePage() {
       <div className="page-header">
         <div>
           <div className="page-title">Profil Entreprise</div>
-          <div className="page-subtitle">Ces informations sont utilisées par Claude pour personnaliser vos campagnes</div>
+          <div className="page-subtitle">Ces informations sont utilisées par Baakal pour personnaliser vos campagnes</div>
         </div>
         <div className="header-actions">
           <button
@@ -438,7 +438,7 @@ export default function ProfilePage() {
         <div className="card-header"><div className="card-title">Documents entreprise</div></div>
         <div className="card-body">
           <div className="page-subtitle" style={{ marginBottom: 16 }}>
-            Briefs, guidelines, personas PDF, exemples de campagnes — Claude les utilisera pour personnaliser vos séquences.
+            Briefs, guidelines, personas PDF, exemples de campagnes — Baakal les utilisera pour personnaliser vos séquences.
           </div>
           <div
             onDragEnter={handleDragEnter}

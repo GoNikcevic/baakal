@@ -28,7 +28,7 @@ const SECTOR_SUGGESTIONS = [
 const STEP_META = [
   { title: 'Bienvenue sur Baakal', desc: 'Quelques informations pour personnaliser votre expérience.' },
   { title: 'Connexion aux outils', desc: 'Connectez vos outils principaux. Vous pourrez en ajouter d\'autres plus tard.' },
-  { title: 'Votre cible', desc: 'Aidez Claude à comprendre qui vous cherchez à atteindre.' },
+  { title: 'Votre cible', desc: 'Aidez Baakal à comprendre qui vous cherchez à atteindre.' },
   { title: 'Style de communication', desc: 'Définissez le ton de vos campagnes.' },
   { title: 'Tout est prêt !', desc: '' },
 ];

@@ -59,7 +59,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
       setLaunchAlert({
         type: 'error',
         title: 'Impossible de lancer — séquences manquantes',
-        desc: "Générez d'abord les séquences via Claude depuis l'éditeur Copy & Séquences.",
+        desc: "Générez d'abord les séquences via Baakal depuis l'éditeur Copy & Séquences.",
       });
       return;
     }
@@ -288,7 +288,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
               gap: '8px',
             }}
           >
-            🤖 Recommandation pré-lancement — Claude
+            🤖 Recommandation pré-lancement — Baakal
           </div>
           <div
             style={{

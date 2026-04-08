@@ -618,7 +618,7 @@ export default function SettingsPage() {
           <div>
             <div className="card-title">Analyse Outreach</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Synchronise vos campagnes et analyse les patterns de performance avec Claude
+              Synchronise vos campagnes et analyse les patterns de performance avec Baakal
             </div>
           </div>
           <button
@@ -662,8 +662,8 @@ export default function SettingsPage() {
             <div className="card-title">Analyse CRM</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               {connectedCrm
-                ? `Synchronise vos deals ${connectedCrm.replace('Key', '')} et analyse les patterns de conversion avec Claude`
-                : 'Synchronise vos deals CRM et analyse les patterns de conversion avec Claude'}
+                ? `Synchronise vos deals ${connectedCrm.replace('Key', '')} et analyse les patterns de conversion avec Baakal`
+                : 'Synchronise vos deals CRM et analyse les patterns de conversion avec Baakal'}
             </div>
           </div>
           <button
@@ -745,15 +745,15 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="settings-pref-row">
-              <label className="settings-pref-label">Modèle Claude</label>
+              <label className="settings-pref-label">Modèle IA</label>
               <select
                 className="form-input"
                 value={preferences.claudeModel}
                 onChange={e => updatePreference('claudeModel', e.target.value)}
               >
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-haiku">Claude 3 Haiku</option>
+                <option value="claude-3-sonnet">Baakal Standard</option>
+                <option value="claude-3-opus">Baakal Pro</option>
+                <option value="claude-3-haiku">Baakal Lite</option>
               </select>
             </div>
           </div>

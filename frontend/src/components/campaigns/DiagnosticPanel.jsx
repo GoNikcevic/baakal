@@ -70,7 +70,7 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (loading) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par etape -- Claude</div>
+        <div className="diag-panel-header">Diagnostic par étape — Baakal</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
           Chargement des diagnostics...
         </div>
@@ -81,7 +81,7 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (error) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par etape -- Claude</div>
+        <div className="diag-panel-header">Diagnostic par étape — Baakal</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--danger)', fontSize: '13px' }}>
           Erreur : {error}
         </div>
@@ -92,7 +92,7 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (diagnostics.length === 0) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par etape -- Claude</div>
+        <div className="diag-panel-header">Diagnostic par étape — Baakal</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
           Aucun diagnostic disponible pour cette campagne.
         </div>
@@ -102,7 +102,7 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
 
   return (
     <div className="diag-panel">
-      <div className="diag-panel-header">Diagnostic par etape -- Claude</div>
+      <div className="diag-panel-header">Diagnostic par étape — Baakal</div>
       <div className="diag-timeline">
         {diagnostics.map((d) => {
           const isOpen = expanded[d.id];

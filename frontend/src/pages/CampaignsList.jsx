@@ -98,7 +98,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
           <div className="empty-state-title">Aucune campagne créée</div>
           <div className="empty-state-desc">
             Créez votre première campagne de prospection. Choisissez votre cible,
-            votre canal et votre angle — Claude s'occupe du reste.
+            votre canal et votre angle — Baakal s'occupe du reste.
           </div>
           <button className="btn btn-primary" onClick={() => navigate('/chat')}>
             Créer ma première campagne

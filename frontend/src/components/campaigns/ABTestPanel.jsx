@@ -41,7 +41,7 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
               Test A/B lancé sur {launched}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Régénération en cours par Claude &middot; Résultats estimés dans
+              Régénération en cours par Baakal &middot; Résultats estimés dans
               5-7 jours
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
           marginBottom: '16px',
         }}
       >
-        Claude va générer une variante B automatiquement basée sur les données
+        Baakal va générer une variante B automatiquement basée sur les données
         cross-campagne.
       </div>
 

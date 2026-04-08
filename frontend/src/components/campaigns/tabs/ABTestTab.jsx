@@ -30,7 +30,7 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
         </div>
         <div style={{ fontSize: 13, maxWidth: 480, margin: '0 auto' }}>
           Les tests A/B sont configurés automatiquement à la création de la campagne
-          depuis le chat. Crée une nouvelle campagne en demandant à Claude de proposer
+          depuis le chat. Crée une nouvelle campagne en demandant à Baakal de proposer
           une configuration A/B.
         </div>
       </div>

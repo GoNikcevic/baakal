@@ -271,7 +271,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         {/* AI Recommendations */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">{'\u{1F4A1}'} Recommandations Claude</div>
+            <div className="card-title">{'\u{1F4A1}'} Recommandations Baakal</div>
             <Link
               to="/recos"
               className="btn btn-ghost"
@@ -483,7 +483,7 @@ function WelcomeBanner({ onCreateCampaign }) {
         <div className="onboarding-step">
           <div className="onboarding-step-number">2</div>
           <div className="onboarding-step-title">
-            Claude génère vos séquences
+            Baakal génère vos séquences
           </div>
           <div className="onboarding-step-desc">
             L'IA rédige des messages personnalisés et adaptés à votre cible et
@@ -591,12 +591,12 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
 
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F4A1}'} Recommandations Claude</div>
+          <div className="card-title">{'\u{1F4A1}'} Recommandations Baakal</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F916}'}</div>
           <div className="empty-text">
-            Claude analysera vos campagnes et proposera des optimisations des
+            Baakal analysera vos campagnes et proposera des optimisations dès
             qu'il aura suffisamment de données (&gt;50 prospects, &gt;7 jours).
           </div>
         </div>

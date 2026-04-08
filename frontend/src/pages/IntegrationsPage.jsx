@@ -18,7 +18,7 @@ const CATEGORIES = [
         status: 'natif',
         features: [
           'Analyse vos stats de campagne en temps réel',
-          'Génère et optimise vos séquences avec Claude',
+          'Génère et optimise vos séquences avec Baakal',
           'Déploie les variantes A/B directement dans Lemlist',
           'Collecte quotidienne des taux d\'ouverture, réponse et conversion',
         ],
@@ -72,7 +72,7 @@ const CATEGORIES = [
         features: [
           'Pull des deals et contacts pour enrichir l\'ICP',
           'Push des scores de leads (/100) vers les contacts HubSpot',
-          'Analyse des patterns de conversion par Claude',
+          'Analyse des patterns de conversion par Baakal',
           'Synchronisation bidirectionnelle des opportunités',
         ],
       },

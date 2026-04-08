@@ -1201,7 +1201,7 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Claude est configurée.\n\n`' + err.message + '`',
+            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Baakal est configurée.\n\n`' + err.message + '`',
             metadata: null,
             animate: true,
           },

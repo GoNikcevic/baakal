@@ -70,12 +70,11 @@ describe('SettingsPage', () => {
     });
   });
 
-  it('renders core API key cards (Lemlist, Claude, CRM)', async () => {
+  it('renders core API key cards (Lemlist, CRM)', async () => {
     renderSettings();
 
     await waitFor(() => {
       expect(screen.getByText('Lemlist')).toBeInTheDocument();
-      expect(screen.getByText('Claude (Anthropic)')).toBeInTheDocument();
       expect(screen.getByText('CRM')).toBeInTheDocument();
     });
   });
@@ -95,7 +94,7 @@ describe('SettingsPage', () => {
       expect(screen.getByText(/Limite quotidienne Lemlist/)).toBeInTheDocument();
       expect(screen.getByText(/Fen.tre d'envoi/)).toBeInTheDocument();
       expect(screen.getByText(/Jours d'envoi/)).toBeInTheDocument();
-      expect(screen.getByText(/Mod.le Claude/)).toBeInTheDocument();
+      expect(screen.getByText(/Mod.le IA/)).toBeInTheDocument();
     });
   });
 

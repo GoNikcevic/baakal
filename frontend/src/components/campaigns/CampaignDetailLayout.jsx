@@ -71,7 +71,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
       setLaunchAlert({
         type: 'error',
         title: 'Impossible de lancer — séquences manquantes',
-        desc: "Génère d'abord les séquences via Claude depuis l'onglet Copy & Séquences.",
+        desc: "Génère d'abord les séquences via Baakal depuis l'onglet Copy & Séquences.",
       });
       return;
     }
