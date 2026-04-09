@@ -585,12 +585,25 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
       const created = await lemlist.createCampaign(campaign.name, apiKey);
       lemlistCampaignId = created._id || created.id;
       if (!lemlistCampaignId) {
-        return res.status(500).json({ error: 'Lemlist did not return a campaign id' });
+        return res.status(500).json({ error: 'Lemlist n\'a pas retourné d\'ID de campagne. Vérifiez votre plan Lemlist et votre clé API.' });
       }
       await db.campaigns.update(campaign.id, { lemlist_id: lemlistCampaignId });
     }
 
-    // 2) Push sequence steps
+    // 2) Resolve the sequenceId once (Lemlist auto-creates one sequence per
+    //    campaign). Previously we were calling the wrong endpoint per step
+    //    and silently 404ing, leaving campaigns empty in Lemlist.
+    let sequenceId;
+    try {
+      sequenceId = await lemlist.resolveSequenceId(lemlistCampaignId, apiKey);
+    } catch (err) {
+      logger.error('launch-lemlist', `sequenceId resolution failed: ${err.message}`);
+      return res.status(502).json({
+        error: `Impossible de récupérer la séquence Lemlist de la campagne (${err.message}). Vérifie que la campagne existe dans ton compte Lemlist.`,
+      });
+    }
+
+    // 3) Push sequence steps (all to the same sequenceId, no N+1)
     const sequenceResults = [];
     for (const tp of touchpoints) {
       try {
@@ -599,16 +612,17 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
           subject: tp.subject,
           body: tp.body,
           timing: tp.timing,
+          sequenceId, // pre-resolved, saves a round-trip per step
         };
         const r = await lemlist.addSequenceStep(lemlistCampaignId, step, apiKey);
         sequenceResults.push({ step: tp.step, ok: true, id: r._id || r.id });
       } catch (err) {
         sequenceResults.push({ step: tp.step, ok: false, error: err.message });
-        logger.warn('launch-lemlist', `Sequence step failed: ${err.message}`);
+        logger.warn('launch-lemlist', `Sequence step ${tp.step} failed: ${err.message}`);
       }
     }
 
-    // 3) Push leads
+    // 4) Push leads
     const leadResults = { pushed: 0, skipped: 0, errors: [] };
     for (const p of eligibleProspects) {
       try {
@@ -627,7 +641,7 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
       }
     }
 
-    // 4) Start the Lemlist campaign (idempotent — no-op if already running)
+    // 5) Start the Lemlist campaign (idempotent — no-op if already running)
     //    We only start if at least one sequence step and one lead were pushed,
     //    otherwise Lemlist would start an empty campaign with nothing to send.
     let started = false;
@@ -643,7 +657,7 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
       }
     }
 
-    // 5) Flip Baakalai campaign to active
+    // 6) Flip Baakalai campaign to active
     await db.campaigns.update(campaign.id, {
       status: 'active',
       start_date: new Date().toISOString().split('T')[0],

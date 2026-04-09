@@ -91,6 +91,38 @@ const LEMLIST_STEP_TYPE_MAP = {
   linkedin: 'linkedinInvite',
 };
 
+/**
+ * Resolve the sequenceId attached to a campaign. Lemlist auto-creates
+ * one sequence per campaign, so we fetch it and return the first one.
+ * Cached for the duration of a launch to avoid N+1 calls when pushing
+ * multiple steps.
+ */
+async function resolveSequenceId(campaignId, apiKey) {
+  const res = await lemlistFetch(`/campaigns/${campaignId}/sequences`, {}, apiKey);
+  // Lemlist returns either a single sequence object or an array of sequences
+  // depending on the endpoint version. Handle both.
+  const seq = Array.isArray(res) ? res[0] : res;
+  const sequenceId = seq?._id || seq?.id || seq?.sequenceId;
+  if (!sequenceId) {
+    throw new Error(
+      `Lemlist n'a pas retourné de sequenceId pour la campagne ${campaignId}. ` +
+      `Réponse brute: ${JSON.stringify(res).substring(0, 200)}`
+    );
+  }
+  return sequenceId;
+}
+
+/**
+ * Add a step to a campaign's sequence.
+ *
+ * Per Lemlist's current API (2026), the endpoint is:
+ *   POST /api/sequences/{sequenceId}/steps
+ * NOT the legacy /campaigns/{id}/sequences we used before (which silently
+ * returned 404 and made launch flows create empty campaigns).
+ *
+ * Caller can pass a pre-resolved sequenceId as step.sequenceId to avoid
+ * the extra lookup round-trip when pushing multiple steps in a loop.
+ */
 async function addSequenceStep(campaignId, step, apiKey) {
   const lemlistType = LEMLIST_STEP_TYPE_MAP[step.type] || 'email';
 
@@ -100,7 +132,8 @@ async function addSequenceStep(campaignId, step, apiKey) {
     messageText = messageText.slice(0, 300);
   }
 
-  // Build payload by type — linkedinVisit has no message, email needs a subject
+  // Build payload per Lemlist's current schema:
+  // required: type; optional: delay, index, subject (email), message (email/linkedinInvite/linkedinSend)
   const body = {
     type: lemlistType,
     delay: typeof step.delay === 'number' ? step.delay : parseDelayFromTiming(step.timing),
@@ -108,16 +141,16 @@ async function addSequenceStep(campaignId, step, apiKey) {
 
   if (lemlistType === 'email') {
     if (step.subject) body.subject = step.subject;
-    // Send both field names to cover v1 (text) and v2 (message) API shapes
     body.message = messageText;
-    body.text = messageText;
   } else if (lemlistType === 'linkedinInvite' || lemlistType === 'linkedinSend') {
     body.message = messageText;
-    body.text = messageText;
   }
   // linkedinVisit: no message/subject, just type + delay
 
-  return lemlistFetch(`/campaigns/${campaignId}/sequences`, {
+  // Resolve sequenceId if caller didn't pass one
+  const sequenceId = step.sequenceId || await resolveSequenceId(campaignId, apiKey);
+
+  return lemlistFetch(`/sequences/${sequenceId}/steps`, {
     method: 'POST',
     body: JSON.stringify(body),
   }, apiKey);
@@ -403,19 +436,32 @@ async function getEnrichmentResult(apiKey, enrichId) {
   };
 }
 
+/**
+ * Add a lead to a Lemlist campaign.
+ *
+ * Per Lemlist's current API (2026), the endpoint is:
+ *   POST /api/campaigns/{campaignId}/leads
+ * with the email IN THE REQUEST BODY (not the URL path, as in the old v1
+ * form we were using, which silently 404'd and dropped every lead).
+ *
+ * `deduplicate=true` tells Lemlist to skip the lead cleanly if the email
+ * already exists in the campaign instead of returning an error.
+ */
 async function addLead(campaignId, lead, apiKey) {
-  // Lemlist v1: POST /campaigns/{id}/leads/{email}
   const email = lead.email;
   if (!email) throw new Error('Lead must have an email');
   const body = {
+    email,
     firstName: lead.firstName || '',
     lastName: lead.lastName || '',
     companyName: lead.company || lead.companyName || '',
     jobTitle: lead.title || lead.jobTitle || '',
-    linkedinUrl: lead.linkedinUrl || undefined,
-    phone: lead.phone || undefined,
   };
-  return lemlistFetch(`/campaigns/${campaignId}/leads/${encodeURIComponent(email)}?verify=false`, {
+  if (lead.linkedinUrl) body.linkedinUrl = lead.linkedinUrl;
+  if (lead.phone) body.phone = lead.phone;
+  if (lead.companyDomain) body.companyDomain = lead.companyDomain;
+
+  return lemlistFetch(`/campaigns/${campaignId}/leads?deduplicate=true`, {
     method: 'POST',
     body: JSON.stringify(body),
   }, apiKey);
@@ -435,15 +481,15 @@ async function getCampaignStats(campaignId) {
   return lemlistFetch(`/campaigns/${campaignId}/export`);
 }
 
-async function getSequences(campaignId) {
-  return lemlistFetch(`/campaigns/${campaignId}/sequences`);
+async function getSequences(campaignId, apiKey) {
+  return lemlistFetch(`/campaigns/${campaignId}/sequences`, {}, apiKey);
 }
 
-async function updateSequenceStep(campaignId, stepId, data) {
+async function updateSequenceStep(campaignId, stepId, data, apiKey) {
   return lemlistFetch(`/campaigns/${campaignId}/sequences/${stepId}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
-  });
+  }, apiKey);
 }
 
 async function getWorkflow(campaignId) {
@@ -595,6 +641,7 @@ module.exports = {
   getWorkflow,
   createCampaign,
   startCampaign,
+  resolveSequenceId,
   addSequenceStep,
   addLead,
   searchPeopleDatabase,
