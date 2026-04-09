@@ -1,0 +1,159 @@
+name: Smoke test (runtime module load)
+
+# Prevents the class of "parse-OK but crashes at require() time" bugs
+# that took down production on 2026-04-09. Every PR and every push to
+# main must pass:
+#   1. A freeze-file check (lets us pause deploys during live demos)
+#   2. `node -e "require(...)"` on every modified backend JS module
+#   3. The existing npm test suite
+#
+# Set "Wait for CI" in Railway's service settings so a red check here
+# blocks the auto-deploy.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/smoke-test.yml'
+      - '.deploy-freeze'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/smoke-test.yml'
+      - '.deploy-freeze'
+
+jobs:
+  smoke-test:
+    name: Module load + tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetch enough history to compute the diff against the base ref
+          fetch-depth: 50
+
+      # ─── Freeze gate ──────────────────────────────────────────────
+      - name: Check deploy freeze flag
+        run: |
+          if [ -f .deploy-freeze ]; then
+            echo "::error::🚨 DEPLOY FROZEN — found .deploy-freeze at the repo root."
+            echo ""
+            echo "Contents of .deploy-freeze:"
+            echo "---"
+            cat .deploy-freeze
+            echo "---"
+            echo ""
+            echo "To unfreeze: delete .deploy-freeze, commit and push."
+            echo "Or run: bash scripts/unfreeze-deploy.sh"
+            exit 1
+          fi
+          echo "✓ Deploy not frozen"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      # ─── Runtime module-load smoke test ───────────────────────────
+      # The real safety net. `node -c` only checks parse-time syntax
+      # and misses bugs like unescaped backticks inside large template
+      # literals (2026-04-09 incident: CHAT_SYSTEM_RULES in claude.js).
+      # Actually `require()`ing the module catches those crashes here
+      # instead of on Railway in production.
+      - name: Discover modified backend JS files
+        id: changed
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          HEAD="${{ github.sha }}"
+          # On a brand-new push (no 'before' sha), fall back to the last commit only
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          echo "Comparing $BASE..$HEAD"
+
+          # List every .js file under backend/ that exists and was changed.
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD" -- 'backend/**/*.js' \
+                    | grep -v 'node_modules/' \
+                    | grep -v '/tests/' \
+                    | grep -v '\.test\.js$' \
+                    | while read f; do [ -f "$f" ] && echo "$f"; done \
+                    || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "No backend JS files changed."
+          else
+            echo "Changed files:"
+            echo "$CHANGED"
+          fi
+          # Expose as multi-line output for the next step
+          {
+            echo "files<<__EOF__"
+            echo "$CHANGED"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Runtime require() each changed module
+        if: steps.changed.outputs.files != ''
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          # Dummy env vars so modules that read process.env at load time
+          # don't crash on missing config. Real values are never read in
+          # this test — we only care about the module top-level code.
+          CLAUDE_API_KEY: smoke-test-dummy
+          ANTHROPIC_API_KEY: smoke-test-dummy
+          LEMLIST_API_KEY: smoke-test-dummy
+          NOTION_API_KEY: smoke-test-dummy
+          JWT_SECRET: smoke-test-dummy-secret-at-least-32-characters-long
+          DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy
+          SUPABASE_URL: https://dummy.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: smoke-test-dummy
+        run: |
+          FAILED=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            # Strip the "backend/" prefix since we cd'd into backend/
+            rel="${f#backend/}"
+            # Route files and server.js start servers / open DB connections
+            # on require. Skip those (they would hang the CI). The smoke
+            # test is mostly about helper / api / lib modules where the
+            # bug class we care about lives.
+            if [[ "$rel" == "server.js" || "$rel" == "routes/"* || "$rel" == "orchestrator/"* ]]; then
+              echo "⊘ skip (side-effectful at load): $rel"
+              continue
+            fi
+            echo "→ require('./$rel')"
+            if ! node -e "require('./$rel')" 2>&1; then
+              echo "::error file=$f::Module failed to load at runtime"
+              FAILED=$((FAILED+1))
+            fi
+          done <<< "${{ steps.changed.outputs.files }}"
+
+          if [ $FAILED -gt 0 ]; then
+            echo "::error::$FAILED module(s) failed the runtime load test"
+            exit 1
+          fi
+          echo "✓ All changed modules load cleanly"
+
+      # ─── Unit tests (existing npm test script) ────────────────────
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: smoke-test-dummy-secret-at-least-32-characters-long
+        run: |
+          if [ -d tests ] && ls tests/*.test.js >/dev/null 2>&1; then
+            npm test
+          else
+            echo "No test files in backend/tests/ — skipping."
+          fi
