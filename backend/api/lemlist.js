@@ -148,39 +148,51 @@ async function getDatabaseFilters(apiKey) {
 /**
  * Map our generic criteria to Lemlist filter objects.
  * Tries common filterId names and falls back gracefully.
+ * Returns { filters, diagnostics } so callers can surface which criteria
+ * were actually applied vs dropped (helps debug broad/random results).
  */
 function buildLemlistFilters(criteria, availableFilters) {
   const filters = [];
+  const diagnostics = {
+    applied: [],          // [{ criterion, filterId, values }]
+    dropped: [],          // [{ criterion, values, reason }]
+    availableFilterIds: [],
+  };
   const available = new Set(
     (availableFilters || [])
       .filter(f => !f.mode || f.mode.includes('leads'))
       .map(f => f.filterId)
   );
+  diagnostics.availableFilterIds = Array.from(available);
 
   // Pick the first matching filterId from candidates
   const pick = (candidates) => candidates.find(c => available.has(c));
 
-  if (criteria.titles && criteria.titles.length > 0) {
-    const fid = pick(['title', 'job_title', 'jobTitle', 'position']);
-    if (fid) filters.push({ filterId: fid, in: criteria.titles, out: [] });
-  }
+  const tryAdd = (criterion, values, candidates) => {
+    if (!values || values.length === 0) return;
+    const fid = pick(candidates);
+    if (fid) {
+      filters.push({ filterId: fid, in: values, out: [] });
+      diagnostics.applied.push({ criterion, filterId: fid, values });
+    } else {
+      diagnostics.dropped.push({
+        criterion,
+        values,
+        reason: `aucun filterId Lemlist parmi [${candidates.join(', ')}] n'existe dans le schéma`,
+      });
+    }
+  };
 
-  if (criteria.sectors && criteria.sectors.length > 0) {
-    const fid = pick(['industry', 'sector', 'company_industry']);
-    if (fid) filters.push({ filterId: fid, in: criteria.sectors, out: [] });
-  }
+  tryAdd('titles', criteria.titles,
+    ['title', 'job_title', 'jobTitle', 'position', 'current_position', 'lead_current_position']);
+  tryAdd('sectors', criteria.sectors,
+    ['industry', 'sector', 'company_industry', 'current_exp_company_industry', 'lead_industry']);
+  tryAdd('locations', criteria.locations,
+    ['country', 'location', 'city', 'region', 'lead_country', 'lead_location']);
+  tryAdd('companySizes', criteria.companySizes,
+    ['company_size', 'company_employees_number', 'employees', 'size', 'current_exp_company_size']);
 
-  if (criteria.locations && criteria.locations.length > 0) {
-    const fid = pick(['country', 'location', 'city', 'region']);
-    if (fid) filters.push({ filterId: fid, in: criteria.locations, out: [] });
-  }
-
-  if (criteria.companySizes && criteria.companySizes.length > 0) {
-    const fid = pick(['company_size', 'company_employees_number', 'employees', 'size']);
-    if (fid) filters.push({ filterId: fid, in: criteria.companySizes, out: [] });
-  }
-
-  return filters;
+  return { filters, diagnostics };
 }
 
 /**
@@ -189,10 +201,27 @@ function buildLemlistFilters(criteria, availableFilters) {
  */
 async function searchPeopleDatabase(apiKey, criteria) {
   const availableFilters = await getDatabaseFilters(apiKey);
-  const filters = buildLemlistFilters(criteria, availableFilters);
+  const { filters, diagnostics } = buildLemlistFilters(criteria, availableFilters);
+
+  // Log what we're sending so Railway logs show exactly which filters
+  // were accepted / dropped for every search.
+  try {
+    const logger = require('../lib/logger');
+    logger.info('lemlist-search', 'Filter diagnostics', {
+      applied: diagnostics.applied.map(a => `${a.criterion}→${a.filterId}`),
+      dropped: diagnostics.dropped.map(d => d.criterion),
+      availableSample: diagnostics.availableFilterIds.slice(0, 40),
+    });
+  } catch { /* logger optional */ }
 
   if (filters.length === 0) {
-    throw new Error('Aucun critère reconnu pour la recherche Lemlist. Précise au moins un titre, secteur ou localisation.');
+    const err = new Error(
+      'Aucun critère reconnu pour la recherche Lemlist. ' +
+      'Précise au moins un titre, secteur ou localisation. ' +
+      `Filtres Lemlist disponibles: ${diagnostics.availableFilterIds.slice(0, 20).join(', ')}...`
+    );
+    err.diagnostics = diagnostics;
+    throw err;
   }
 
   const body = {
@@ -235,7 +264,7 @@ async function searchPeopleDatabase(apiKey, criteria) {
     };
   });
 
-  return contacts;
+  return { contacts, diagnostics };
 }
 
 // --- Credits & Enrichment ---

@@ -955,8 +955,15 @@ router.post('/search-prospects', async (req, res, next) => {
       chosenSource = searchable[0].provider;
     }
 
-    const contacts = await searchProspects(req.user.id, chosenSource, criteria);
-    res.json({ contacts, count: contacts.length, source: chosenSource });
+    const result = await searchProspects(req.user.id, chosenSource, criteria);
+    const { contacts, diagnostics, fallback } = result;
+    res.json({
+      contacts,
+      count: contacts.length,
+      source: chosenSource,
+      diagnostics,
+      fallback,
+    });
   } catch (err) {
     next(err);
   }

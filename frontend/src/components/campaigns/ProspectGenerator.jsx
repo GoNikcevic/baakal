@@ -23,6 +23,8 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
   const [saving, setSaving] = useState(false);
   const [existingCount, setExistingCount] = useState(0);
   const [source, setSource] = useState(null);
+  const [searchDiagnostics, setSearchDiagnostics] = useState(null);
+  const [searchFallback, setSearchFallback] = useState(null);
 
   // Reveal state
   const [revealing, setRevealing] = useState(false);
@@ -62,6 +64,8 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
     setError(null);
     setResults([]);
     setSelected(new Set());
+    setSearchDiagnostics(null);
+    setSearchFallback(null);
     try {
       const criteria = {
         titles: titles.split(',').map(s => s.trim()).filter(Boolean),
@@ -78,6 +82,8 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       setResults(contacts);
       setSource(data.source || 'lemlist');
       setSelected(new Set(contacts.map(c => c.id)));
+      if (data.diagnostics) setSearchDiagnostics(data.diagnostics);
+      if (data.fallback) setSearchFallback(data.fallback);
     } catch (err) {
       setError(err.message || 'Recherche échouée');
     }
@@ -299,6 +305,48 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           }}
         >
           ⚠️ {error}
+        </div>
+      )}
+
+      {/* Fallback banner (Lemlist unavailable → Apollo) */}
+      {searchFallback && (
+        <div style={{
+          marginTop: 16,
+          padding: '10px 14px',
+          background: 'rgba(251, 191, 36, 0.08)',
+          border: '1px solid rgba(251, 191, 36, 0.3)',
+          borderRadius: 8,
+          fontSize: 12,
+          color: 'var(--warning, #d97706)',
+        }}>
+          ⚠️ Lemlist Leads indisponible — résultats via <strong>Apollo</strong> (fallback).
+        </div>
+      )}
+
+      {/* Filter diagnostics banner (dropped criteria) */}
+      {searchDiagnostics && (searchDiagnostics.dropped?.length > 0) && (
+        <div style={{
+          marginTop: 16,
+          padding: '12px 14px',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: 8,
+          fontSize: 12,
+          color: 'var(--danger, #dc2626)',
+          lineHeight: 1.6,
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            ⚠️ Filtres non appliqués — les résultats peuvent être peu pertinents
+          </div>
+          <div>
+            Ces critères n'ont pas été reconnus par Lemlist et ont été ignorés :&nbsp;
+            <strong>{searchDiagnostics.dropped.map(d => d.criterion).join(', ')}</strong>.
+            <br />
+            Seuls ces critères ont été envoyés :&nbsp;
+            {(searchDiagnostics.applied?.length ?? 0) > 0
+              ? <strong>{searchDiagnostics.applied.map(a => a.criterion).join(', ')}</strong>
+              : <strong>aucun</strong>}.
+          </div>
         </div>
       )}
 

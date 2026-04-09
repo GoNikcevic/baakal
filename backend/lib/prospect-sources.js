@@ -87,7 +87,8 @@ async function searchProspects(userId, source, criteria) {
 
   if (source === 'apollo') {
     const { searchContacts } = require('./apollo-enrichment');
-    return searchContacts(userId, criteria);
+    const contacts = await searchContacts(userId, criteria);
+    return { contacts };
   }
 
   if (source === 'lemlist') {
@@ -96,7 +97,8 @@ async function searchProspects(userId, source, criteria) {
     const apiKey = await getUserKey(userId, 'lemlist');
     if (!apiKey) throw new Error('Lemlist non configuré');
     try {
-      return await searchPeopleDatabase(apiKey, criteria);
+      const { contacts, diagnostics } = await searchPeopleDatabase(apiKey, criteria);
+      return { contacts, diagnostics };
     } catch (err) {
       // Lemlist Leads DB indisponible (outage 503, plan sans add-on, etc.)
       // → fallback transparent sur Apollo si configuré
@@ -116,9 +118,11 @@ async function searchProspects(userId, source, criteria) {
       }
       console.warn('[prospect-sources] Lemlist unavailable, falling back to Apollo:', err.message);
       const { searchContacts } = require('./apollo-enrichment');
-      const contacts = await searchContacts(userId, criteria);
-      // Tag so frontend can show "source: Apollo (Lemlist indisponible)"
-      return contacts.map(c => ({ ...c, _fallback: 'apollo', _fallbackReason: 'lemlist_unavailable' }));
+      const apolloContacts = await searchContacts(userId, criteria);
+      return {
+        contacts: apolloContacts.map(c => ({ ...c, _fallback: 'apollo', _fallbackReason: 'lemlist_unavailable' })),
+        fallback: { from: 'lemlist', to: 'apollo', reason: 'lemlist_unavailable' },
+      };
     }
   }
 
