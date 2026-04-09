@@ -36,6 +36,7 @@ router.use('/register', authLimiter);
 router.use('/refresh', authLimiter);
 router.use('/forgot-password', authLimiter);
 router.use('/reset-password', authLimiter);
+router.use('/resend-verification', authLimiter);
 
 function validatePassword(password) {
   if (!password || password.length < 8) return 'Password must be at least 8 characters';
@@ -196,6 +197,30 @@ router.get('/verify-email', async (req, res, next) => {
     }
 
     res.redirect(APP_URL + '/login?verified=true');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/resend-verification
+router.post('/resend-verification', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email requis' });
+
+    // Always return success (don't reveal if email exists or verification state)
+    const user = await db.users.getByEmail(email.toLowerCase().trim());
+    if (user && !user.email_verified) {
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await db.query(
+        'UPDATE users SET verification_token = $1, verification_expires = $2 WHERE id = $3',
+        [verificationToken, verificationExpires, user.id]
+      );
+      sendVerificationEmail(user.email, verificationToken).catch(() => {});
+    }
+
+    res.json({ success: true, message: 'Si un compte non vérifié existe pour cette adresse, un nouveau lien a été envoyé.' });
   } catch (err) {
     next(err);
   }
