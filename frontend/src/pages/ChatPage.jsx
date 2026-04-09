@@ -307,6 +307,8 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState(null);
   const [showCampaignPicker, setShowCampaignPicker] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [fallback, setFallback] = useState(null);
 
   const criteriaSummary = [
     metadata.titles?.join(', '),
@@ -318,6 +320,8 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
   const handleSearch = async () => {
     setSearching(true);
     setError(null);
+    setDiagnostics(null);
+    setFallback(null);
     try {
       const data = await api.searchProspects({
         source: metadata.source,
@@ -330,6 +334,8 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
       const list = data.contacts || [];
       setContacts(list);
       setSelected(new Set(list.map(c => c.id)));
+      if (data.diagnostics) setDiagnostics(data.diagnostics);
+      if (data.fallback) setFallback(data.fallback);
     } catch (err) {
       setError(err.message || 'Recherche échouée');
     }
@@ -400,6 +406,48 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
           >
             {searching ? 'Recherche...' : `🔍 Lancer la recherche (${metadata.limit || 25} max)`}
           </button>
+        </div>
+      )}
+
+      {/* Fallback banner — Lemlist indisponible → Apollo */}
+      {fallback && (
+        <div style={{
+          marginTop: 12,
+          padding: '8px 12px',
+          background: 'rgba(251, 191, 36, 0.1)',
+          border: '1px solid rgba(251, 191, 36, 0.35)',
+          borderRadius: 6,
+          fontSize: 11,
+          color: 'var(--warning, #d97706)',
+          lineHeight: 1.5,
+        }}>
+          ⚠️ Lemlist Leads indisponible — résultats via <strong>Apollo</strong> (fallback automatique).
+        </div>
+      )}
+
+      {/* Filter diagnostics — critères ignorés */}
+      {diagnostics && (diagnostics.dropped?.length > 0) && (
+        <div style={{
+          marginTop: 12,
+          padding: '10px 12px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: 6,
+          fontSize: 11,
+          color: 'var(--danger, #dc2626)',
+          lineHeight: 1.5,
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+            ⚠️ Filtres non appliqués — résultats peu pertinents
+          </div>
+          <div>
+            Ignorés par Lemlist :&nbsp;
+            <strong>{diagnostics.dropped.map(d => d.criterion).join(', ')}</strong>.
+            &nbsp;·&nbsp; Seuls envoyés :&nbsp;
+            {(diagnostics.applied?.length ?? 0) > 0
+              ? <strong>{diagnostics.applied.map(a => a.criterion).join(', ')}</strong>
+              : <strong>aucun</strong>}.
+          </div>
         </div>
       )}
 
