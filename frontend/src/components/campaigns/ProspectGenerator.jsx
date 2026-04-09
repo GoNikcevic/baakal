@@ -26,6 +26,14 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
   const [searchDiagnostics, setSearchDiagnostics] = useState(null);
   const [searchFallback, setSearchFallback] = useState(null);
 
+  // CSV import state
+  const [csvOpen, setCsvOpen] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [csvParsed, setCsvParsed] = useState([]);
+  const [csvError, setCsvError] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+
   // Reveal state
   const [revealing, setRevealing] = useState(false);
   const [revealJobId, setRevealJobId] = useState(null);
@@ -195,6 +203,153 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
     setSaving(false);
   };
 
+  /* ── CSV import ── */
+
+  // Map common column header aliases (FR + EN) to our internal field names.
+  const COLUMN_ALIASES = {
+    email: ['email', 'e-mail', 'mail', 'courriel'],
+    firstName: ['firstname', 'first_name', 'first name', 'prenom', 'prénom', 'first'],
+    lastName: ['lastname', 'last_name', 'last name', 'nom', 'last'],
+    name: ['name', 'fullname', 'full_name', 'full name', 'nom complet'],
+    company: ['company', 'entreprise', 'societe', 'société', 'company_name', 'organisation', 'org'],
+    title: ['title', 'job', 'job_title', 'position', 'poste', 'fonction', 'role'],
+    linkedinUrl: ['linkedin', 'linkedin_url', 'linkedinurl', 'profile', 'linkedin profile'],
+  };
+
+  // Split a CSV line respecting quoted fields ("foo, bar"). Handles "" escapes.
+  function splitCsvLine(line, delimiter) {
+    const out = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === delimiter) { out.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  // Auto-detect delimiter: prefer the one with the most columns on the header line.
+  function detectDelimiter(firstLine) {
+    const candidates = [',', ';', '\t', '|'];
+    let best = ',';
+    let bestCount = 0;
+    for (const d of candidates) {
+      const n = splitCsvLine(firstLine, d).length;
+      if (n > bestCount) { best = d; bestCount = n; }
+    }
+    return best;
+  }
+
+  // Match a header cell to one of our known fields. Returns the field name or null.
+  function matchField(header) {
+    const h = header.toLowerCase().trim();
+    for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+      if (aliases.includes(h)) return field;
+    }
+    return null;
+  }
+
+  function parseCsv(text) {
+    const raw = (text || '').trim();
+    if (!raw) return { contacts: [], error: null };
+
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      return { contacts: [], error: 'Le CSV doit contenir au moins une ligne d\'en-têtes + une ligne de données.' };
+    }
+
+    const delimiter = detectDelimiter(lines[0]);
+    const headers = splitCsvLine(lines[0], delimiter);
+    const fieldMap = headers.map(matchField);
+
+    // Require at least an email column
+    if (!fieldMap.includes('email')) {
+      return {
+        contacts: [],
+        error: `Colonne "email" introuvable. En-têtes détectés : ${headers.join(', ')}. Attendu : email (obligatoire) + firstName, lastName, company, title (optionnels).`,
+      };
+    }
+
+    const contacts = [];
+    const seen = new Set();
+    for (let i = 1; i < lines.length; i++) {
+      const cells = splitCsvLine(lines[i], delimiter);
+      const record = {};
+      for (let j = 0; j < fieldMap.length; j++) {
+        if (fieldMap[j] && cells[j]) record[fieldMap[j]] = cells[j];
+      }
+      if (!record.email) continue;
+      // Skip duplicates on email (case-insensitive)
+      const key = record.email.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Derive full name if missing
+      if (!record.name && (record.firstName || record.lastName)) {
+        record.name = [record.firstName, record.lastName].filter(Boolean).join(' ').trim();
+      }
+      contacts.push({
+        id: `csv_${i}_${key}`,
+        ...record,
+      });
+    }
+
+    return { contacts, error: null };
+  }
+
+  const handleCsvChange = (text) => {
+    setCsvText(text);
+    setCsvError(null);
+    if (!text.trim()) {
+      setCsvParsed([]);
+      return;
+    }
+    const { contacts, error } = parseCsv(text);
+    if (error) {
+      setCsvError(error);
+      setCsvParsed([]);
+    } else {
+      setCsvParsed(contacts);
+    }
+  };
+
+  const handleCsvFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => handleCsvChange(String(e.target?.result || ''));
+    reader.onerror = () => setCsvError('Impossible de lire le fichier.');
+    reader.readAsText(file);
+    // Reset input so the same file can be re-selected later
+    event.target.value = '';
+  };
+
+  const handleCsvImport = async () => {
+    if (csvParsed.length === 0) return;
+    setImporting(true);
+    setCsvError(null);
+    try {
+      const backendId = campaign._backendId || campaign.id;
+      const data = await api.addProspectsToCampaign(backendId, csvParsed);
+      setImportedCount(data.created || 0);
+      setExistingCount(prev => prev + (data.created || 0));
+      setCsvText('');
+      setCsvParsed([]);
+      if (onProspectsAdded) onProspectsAdded(data.created);
+    } catch (err) {
+      setCsvError(err.message || 'Import échoué');
+    }
+    setImporting(false);
+  };
+
   /* ── Derived state ── */
   const currentStep = results.length === 0 ? 1 : selectedNeedingReveal.length > 0 || revealing ? 2 : 3;
   const selectedWithEmail = results.filter(c => selected.has(c.id) && c.email).length;
@@ -283,14 +438,161 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
         </div>
       </div>
 
-      <button
-        className="btn btn-primary"
-        onClick={handleSearch}
-        disabled={searching}
-        style={{ fontSize: '12px', padding: '8px 14px' }}
-      >
-        {searching ? 'Recherche en cours...' : '🔍 Chercher des prospects'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button
+          className="btn btn-primary"
+          onClick={handleSearch}
+          disabled={searching}
+          style={{ fontSize: '12px', padding: '8px 14px' }}
+        >
+          {searching ? 'Recherche en cours...' : '🔍 Chercher des prospects'}
+        </button>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>ou</span>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setCsvOpen(v => !v)}
+          style={{ fontSize: '12px', padding: '8px 14px' }}
+        >
+          📋 {csvOpen ? 'Masquer l\'import CSV' : 'Importer un CSV / liste'}
+        </button>
+      </div>
+
+      {/* CSV import section */}
+      {csvOpen && (
+        <div
+          style={{
+            marginTop: 16,
+            padding: 16,
+            background: 'var(--bg-elevated, rgba(255,255,255,0.03))',
+            border: '1px dashed var(--border)',
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+            Importer des prospects depuis un CSV ou une liste
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+            Colonne <strong>email</strong> obligatoire. Optionnelles : <code>firstName</code>, <code>lastName</code>, <code>name</code>, <code>company</code>, <code>title</code>, <code>linkedinUrl</code>.
+            &nbsp;Séparateur auto-détecté (virgule, point-virgule, tab). Les doublons email sont ignorés.
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+            <label
+              className="btn btn-ghost"
+              style={{ fontSize: 11, padding: '6px 12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              📁 Choisir un fichier .csv
+              <input
+                type="file"
+                accept=".csv,text/csv,.txt,text/plain"
+                onChange={handleCsvFile}
+                style={{ display: 'none' }}
+              />
+            </label>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>ou colle le contenu ci-dessous</span>
+          </div>
+
+          <textarea
+            value={csvText}
+            onChange={(e) => handleCsvChange(e.target.value)}
+            placeholder={'email,firstName,lastName,company,title\njean.dupont@hopital-xyz.fr,Jean,Dupont,CHU Lyon,Directeur R&D\n...'}
+            rows={6}
+            style={{
+              width: '100%',
+              fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+              fontSize: 11,
+              padding: 10,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              resize: 'vertical',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          {csvError && (
+            <div style={{
+              marginTop: 8,
+              padding: '8px 10px',
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 6,
+              fontSize: 11,
+              color: 'var(--danger, #dc2626)',
+            }}>
+              ⚠️ {csvError}
+            </div>
+          )}
+
+          {csvParsed.length > 0 && !csvError && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                ✓ <strong>{csvParsed.length}</strong> contact{csvParsed.length > 1 ? 's' : ''} prêt{csvParsed.length > 1 ? 's' : ''} à importer (aperçu des 5 premiers) :
+              </div>
+              <div style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                maxHeight: 180,
+                overflow: 'auto',
+              }}>
+                {csvParsed.slice(0, 5).map((c, i) => (
+                  <div key={c.id || i} style={{
+                    padding: '6px 10px',
+                    borderBottom: i < Math.min(4, csvParsed.length - 1) ? '1px solid var(--border)' : 'none',
+                    fontSize: 11,
+                    display: 'grid',
+                    gridTemplateColumns: '1.5fr 1fr 1.5fr',
+                    gap: 8,
+                  }}>
+                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || '—'}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.title || '—'}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.company || '—'} · {c.email}
+                    </div>
+                  </div>
+                ))}
+                {csvParsed.length > 5 && (
+                  <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
+                    + {csvParsed.length - 5} autres…
+                  </div>
+                )}
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleCsvImport}
+                disabled={importing}
+                style={{ marginTop: 10, fontSize: 12, padding: '8px 14px' }}
+              >
+                {importing
+                  ? 'Import en cours…'
+                  : `➕ Ajouter ${csvParsed.length} prospect${csvParsed.length > 1 ? 's' : ''} à la campagne`}
+              </button>
+            </div>
+          )}
+
+          {importedCount > 0 && !importing && (
+            <div style={{
+              marginTop: 10,
+              padding: '8px 10px',
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.3)',
+              borderRadius: 6,
+              fontSize: 11,
+              color: 'var(--success, #16a34a)',
+            }}>
+              ✅ {importedCount} prospect{importedCount > 1 ? 's' : ''} ajouté{importedCount > 1 ? 's' : ''} à la campagne.
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div
