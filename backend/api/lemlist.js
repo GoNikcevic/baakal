@@ -307,14 +307,28 @@ async function searchPeopleDatabase(apiKey, criteria) {
   const availableFilters = await getDatabaseFilters(apiKey);
   const { filters, diagnostics } = buildLemlistFilters(criteria, availableFilters);
 
-  // Log what we're sending so Railway logs show exactly which filters
-  // were accepted / dropped for every search.
+  // Attach the raw schema entry for each filter we actually use, so we can
+  // see whether currentCompanyHeadcount et al. have accepted-value hints
+  // we're missing. Schema comes from GET /database/filters.
+  const usedFilterIds = new Set(filters.map(f => f.filterId));
+  const usedSchema = (availableFilters || [])
+    .filter(f => usedFilterIds.has(f.filterId))
+    .map(f => ({ filterId: f.filterId, type: f.type, values: f.values, valuesRef: f.valuesRef, mode: f.mode }));
+
+  // Log what we're sending so Railway logs show exactly which filters were
+  // accepted / dropped AND the actual values we serialized to Lemlist.
   try {
     const logger = require('../lib/logger');
     logger.info('lemlist-search', 'Filter diagnostics', {
-      applied: diagnostics.applied.map(a => `${a.criterion}→${a.filterId}`),
+      applied: diagnostics.applied.map(a => ({
+        criterion: a.criterion,
+        filterId: a.filterId,
+        values: a.values,
+        rawValues: a.rawValues,
+      })),
       dropped: diagnostics.dropped.map(d => d.criterion),
-      availableSample: diagnostics.availableFilterIds.slice(0, 40),
+      usedSchema,
+      bodySent: { filters, page: 1, size: Math.min(criteria.limit || 25, 100) },
     });
   } catch { /* logger optional */ }
 
@@ -338,6 +352,25 @@ async function searchPeopleDatabase(apiKey, criteria) {
     method: 'POST',
     body: JSON.stringify(body),
   }, apiKey);
+
+  // Log the raw response meta (total hits, remaining quota, pagination, etc.)
+  // so we can distinguish "Lemlist says 0 matches" from "filter rejected"
+  // from "quota exhausted".
+  try {
+    const logger = require('../lib/logger');
+    logger.info('lemlist-search', 'Response meta', {
+      resultsCount: Array.isArray(result.results) ? result.results.length : null,
+      total: result.total,
+      totalHits: result.totalHits,
+      remainingDailySearchQuota: result.remainingDailySearchQuota,
+      page: result.page,
+      // Keep a tiny sample of the first result's keys so we can see the schema
+      // without logging PII. Helps detect when Lemlist changes its response shape.
+      firstResultKeys: Array.isArray(result.results) && result.results[0]
+        ? Object.keys(result.results[0]).slice(0, 20)
+        : null,
+    });
+  } catch { /* logger optional */ }
 
   // Transform Lemlist results into Baakal's contact format
   // Schema: p.lead_linkedin_url (root), p.current_exp_company_name (root),
