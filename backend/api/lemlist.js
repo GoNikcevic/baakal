@@ -146,10 +146,45 @@ async function getDatabaseFilters(apiKey) {
 }
 
 /**
+ * Map our "X-Y" company size buckets to Lemlist's LinkedIn-style headcount
+ * IDs. Lemlist's currentCompanyHeadcount filter accepts these string IDs:
+ *   "1"     → 1-10 employees
+ *   "11"    → 11-50
+ *   "51"    → 51-200
+ *   "201"   → 201-500
+ *   "501"   → 501-1000
+ *   "1001"  → 1001-5000
+ *   "5001"  → 5001-10000
+ *   "10001" → 10001+
+ * Unrecognized inputs are passed through unchanged (Lemlist will reject
+ * them but at least we surface the raw value in diagnostics).
+ */
+const COMPANY_SIZE_TO_LEMLIST = {
+  '1-10': '1',
+  '11-50': '11',
+  '51-200': '51',
+  '201-500': '201',
+  '501-1000': '501',
+  '1001-5000': '1001',
+  '1001+': '1001',
+  '5001-10000': '5001',
+  '10001+': '10001',
+};
+
+function mapCompanySizes(values) {
+  return (values || []).map(v => COMPANY_SIZE_TO_LEMLIST[String(v).trim()] || v);
+}
+
+/**
  * Map our generic criteria to Lemlist filter objects.
- * Tries common filterId names and falls back gracefully.
+ *
+ * Filter IDs here come from the real Lemlist people-database schema
+ * (observed via GET /database/filters on 2026-04-09, see Railway logs).
+ * We previously guessed names like "industry" / "job_title" that don't
+ * exist, silently dropping most criteria and returning grab-bag results.
+ *
  * Returns { filters, diagnostics } so callers can surface which criteria
- * were actually applied vs dropped (helps debug broad/random results).
+ * were actually applied vs dropped.
  */
 function buildLemlistFilters(criteria, availableFilters) {
   const filters = [];
@@ -183,14 +218,42 @@ function buildLemlistFilters(criteria, availableFilters) {
     }
   };
 
+  // Titles → currentTitle (primary). Fallbacks kept in case of future renames.
   tryAdd('titles', criteria.titles,
-    ['title', 'job_title', 'jobTitle', 'position', 'current_position', 'lead_current_position']);
+    ['currentTitle', 'currentTitleWithExactMatch', 'pastTitle']);
+
+  // Sectors → currentCompanySubIndustry is the closest to "industry".
+  // If the schema drifts, keywordInCompany is the flexible free-text fallback.
   tryAdd('sectors', criteria.sectors,
-    ['industry', 'sector', 'company_industry', 'current_exp_company_industry', 'lead_industry']);
+    ['currentCompanySubIndustry', 'currentCompanyMarket', 'department', 'keywordInCompany']);
+
+  // Locations → country is the primary (matches country names like "France").
+  // For cities we rely on Lemlist's fuzzy location filter.
   tryAdd('locations', criteria.locations,
-    ['country', 'location', 'city', 'region', 'lead_country', 'lead_location']);
-  tryAdd('companySizes', criteria.companySizes,
-    ['company_size', 'company_employees_number', 'employees', 'size', 'current_exp_company_size']);
+    ['country', 'location', 'region']);
+
+  // Company size → currentCompanyHeadcount, but Lemlist expects LinkedIn's
+  // numeric ID format ("1", "11", "51", "201", "501", "1001", ...) not our
+  // "X-Y" bucket strings. Transform before passing.
+  if (criteria.companySizes && criteria.companySizes.length > 0) {
+    const fid = pick(['currentCompanyHeadcount']);
+    if (fid) {
+      const mapped = mapCompanySizes(criteria.companySizes);
+      filters.push({ filterId: fid, in: mapped, out: [] });
+      diagnostics.applied.push({
+        criterion: 'companySizes',
+        filterId: fid,
+        values: mapped,
+        rawValues: criteria.companySizes,
+      });
+    } else {
+      diagnostics.dropped.push({
+        criterion: 'companySizes',
+        values: criteria.companySizes,
+        reason: 'filterId currentCompanyHeadcount absent du schéma',
+      });
+    }
+  }
 
   return { filters, diagnostics };
 }
