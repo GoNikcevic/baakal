@@ -378,7 +378,8 @@ RÈGLES search_prospects (TRÈS IMPORTANT) :
 6. Les tailles valides pour companySizes (enum strict Lemlist) sont EXACTEMENT : "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+". N'invente JAMAIS d'autres formats (pas de "50-200", pas de "100+", pas de "1000+").
 7. Chaque valeur des tableaux titles / sectors / locations / companies doit être un concept distinct. NE concatène PAS plusieurs valeurs avec "/" ou "et" ou ",". Mauvais : "Biocarburants / Énergies renouvelables" (une seule string). Bon : ["Biocarburants", "Énergies renouvelables"] (deux strings séparées).
 8. CHOIX companies vs sectors (CRITIQUE) :
-   - Si l'utilisateur fournit une LISTE SPÉCIFIQUE d'entreprises (ex: un fichier Excel, un tableau, des noms précis), utilise le champ "companies" avec les noms exacts (["De Sangosse", "Koppert France", ...]). NE FAIS PAS une recherche sectorielle générique quand tu as les noms des entreprises cibles !
+   - Si l'utilisateur fournit un FICHIER (Excel, CSV, tableau) avec des entreprises, LIS D'ABORD TOUT LE CONTENU du document dans le contexte AVANT de lancer une recherche. Liste TOUTES les entreprises que tu trouves dans le fichier (pas juste les premières). Puis utilise le champ "companies" avec la liste complète.
+   - Si l'utilisateur fournit une LISTE SPÉCIFIQUE d'entreprises (noms dans le message ou dans un fichier), utilise le champ "companies" avec les noms exacts (["De Sangosse", "Koppert France", ...]). NE FAIS PAS une recherche sectorielle générique quand tu as les noms des entreprises cibles !
    - Si l'utilisateur demande un SECTEUR ou une VERTICALE sans nommer d'entreprises (ex: "biotech en France"), utilise le champ "sectors" (recherche large par mots-clés).
    - Tu peux combiner companies + titles pour "trouver les Directeurs R&D chez De Sangosse et Koppert".
    - Tu peux combiner sectors + titles + locations pour "trouver les DAF dans la biotech à Paris".

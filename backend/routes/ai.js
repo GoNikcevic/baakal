@@ -39,9 +39,9 @@ async function enrichWithProfile(params, userId) {
 
   if (docs && docs.length > 0) {
     const docText = docs
-      .map(d => `[${d.original_name}] ${(d.parsed_text || '').slice(0, 1500)}`)
+      .map(d => `[${d.original_name}] ${(d.parsed_text || '').slice(0, 8000)}`)
       .join('\n\n');
-    params.documentContext = docText.slice(0, 6000);
+    params.documentContext = docText.slice(0, 15000);
   }
 
   return params;

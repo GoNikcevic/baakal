@@ -11,7 +11,11 @@ const MAX_CAMPAIGNS_IN_CONTEXT = 20;
 const MAX_PATTERNS_IN_CONTEXT = 10;
 const MAX_DIAGNOSTICS_IN_CONTEXT = 3;
 const MAX_VERSIONS_IN_CONTEXT = 5;
-const MAX_DOC_CHARS = 6000;
+// Generous limit so Claude can read full Excel/CSV tables with 50-100 rows.
+// At 15k chars, a typical tabular file with ~100 rows × 150 chars/row fits.
+// Token cost: ~4k extra tokens per message → ~$0.012 at Sonnet pricing.
+// With prompt caching on the system rules, the additional cost is minimal.
+const MAX_DOC_CHARS = 15000;
 const MAX_HISTORY_MESSAGES = 50;
 
 // GET /api/chat/threads
@@ -124,7 +128,7 @@ router.post('/threads/:id/messages', async (req, res, next) => {
     // Documents context (bounded)
     if (docs && docs.length > 0) {
       const docContext = docs
-        .map(d => `--- ${d.original_name} ---\n${(d.parsed_text || '').slice(0, 1500)}`)
+        .map(d => `--- ${d.original_name} ---\n${(d.parsed_text || '').slice(0, 8000)}`)
         .join('\n\n');
       if (docContext.length > 0) {
         contextParts.push(`DOCUMENTS BUSINESS (extraits):\n${docContext.slice(0, MAX_DOC_CHARS)}`);
