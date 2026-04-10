@@ -57,6 +57,32 @@ function wrapApiError(err) {
 }
 
 /**
+ * Resolve which model to use for a given action.
+ *
+ * Priority:
+ * 1. If config.claude.model is explicitly set to an Opus model (via env or
+ *    Settings), it acts as a global override — every action uses Opus.
+ * 2. Otherwise, use the per-action model from config.claude.models.
+ * 3. Fallback to config.claude.model (Sonnet by default).
+ */
+function resolveModel(action) {
+  const globalModel = config.claude.model;
+
+  // Global override: if the user explicitly chose an Opus model in Settings,
+  // respect that for ALL actions.
+  if (globalModel && globalModel.includes('opus')) {
+    return globalModel;
+  }
+
+  // Per-action routing from config.claude.models
+  const actionModel = config.claude.models?.[action];
+  if (actionModel) return actionModel;
+
+  // Fallback to the global default
+  return globalModel;
+}
+
+/**
  * Convert a system prompt (string or array) to the cacheable array format.
  * - String input → wrapped in a single ephemeral-cached text block
  * - Array input → passed through (caller controls cache breakpoints)
@@ -78,18 +104,24 @@ function toSystemBlocks(systemPrompt) {
   ];
 }
 
-/** Helper: call Claude and parse JSON from response */
-async function callClaude(systemPrompt, userContent, maxTokens = 4000) {
+/** Helper: call Claude and parse JSON from response.
+ *  @param {string|Array} systemPrompt
+ *  @param {string} userContent
+ *  @param {number} [maxTokens=4000]
+ *  @param {string} [action] — action name for model routing & logging
+ */
+async function callClaude(systemPrompt, userContent, maxTokens = 4000, action) {
+  const model = resolveModel(action);
   let response;
   try {
     response = await withRetry(() => getClient().messages.create({
-      model: config.claude.model,
+      model,
       max_tokens: maxTokens,
       system: toSystemBlocks(systemPrompt),
       messages: [{ role: 'user', content: userContent }],
     }), { maxRetries: 3, baseDelay: 2000 });
   } catch (err) {
-    logger.error('claude', 'API call failed', { error: err.message });
+    logger.error('claude', 'API call failed', { action, model, error: err.message });
     throw wrapApiError(err);
   }
 
@@ -104,7 +136,14 @@ async function callClaude(systemPrompt, userContent, maxTokens = 4000) {
     parsed = null;
   }
 
-  return { raw: text, parsed, usage: response.usage };
+  logger.info('claude', 'API call completed', {
+    action: action || 'unknown',
+    model,
+    input_tokens: response.usage?.input_tokens,
+    output_tokens: response.usage?.output_tokens,
+  });
+
+  return { raw: text, parsed, usage: response.usage, model };
 }
 
 // =============================================
@@ -125,7 +164,7 @@ Paramètres clés :
 
 Retourne UNIQUEMENT le JSON structuré.`;
 
-  return callClaude(systemPrompt, userContent, 6000);
+  return callClaude(systemPrompt, userContent, 6000, 'generateSequence');
 }
 
 // =============================================
@@ -139,7 +178,7 @@ async function generateTouchpoint(type, params) {
   }
 
   const systemPrompt = subPromptFn(params);
-  return callClaude(systemPrompt, 'Génère le touchpoint. Retourne UNIQUEMENT le JSON structuré.', 2000);
+  return callClaude(systemPrompt, 'Génère le touchpoint. Retourne UNIQUEMENT le JSON structuré.', 2000, 'generateTouchpoint');
 }
 
 // =============================================
@@ -152,6 +191,7 @@ async function analyzeCampaign(campaignData) {
     systemPrompt,
     `Analyse cette campagne et fournis le diagnostic complet en JSON.\n\nDonnées brutes :\n${JSON.stringify(campaignData, null, 2)}`,
     3000,
+    'analyzeCampaign',
   );
 
   // For backwards compatibility, also extract text diagnostic
@@ -177,7 +217,7 @@ ${JSON.stringify(params.originalMessages, null, 2)}
 
 Retourne UNIQUEMENT le JSON structuré.`;
 
-  return callClaude(systemPrompt, userContent, 5000);
+  return callClaude(systemPrompt, userContent, 5000, 'regenerateSequence');
 }
 
 // =============================================
@@ -190,6 +230,7 @@ async function consolidateMemory(diagnostics, existingMemory) {
     systemPrompt,
     'Consolide les diagnostics et retourne les patterns en JSON.',
     3000,
+    'consolidateMemory',
   );
 }
 
@@ -203,6 +244,7 @@ async function generateVariables(params) {
     systemPrompt,
     `Analyse le contexte et propose une chaîne de variables personnalisées pour cette campagne.\nRetourne UNIQUEMENT le JSON structuré.`,
     3000,
+    'generateVariables',
   );
 }
 
@@ -211,22 +253,33 @@ async function generateVariables(params) {
 // =============================================
 
 async function generateIcebreaker(params) {
+  const action = 'generateIcebreaker';
+  const model = resolveModel(action);
   const systemPrompt = prompts.icebreakerExecutionPrompt(params);
   let response;
   try {
     response = await withRetry(() => getClient().messages.create({
-      model: config.claude.model,
+      model,
       max_tokens: 300,
       system: toSystemBlocks(systemPrompt),
       messages: [{ role: 'user', content: 'Génère l\'icebreaker.' }],
     }), { maxRetries: 3, baseDelay: 2000 });
   } catch (err) {
+    logger.error('claude', 'API call failed', { action, model, error: err.message });
     throw wrapApiError(err);
   }
+
+  logger.info('claude', 'API call completed', {
+    action,
+    model,
+    input_tokens: response.usage?.input_tokens,
+    output_tokens: response.usage?.output_tokens,
+  });
 
   return {
     icebreaker: response.content[0].text.trim(),
     usage: response.usage,
+    model,
   };
 }
 
@@ -446,21 +499,32 @@ function buildChatSystem(context) {
 }
 
 async function chat(messages, context) {
+  const action = 'chat';
+  const model = resolveModel(action);
   let response;
   try {
     response = await withRetry(() => getClient().messages.create({
-      model: config.claude.model,
+      model,
       max_tokens: 3000,
       system: buildChatSystem(context),
       messages,
     }), { maxRetries: 3, baseDelay: 2000 });
   } catch (err) {
+    logger.error('claude', 'API call failed', { action, model, error: err.message });
     throw wrapApiError(err);
   }
+
+  logger.info('claude', 'API call completed', {
+    action,
+    model,
+    input_tokens: response.usage?.input_tokens,
+    output_tokens: response.usage?.output_tokens,
+  });
 
   return {
     content: response.content[0].text,
     usage: response.usage,
+    model,
   };
 }
 
@@ -469,11 +533,13 @@ async function chat(messages, context) {
 // =============================================
 
 async function chatStream(messages, context, onChunk) {
+  const action = 'chatStream';
+  const model = resolveModel(action);
   let fullText = '';
 
   try {
     const stream = getClient().messages.stream({
-      model: config.claude.model,
+      model,
       max_tokens: 3000,
       system: buildChatSystem(context),
       messages,
@@ -487,21 +553,31 @@ async function chatStream(messages, context, onChunk) {
     }
 
     const finalMessage = await stream.finalMessage();
+    const usage = finalMessage.usage || { input_tokens: 0, output_tokens: 0 };
+
+    logger.info('claude', 'API call completed', {
+      action,
+      model,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+    });
 
     return {
       content: fullText,
-      usage: finalMessage.usage || { input_tokens: 0, output_tokens: 0 },
+      usage,
+      model,
     };
   } catch (err) {
     // If we already streamed some content, return what we have
     if (fullText.length > 0) {
-      logger.error('claude', 'Stream interrupted after partial response', { error: err.message });
+      logger.error('claude', 'Stream interrupted after partial response', { action, model, error: err.message });
       return {
         content: fullText,
         usage: { input_tokens: 0, output_tokens: 0 },
+        model,
       };
     }
-    logger.error('claude', 'Stream failed', { error: err.message });
+    logger.error('claude', 'Stream failed', { action, model, error: err.message });
     throw wrapApiError(err);
   }
 }

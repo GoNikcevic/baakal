@@ -31,6 +31,19 @@ const config = {
   claude: {
     apiKey: process.env.ANTHROPIC_API_KEY,
     model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
+    models: {
+      // Sonnet 4.6 — default for most actions (fast, cost-effective)
+      generateSequence:    'claude-sonnet-4-20250514',
+      generateTouchpoint:  'claude-sonnet-4-20250514',
+      analyzeCampaign:     'claude-sonnet-4-20250514',
+      chat:                'claude-sonnet-4-20250514',
+      chatStream:          'claude-sonnet-4-20250514',
+      generateVariables:   'claude-sonnet-4-20250514',
+      // Opus 4.6 — premium actions (best reasoning, marginal cost)
+      regenerateSequence:  'claude-opus-4-20250514',
+      consolidateMemory:   'claude-opus-4-20250514',
+      generateIcebreaker:  'claude-opus-4-20250514',
+    },
   },
 
   // All integration tokens are now stored per-user in user_integrations table.
