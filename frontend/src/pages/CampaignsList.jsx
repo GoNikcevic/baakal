@@ -5,9 +5,10 @@
    and filterCampaignsList / sortCampaignsList in pages.js.
    =============================================================================== */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import api from '../services/api-client';
 
 const FILTERS = [
   { key: '', label: 'Toutes' },
@@ -17,8 +18,9 @@ const FILTERS = [
 ];
 
 export default function CampaignsList({ onNavigateCampaign }) {
-  const { campaigns, projects } = useApp();
+  const { campaigns, projects, setCampaigns } = useApp();
   const navigate = useNavigate();
+  const [actionLoading, setActionLoading] = useState({});
 
   const [filter, setFilter] = useState('active');
   const [sortByReply, setSortByReply] = useState(false);
@@ -88,6 +90,43 @@ export default function CampaignsList({ onNavigateCampaign }) {
       navigate(`/campaigns/${campaignId}`);
     }
   };
+
+  const handleArchive = useCallback(async (e, campaign) => {
+    e.stopPropagation();
+    const backendId = campaign._backendId || campaign.id;
+    setActionLoading(prev => ({ ...prev, [campaign.id]: 'archiving' }));
+    try {
+      await api.request('/campaigns/' + backendId, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'archived' }),
+      });
+      setCampaigns(prev => ({
+        ...prev,
+        [campaign.id]: { ...prev[campaign.id], status: 'archived' },
+      }));
+    } catch (err) {
+      window.alert(`Erreur : ${err.message}`);
+    }
+    setActionLoading(prev => ({ ...prev, [campaign.id]: null }));
+  }, [setCampaigns]);
+
+  const handleDelete = useCallback(async (e, campaign) => {
+    e.stopPropagation();
+    if (!window.confirm(`Supprimer définitivement "${campaign.name}" et tous ses prospects ?`)) return;
+    const backendId = campaign._backendId || campaign.id;
+    setActionLoading(prev => ({ ...prev, [campaign.id]: 'deleting' }));
+    try {
+      await api.request('/campaigns/' + backendId, { method: 'DELETE' });
+      setCampaigns(prev => {
+        const next = { ...prev };
+        delete next[campaign.id];
+        return next;
+      });
+    } catch (err) {
+      window.alert(`Erreur : ${err.message}`);
+    }
+    setActionLoading(prev => ({ ...prev, [campaign.id]: null }));
+  }, [setCampaigns]);
 
   /* ── Empty state ── */
   if (isEmpty) {
@@ -231,6 +270,9 @@ export default function CampaignsList({ onNavigateCampaign }) {
                             key={c.id}
                             campaign={c}
                             onClick={() => handleRowClick(c.id)}
+                            onArchive={handleArchive}
+                            onDelete={handleDelete}
+                            loading={actionLoading[c.id]}
                           />
                         ))
                       ) : (
@@ -280,6 +322,9 @@ export default function CampaignsList({ onNavigateCampaign }) {
                         key={c.id}
                         campaign={c}
                         onClick={() => handleRowClick(c.id)}
+                        onArchive={handleArchive}
+                        onDelete={handleDelete}
+                        loading={actionLoading[c.id]}
                       />
                     ))}
                   </div>
@@ -294,6 +339,9 @@ export default function CampaignsList({ onNavigateCampaign }) {
               key={c.id}
               campaign={c}
               onClick={() => handleRowClick(c.id)}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+              loading={actionLoading[c.id]}
             />
           ))
         )}
@@ -321,7 +369,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
    Campaign Row
    ═══════════════════════════════════════════════════ */
 
-function CampaignRow({ campaign: c, onClick }) {
+function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
   const isPrep = c.status === 'prep';
   const isLinkedin = c.channel === 'linkedin';
 
@@ -413,7 +461,51 @@ function CampaignRow({ campaign: c, onClick }) {
         </div>
         <div className="campaign-row-stat-label">{stat2Label}</div>
       </div>
-      <div className="campaign-row-arrow">&rarr;</div>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+        {c.status !== 'archived' && (
+          <button
+            onClick={(e) => onArchive(e, c)}
+            disabled={!!loading}
+            title="Archiver"
+            style={{
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              padding: '4px 8px',
+              opacity: loading ? 0.5 : 0.7,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={e => e.currentTarget.style.opacity = loading ? '0.5' : '0.7'}
+          >
+            {loading === 'archiving' ? '...' : '📦'}
+          </button>
+        )}
+        <button
+          onClick={(e) => onDelete(e, c)}
+          disabled={!!loading}
+          title="Supprimer"
+          style={{
+            background: 'none',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'var(--danger, #dc2626)',
+            fontSize: 11,
+            padding: '4px 8px',
+            opacity: loading ? 0.5 : 0.7,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.opacity = '1'; }}
+          onMouseLeave={e => e.currentTarget.style.opacity = loading ? '0.5' : '0.7'}
+        >
+          {loading === 'deleting' ? '...' : '🗑'}
+        </button>
+        <div className="campaign-row-arrow">&rarr;</div>
+      </div>
     </div>
   );
 }

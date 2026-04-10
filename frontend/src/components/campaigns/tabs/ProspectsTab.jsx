@@ -35,6 +35,27 @@ export default function ProspectsTab({ campaign: c }) {
 
   const prospectsWithoutEmail = prospects.filter(p => !p.email);
 
+  const handleDeleteProspect = async (prospectId) => {
+    const backendId = c._backendId || c.id;
+    try {
+      await api.request(`/campaigns/${backendId}/prospects/${prospectId}`, { method: 'DELETE' });
+      setProspects(prev => prev.filter(p => p.id !== prospectId));
+    } catch (err) {
+      console.warn('Delete failed:', err.message);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Supprimer les ${prospects.length} prospects de cette campagne ?`)) return;
+    const backendId = c._backendId || c.id;
+    try {
+      await api.request(`/campaigns/${backendId}/prospects`, { method: 'DELETE' });
+      setProspects([]);
+    } catch (err) {
+      console.warn('Bulk delete failed:', err.message);
+    }
+  };
+
   const handleBulkReveal = async () => {
     if (revealing || prospectsWithoutEmail.length === 0) return;
     setRevealing(true);
@@ -129,7 +150,17 @@ export default function ProspectsTab({ campaign: c }) {
             📋 Prospects liés à la campagne ({prospects.length})
           </div>
 
-          {/* Bulk reveal button */}
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {prospects.length > 0 && !loading && (
+            <button
+              className="btn btn-ghost"
+              onClick={handleDeleteAll}
+              style={{ fontSize: 11, padding: '6px 10px', color: 'var(--text-muted)' }}
+            >
+              🗑 Tout supprimer
+            </button>
+          )}
           {prospectsWithoutEmail.length > 0 && !loading && (
             <button
               className="btn btn-primary"
@@ -142,6 +173,7 @@ export default function ProspectsTab({ campaign: c }) {
                 : `🔓 Révéler ${prospectsWithoutEmail.length} email${prospectsWithoutEmail.length > 1 ? 's' : ''} (${prospectsWithoutEmail.length} crédits)`}
             </button>
           )}
+          </div>
         </div>
 
         {revealError && (
@@ -188,20 +220,41 @@ export default function ProspectsTab({ campaign: c }) {
                     {p.title} · {p.company} {p.company_size && `· ${p.company_size}`}
                   </div>
                 </div>
-                {p.status && (
-                  <span
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  {p.status && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: 10,
+                        background: 'var(--bg-elevated)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {p.status}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteProspect(p.id); }}
+                    title="Supprimer ce prospect"
                     style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      padding: '3px 8px',
-                      borderRadius: 10,
-                      background: 'var(--bg-elevated)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
                       color: 'var(--text-muted)',
+                      fontSize: 14,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      opacity: 0.5,
+                      transition: 'opacity 0.15s',
                     }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
                   >
-                    {p.status}
-                  </span>
-                )}
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -551,6 +551,48 @@ router.post('/:id/prospects', async (req, res, next) => {
   }
 });
 
+// DELETE /api/campaigns/:id/prospects/:prospectId — remove a single prospect from a campaign
+router.delete('/:id/prospects/:prospectId', async (req, res, next) => {
+  try {
+    const opp = await db.opportunities.get(req.params.prospectId);
+    if (!opp) return res.status(404).json({ error: 'Prospect not found' });
+    if (opp.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (opp.campaign_id !== req.params.id) {
+      return res.status(400).json({ error: 'Prospect does not belong to this campaign' });
+    }
+    await db.opportunities.delete(opp.id);
+    // Decrement campaign nb_prospects
+    const campaign = await db.campaigns.get(req.params.id);
+    if (campaign && campaign.nb_prospects > 0) {
+      await db.campaigns.update(campaign.id, { nb_prospects: campaign.nb_prospects - 1 });
+    }
+    res.json({ deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/campaigns/:id/prospects — remove ALL prospects from a campaign (bulk clear)
+router.delete('/:id/prospects', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const result = await db.query(
+      'DELETE FROM opportunities WHERE campaign_id = $1 AND user_id = $2',
+      [campaign.id, req.user.id]
+    );
+    await db.campaigns.update(campaign.id, { nb_prospects: 0 });
+    res.json({ deleted: result.rowCount || 0 });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/campaigns/:id/launch-lemlist
 // Creates the Lemlist campaign, deploys sequences, pushes prospects, flips status to active
 router.post('/:id/launch-lemlist', async (req, res, next) => {
