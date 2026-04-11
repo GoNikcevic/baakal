@@ -761,6 +761,34 @@ router.get('/lemlist-credits', async (req, res, next) => {
   }
 });
 
+// GET /api/ai/lemlist-senders — return available senders (email + LinkedIn accounts)
+router.get('/lemlist-senders', async (req, res, next) => {
+  try {
+    const { getUserKey } = require('../config');
+    const { getTeamSenders } = require('../api/lemlist');
+    const apiKey = await getUserKey(req.user.id, 'lemlist');
+    if (!apiKey) return res.json({ senders: [], configured: false });
+
+    const raw = await getTeamSenders(apiKey);
+
+    // Normalize the response — Lemlist returns team members with their sender info
+    const senders = (Array.isArray(raw) ? raw : [raw]).map(member => ({
+      id: member._id || member.id,
+      name: member.name || member.firstName || '',
+      email: member.email || '',
+      picture: member.picture || null,
+      // Connected channels vary by response shape — extract what's available
+      linkedinConnected: !!(member.linkedin || member.linkedinConnected || member.channels?.linkedin),
+      calendarConnected: !!(member.calendar || member.calendarConnected),
+    })).filter(s => s.id && s.email);
+
+    res.json({ senders, configured: true });
+  } catch (err) {
+    console.warn('[lemlist-senders] failed:', err.message);
+    res.json({ senders: [], configured: true, error: err.message });
+  }
+});
+
 // --- Email reveal jobs (in-memory with 1h TTL) ---
 const _revealJobs = new Map();
 const REVEAL_JOB_TTL = 3600 * 1000;

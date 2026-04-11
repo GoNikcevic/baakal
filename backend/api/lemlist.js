@@ -480,6 +480,14 @@ async function getTeamCredits(apiKey) {
 }
 
 /**
+ * Fetch the list of senders (team members with their email/LinkedIn accounts).
+ * GET /team/senders
+ */
+async function getTeamSenders(apiKey) {
+  return lemlistFetch('/team/senders', {}, apiKey);
+}
+
+/**
  * Bulk enrichment — POST /api/v2/enrichments/bulk
  * items: array of { input: {firstName, lastName, companyName, linkedinUrl, ...}, metadata: anything }
  * Returns: array of { id, metadata } (success) or { error, metadata } (failure)
@@ -749,6 +757,7 @@ module.exports = {
   searchPeopleDatabase,
   getDatabaseFilters,
   getTeamCredits,
+  getTeamSenders,
   bulkEnrichLeads,
   getEnrichmentResult,
   transformCampaignStats,

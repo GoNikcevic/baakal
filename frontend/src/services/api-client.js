@@ -750,6 +750,11 @@ export async function pollRevealEmails(jobId) {
   return request(`/ai/reveal-emails/${jobId}`);
 }
 
+/** Fetch available Lemlist senders (email + LinkedIn accounts) */
+export async function getLemlistSenders() {
+  return request('/ai/lemlist-senders');
+}
+
 /** Deep web search for contacts at specific companies (Brave Search + Claude parsing) */
 export async function webSearchProspects(criteria) {
   return request('/ai/web-search-prospects', {
@@ -886,6 +891,7 @@ const BakalAPI = {
   getLemlistCredits,
   revealEmails,
   webSearchProspects,
+  getLemlistSenders,
   pollRevealEmails,
   getABCategories,
   getABRecommendations,

@@ -4,7 +4,7 @@
    Performance / History tabs.
    ═══════════════════════════════════════════════════ */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api-client';
 import SettingsTab from './tabs/SettingsTab';
 import CopyTab from './tabs/CopyTab';
@@ -34,6 +34,23 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   const [showOptimize, setShowOptimize] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [optimizeBanner, setOptimizeBanner] = useState(null);
+
+  // Lemlist senders
+  const [senders, setSenders] = useState([]);
+  const [selectedSender, setSelectedSender] = useState(null);
+
+  useEffect(() => {
+    if (isPrep) {
+      api.getLemlistSenders()
+        .then(data => {
+          if (data.senders && data.senders.length > 0) {
+            setSenders(data.senders);
+            setSelectedSender(data.senders[0].id);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isPrep]);
 
   // Show A/B tab if campaign has an active test config
   const hasABTest = !!c.abConfig;
@@ -220,6 +237,28 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             >
               {launching ? '⏳ Déploiement Lemlist...' : '🚀 Lancer vers Lemlist'}
             </button>
+          )}
+          {isPrep && senders.length > 1 && (
+            <select
+              value={selectedSender || ''}
+              onChange={e => setSelectedSender(e.target.value)}
+              style={{
+                fontSize: 11,
+                padding: '6px 10px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+              }}
+              title="Choisir le sender Lemlist"
+            >
+              {senders.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.email}){s.linkedinConnected ? ' + LinkedIn' : ''}
+                </option>
+              ))}
+            </select>
           )}
         </div>
       </div>
