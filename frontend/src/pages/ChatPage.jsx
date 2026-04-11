@@ -1578,7 +1578,8 @@ export default function ChatPage() {
     if (attachedFiles.length > 0 && backendAvailable) {
       setUploadingFiles(true);
       try {
-        const result = await api.uploadFiles(attachedFiles);
+        // Tag chat uploads as 'chat_attachment' so they don't pollute the profile docs section
+        const result = await api.uploadFiles(attachedFiles, { source: 'chat' });
         uploadedFiles = result.uploaded || [];
         setAttachedFiles([]);
       } catch (err) {

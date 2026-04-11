@@ -54,7 +54,8 @@ export default function ProfilePage() {
   /* ─── Load uploaded documents ─── */
   useEffect(() => {
     request('/documents').then(data => {
-      if (data && data.documents) setUploadedDocs(data.documents);
+      // Filter out chat_attachment docs — they belong to chat context, not profile
+      if (data && data.documents) setUploadedDocs(data.documents.filter(d => d.doc_type !== 'chat_attachment'));
     }).catch(() => {});
   }, []);
 
@@ -198,7 +199,7 @@ export default function ProfilePage() {
       setUploadSuccess(`${count} fichier${count > 1 ? 's' : ''} envoyé${count > 1 ? 's' : ''}`);
       setTimeout(() => setUploadSuccess(null), 4000);
       request('/documents').then(data => {
-        if (data && data.documents) setUploadedDocs(data.documents);
+        if (data && data.documents) setUploadedDocs(data.documents.filter(d => d.doc_type !== 'chat_attachment'));
       }).catch(() => {});
     } catch (err) {
       setUploadSuccess(null);

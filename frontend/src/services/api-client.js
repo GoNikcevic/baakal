@@ -657,11 +657,23 @@ export function exportReportPdf() {
     });
 }
 
-/** Upload files (multipart/form-data) */
-export async function uploadFiles(files) {
+/** Upload files (multipart/form-data)
+ *  @param {File[]} files
+ *  @param {object} [options]
+ *  @param {string} [options.source] — 'chat' tags files as chat_attachment (excluded from profile docs)
+ */
+export async function uploadFiles(files, options = {}) {
   const formData = new FormData();
   for (const file of files) {
     formData.append('files', file);
+  }
+  // Tag chat uploads so they don't appear in the profile documents section
+  if (options.source === 'chat') {
+    const docTypes = {};
+    for (const file of files) {
+      docTypes[file.name] = 'chat_attachment';
+    }
+    formData.append('docTypes', JSON.stringify(docTypes));
   }
 
   const url = BASE + '/documents/upload';
