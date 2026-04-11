@@ -19,14 +19,4 @@ bakal/
 └── README.md
 ```
 
-## Tech Stack
-
-| Component | Tool |
-|-----------|------|
-| Email/LinkedIn Automation | Lemlist |
-| Workflow Automation | N8N |
-| AI Generation | Claude API |
-| Business Hub | Notion |
-| Landing Page | Static HTML |
-
 
