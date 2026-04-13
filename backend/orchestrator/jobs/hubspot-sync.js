@@ -46,8 +46,8 @@ async function onStatusChange({ opportunityId, newStatus }) {
     : null;
 
   try {
-    let contactId = opportunity.hubspot_contact_id;
-    let dealId = opportunity.hubspot_deal_id;
+    let contactId = opportunity.crm_contact_id || opportunity.hubspot_contact_id;
+    let dealId = opportunity.crm_deal_id || opportunity.hubspot_deal_id;
 
     // --- Create or update contact ---
     const contactProps = hubspot.mapOpportunityToContact(opportunity);
@@ -80,10 +80,13 @@ async function onStatusChange({ opportunityId, newStatus }) {
       await hubspot.associateContactToDeal(accessToken, contactId, dealId).catch(() => {});
     }
 
-    // --- Persist IDs ---
+    // --- Persist IDs (write to both old and new columns during transition) ---
     await db.opportunities.update(opportunity.id, {
       hubspot_contact_id: contactId,
       hubspot_deal_id: dealId,
+      crm_provider: 'hubspot',
+      crm_contact_id: contactId,
+      crm_deal_id: dealId,
     });
 
     // --- Add a note with context on "meeting" status ---
@@ -119,9 +122,9 @@ async function pushPatternsToDeals() {
 
   // Find all users who have a HubSpot integration
   const result = await db.query(
-    "SELECT DISTINCT o.user_id, o.hubspot_deal_id FROM opportunities o " +
+    "SELECT DISTINCT o.user_id, COALESCE(o.crm_deal_id, o.hubspot_deal_id) AS crm_deal_id FROM opportunities o " +
     "INNER JOIN user_integrations ui ON ui.user_id = o.user_id AND ui.provider = 'hubspot' " +
-    "WHERE o.hubspot_deal_id IS NOT NULL AND o.status NOT IN ('won', 'lost')"
+    "WHERE o.crm_provider = 'hubspot' AND o.crm_deal_id IS NOT NULL AND o.status NOT IN ('won', 'lost')"
   );
 
   if (result.rows.length === 0) return { synced: 0, reason: 'No active HubSpot deals' };
@@ -133,7 +136,7 @@ async function pushPatternsToDeals() {
   const byUser = {};
   for (const row of result.rows) {
     if (!byUser[row.user_id]) byUser[row.user_id] = [];
-    byUser[row.user_id].push(row.hubspot_deal_id);
+    byUser[row.user_id].push(row.crm_deal_id);
   }
 
   for (const [userId, dealIds] of Object.entries(byUser)) {

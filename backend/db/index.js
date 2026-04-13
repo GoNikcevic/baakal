@@ -1192,8 +1192,8 @@ const opportunities = {
 
   async create(data) {
     const result = await query(`
-      INSERT INTO opportunities (user_id, campaign_id, name, title, company, company_size, status, status_color, timing, email, linkedin_url, hubspot_contact_id, hubspot_deal_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO opportunities (user_id, campaign_id, name, title, company, company_size, status, status_color, timing, email, linkedin_url, hubspot_contact_id, hubspot_deal_id, crm_provider, crm_contact_id, crm_deal_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `, [
       data.userId || null,
@@ -1209,6 +1209,9 @@ const opportunities = {
       data.linkedinUrl || null,
       data.hubspotContactId || null,
       data.hubspotDealId || null,
+      data.crmProvider || data.crm_provider || null,
+      data.crmContactId || data.crm_contact_id || null,
+      data.crmDealId || data.crm_deal_id || null,
     ]);
     return result.rows[0];
   },
@@ -1226,6 +1229,9 @@ const opportunities = {
       batch_number: 'batch_number', batchNumber: 'batch_number',
       hubspot_contact_id: 'hubspot_contact_id', hubspotContactId: 'hubspot_contact_id',
       hubspot_deal_id: 'hubspot_deal_id', hubspotDealId: 'hubspot_deal_id',
+      crm_provider: 'crm_provider', crmProvider: 'crm_provider',
+      crm_contact_id: 'crm_contact_id', crmContactId: 'crm_contact_id',
+      crm_deal_id: 'crm_deal_id', crmDealId: 'crm_deal_id',
     };
     const seen = new Set();
     for (const [inputKey, col] of Object.entries(mapping)) {

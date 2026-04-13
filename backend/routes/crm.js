@@ -165,8 +165,8 @@ async function syncOpportunityToHubspot(accessToken, opportunity) {
     ? await db.campaigns.get(opportunity.campaign_id)
     : null;
 
-  let contactId = opportunity.hubspot_contact_id;
-  let dealId = opportunity.hubspot_deal_id;
+  let contactId = opportunity.crm_contact_id || opportunity.hubspot_contact_id;
+  let dealId = opportunity.crm_deal_id || opportunity.hubspot_deal_id;
 
   // --- Contact ---
   if (!contactId && opportunity.email) {
@@ -203,10 +203,13 @@ async function syncOpportunityToHubspot(accessToken, opportunity) {
     });
   }
 
-  // --- Persist HubSpot IDs back to our DB ---
+  // --- Persist HubSpot IDs back to our DB (write to both old and new columns during transition) ---
   await db.opportunities.update(opportunity.id, {
     hubspot_contact_id: contactId,
     hubspot_deal_id: dealId,
+    crm_provider: 'hubspot',
+    crm_contact_id: contactId,
+    crm_deal_id: dealId,
   });
 
   return {
@@ -214,7 +217,7 @@ async function syncOpportunityToHubspot(accessToken, opportunity) {
     name: opportunity.name,
     hubspotContactId: contactId,
     hubspotDealId: dealId,
-    action: opportunity.hubspot_contact_id ? 'updated' : 'created',
+    action: (opportunity.crm_contact_id || opportunity.hubspot_contact_id) ? 'updated' : 'created',
   };
 }
 
@@ -290,6 +293,7 @@ router.post('/sync-to/:provider', async (req, res, next) => {
         status: opportunity.status,
       });
       result = { opportunityId: opportunity.id, provider: 'salesforce', contactId, dealId: deal.id };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'salesforce', crm_contact_id: contactId, crm_deal_id: deal.id });
     } else if (provider === 'pipedrive') {
       const personData = pipedrive.mapOpportunityToPerson(opportunity);
       const person = await pipedrive.createPerson(token, personData);
@@ -299,10 +303,12 @@ router.post('/sync-to/:provider', async (req, res, next) => {
         status: opportunity.status,
       });
       result = { opportunityId: opportunity.id, provider: 'pipedrive', personId: person.id, dealId: deal.id };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'pipedrive', crm_contact_id: person.id, crm_deal_id: deal.id });
     } else if (provider === 'folk') {
       const personData = folk.mapOpportunityToPerson(opportunity);
       const person = await folk.createPerson(token, personData);
       result = { opportunityId: opportunity.id, provider: 'folk', personId: person.id };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'folk', crm_contact_id: person.id });
     } else {
       return res.status(400).json({ error: `Unsupported CRM provider: ${provider}` });
     }
