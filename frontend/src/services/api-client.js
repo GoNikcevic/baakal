@@ -613,6 +613,14 @@ export async function testKeys() {
   return request('/settings/keys/test', { method: 'POST' });
 }
 
+/** Persist language preference to backend */
+export async function saveLanguage(lang) {
+  return request('/settings/language', {
+    method: 'PATCH',
+    body: JSON.stringify({ language: lang }),
+  });
+}
+
 /** Download CSV export of all campaigns */
 export function exportCampaignsCsv() {
   const token = getToken();

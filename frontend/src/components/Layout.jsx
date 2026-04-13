@@ -6,30 +6,31 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import { useT } from '../i18n';
 import { logout } from '../services/auth';
 import { disconnect as disconnectSocket } from '../services/socket';
 import { useSocketEvents } from '../hooks/useSocketEvents';
 import CampaignCreatorModal from './CampaignCreatorModal';
 
-/* ─── Sidebar nav items ─── */
+/* ─── Sidebar nav items (keys reference i18n nav.* keys) ─── */
 const NAV_ITEMS = [
-  { label: 'Assistant',           to: '/chat',         icon: 'chat' },
-  { label: 'Dashboard',           to: '/dashboard',    icon: 'dashboard',  end: true },
-  { label: 'Campagnes',           to: '/campaigns',    icon: 'campaigns' },
-  { label: 'Performance',         to: '/performance',  icon: 'reports' },
-  { label: 'M\u00e9moire IA',     to: '/memory',       icon: 'memory' },
-  { label: 'CRM Analytics',       to: '/crm-analytics', icon: 'crm' },
-  { label: 'Profil',              to: '/profil',       icon: 'profil' },
-  { label: 'Param\u00e8tres',     to: '/settings',     icon: 'settings' },
+  { i18nKey: 'nav.assistant',    to: '/chat',          icon: 'chat' },
+  { i18nKey: 'nav.dashboard',    to: '/dashboard',     icon: 'dashboard',  end: true },
+  { i18nKey: 'nav.campaigns',    to: '/campaigns',     icon: 'campaigns' },
+  { i18nKey: 'nav.performance',  to: '/performance',   icon: 'reports' },
+  { i18nKey: 'nav.memory',       to: '/memory',        icon: 'memory' },
+  { i18nKey: 'nav.crmAnalytics', to: '/crm-analytics', icon: 'crm' },
+  { i18nKey: 'nav.profile',      to: '/profil',        icon: 'profil' },
+  { i18nKey: 'nav.settings',     to: '/settings',      icon: 'settings' },
 ];
 
 /* ─── Mobile bottom nav (subset) ─── */
 const MOBILE_NAV = [
-  { label: 'Chat',        to: '/chat',        icon: 'chat' },
-  { label: 'Dashboard',   to: '/dashboard',   icon: 'dashboard' },
-  { label: 'Campagnes',   to: '/campaigns',   icon: 'campaigns' },
-  { label: 'Performance', to: '/performance', icon: 'reports' },
-  { label: 'Config',      to: '/settings',    icon: 'settings' },
+  { i18nKey: 'nav.chat',        to: '/chat',        icon: 'chat' },
+  { i18nKey: 'nav.dashboard',   to: '/dashboard',   icon: 'dashboard' },
+  { i18nKey: 'nav.campaigns',   to: '/campaigns',   icon: 'campaigns' },
+  { i18nKey: 'nav.performance', to: '/performance',  icon: 'reports' },
+  { i18nKey: 'nav.settings',    to: '/settings',    icon: 'settings' },
 ];
 
 /* ─── Simple SVG icon map ─── */
@@ -102,6 +103,7 @@ function NavIcon({ name }) {
 
 export default function Layout() {
   const { user, setUser } = useApp();
+  const t = useT();
   const [showCreatorModal, setShowCreatorModal] = useState(false);
   const [demoMode, setDemoMode] = useState(() => localStorage.getItem('bakal_demo_mode') === 'true');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -135,7 +137,7 @@ export default function Layout() {
           className="btn btn-primary sidebar-cta"
           onClick={() => setShowCreatorModal(true)}
         >
-          + Nouvelle campagne
+          {t('nav.newCampaign')}
         </button>
 
         {/* Navigation */}
@@ -150,7 +152,7 @@ export default function Layout() {
               }
             >
               <NavIcon name={item.icon} />
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-label">{t(item.i18nKey)}</span>
             </NavLink>
           ))}
         </nav>
@@ -167,7 +169,7 @@ export default function Layout() {
             textAlign: 'center',
           }}
         >
-          {demoMode ? '\u25cf D\u00e9mo active' : 'Voir la d\u00e9mo'}
+          {demoMode ? t('nav.demoActive') : t('nav.viewDemo')}
         </button>
 
         {/* Sidebar collapse toggle */}
@@ -178,7 +180,7 @@ export default function Layout() {
             color: 'var(--text-muted)', padding: '8px', width: '100%',
             display: 'flex', justifyContent: 'center', marginTop: 8,
           }}
-          title={sidebarCollapsed ? 'Ouvrir la sidebar' : 'R\u00e9duire la sidebar'}
+          title={sidebarCollapsed ? t('nav.openSidebar') : t('nav.collapseSidebar')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {sidebarCollapsed
@@ -199,7 +201,7 @@ export default function Layout() {
             <button
               className="sidebar-logout-btn"
               onClick={handleLogout}
-              title="Se déconnecter"
+              title={t('nav.logoutTitle')}
             >
               <svg
                 width="16"
@@ -236,7 +238,7 @@ export default function Layout() {
             }
           >
             <NavIcon name={item.icon} />
-            <span className="mobile-nav-label">{item.label}</span>
+            <span className="mobile-nav-label">{t(item.i18nKey)}</span>
           </NavLink>
         ))}
       </nav>

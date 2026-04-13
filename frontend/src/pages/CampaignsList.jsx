@@ -8,24 +8,26 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import { useT } from '../i18n';
 import api from '../services/api-client';
-
-const FILTERS = [
-  { key: '', label: 'Toutes' },
-  { key: 'active', label: 'Active' },
-  { key: 'prep', label: 'En préparation' },
-  { key: 'archived', label: 'Archivées' },
-];
 
 export default function CampaignsList({ onNavigateCampaign }) {
   const { campaigns, projects, setCampaigns } = useApp();
   const navigate = useNavigate();
+  const t = useT();
   const [actionLoading, setActionLoading] = useState({});
 
   const [filter, setFilter] = useState('active');
   const [sortByReply, setSortByReply] = useState(false);
   const [sortAsc, setSortAsc] = useState(false);
   const [collapsedProjects, setCollapsedProjects] = useState({});
+
+  const FILTERS = useMemo(() => [
+    { key: '', label: t('campaigns.all') },
+    { key: 'active', label: t('campaigns.active') },
+    { key: 'prep', label: t('campaigns.prep') },
+    { key: 'archived', label: t('campaigns.archived') },
+  ], [t]);
 
   const campaignsList = useMemo(() => Object.values(campaigns), [campaigns]);
   const projectsList = useMemo(() => Object.values(projects), [projects]);
@@ -41,7 +43,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
     } else if (filter === 'archived') {
       list = list.filter((c) => c.status === 'archived');
     } else {
-      // Default "Toutes" : exclude archived
+      // Default "All" : exclude archived
       list = list.filter((c) => c.status !== 'archived');
     }
     return list;
@@ -105,14 +107,14 @@ export default function CampaignsList({ onNavigateCampaign }) {
         [campaign.id]: { ...prev[campaign.id], status: 'archived' },
       }));
     } catch (err) {
-      window.alert(`Erreur : ${err.message}`);
+      window.alert(t('campaigns.errorPrefix', { message: err.message }));
     }
     setActionLoading(prev => ({ ...prev, [campaign.id]: null }));
-  }, [setCampaigns]);
+  }, [setCampaigns, t]);
 
   const handleDelete = useCallback(async (e, campaign) => {
     e.stopPropagation();
-    if (!window.confirm(`Supprimer définitivement "${campaign.name}" et tous ses prospects ?`)) return;
+    if (!window.confirm(t('campaigns.confirmDelete', { name: campaign.name }))) return;
     const backendId = campaign._backendId || campaign.id;
     setActionLoading(prev => ({ ...prev, [campaign.id]: 'deleting' }));
     try {
@@ -123,10 +125,10 @@ export default function CampaignsList({ onNavigateCampaign }) {
         return next;
       });
     } catch (err) {
-      window.alert(`Erreur : ${err.message}`);
+      window.alert(t('campaigns.errorPrefix', { message: err.message }));
     }
     setActionLoading(prev => ({ ...prev, [campaign.id]: null }));
-  }, [setCampaigns]);
+  }, [setCampaigns, t]);
 
   /* ── Empty state ── */
   if (isEmpty) {
@@ -134,20 +136,28 @@ export default function CampaignsList({ onNavigateCampaign }) {
       <div id="campaigns-list-view">
         <div className="empty-state">
           <div className="empty-state-icon">🎯</div>
-          <div className="empty-state-title">Aucune campagne créée</div>
+          <div className="empty-state-title">{t('campaigns.noCampaigns')}</div>
           <div className="empty-state-desc">
-            Créez votre première campagne de prospection. Choisissez votre cible,
-            votre canal et votre angle — Baakalai s'occupe du reste.
+            {t('campaigns.noCampaignsDesc')}
           </div>
           <button className="btn btn-primary" onClick={() => navigate('/chat')}>
-            Créer ma première campagne
+            {t('campaigns.createFirst')}
           </button>
         </div>
       </div>
     );
   }
 
-  const countText = `${campaignsList.length} campagne${campaignsList.length > 1 ? 's' : ''} · ${projectsList.length} projet${projectsList.length > 1 ? 's' : ''}`;
+  const countText = t('campaigns.countSummary', {
+    campaigns: campaignsList.length,
+    campaignPlural: campaignsList.length > 1 ? 's' : '',
+    projects: projectsList.length,
+    projectPlural: projectsList.length > 1 ? 's' : '',
+  });
+
+  const sortLabel = sortByReply
+    ? (sortAsc ? t('campaigns.sortByReplyAsc') : t('campaigns.sortByReplyDesc'))
+    : t('campaigns.sortByReply');
 
   return (
     <div id="campaigns-list-view">
@@ -169,9 +179,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
             style={{ fontSize: '11px', padding: '6px 12px' }}
             onClick={handleSortToggle}
           >
-            {sortByReply
-              ? `Tri par réponse ${sortAsc ? '↑' : '↓'}`
-              : 'Trier par réponse'}
+            {sortLabel}
           </button>
         </div>
       </div>
@@ -198,7 +206,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
             fontWeight: 600,
           }}
         >
-          Filtrer :
+          {t('campaigns.filter')}
         </span>
         {FILTERS.map((f) => (
           <button
@@ -249,15 +257,15 @@ export default function CampaignsList({ onNavigateCampaign }) {
                     <div className="project-header-right">
                       {filesCount > 0 && (
                         <span className="project-badge project-badge-files">
-                          {filesCount} fichier{filesCount > 1 ? 's' : ''}
+                          {filesCount} {filesCount > 1 ? t('campaigns.filesPlural') : t('campaigns.files')}
                         </span>
                       )}
                       <span className="project-badge">
-                        {totalCount} campagne{totalCount > 1 ? 's' : ''}
+                        {t('campaigns.campaignCount', { count: totalCount, plural: totalCount > 1 ? 's' : '' })}
                       </span>
                       {activeCount > 0 && (
                         <span className="project-badge project-badge-active">
-                          {activeCount} active{activeCount > 1 ? 's' : ''}
+                          {t('campaigns.activeCount', { count: activeCount, plural: activeCount > 1 ? 's' : '' })}
                         </span>
                       )}
                     </div>
@@ -273,11 +281,12 @@ export default function CampaignsList({ onNavigateCampaign }) {
                             onArchive={handleArchive}
                             onDelete={handleDelete}
                             loading={actionLoading[c.id]}
+                            t={t}
                           />
                         ))
                       ) : (
                         <div className="project-empty">
-                          Aucune campagne dans ce projet.
+                          {t('campaigns.noCampaignsInProject')}
                         </div>
                       )}
                     </div>
@@ -302,16 +311,15 @@ export default function CampaignsList({ onNavigateCampaign }) {
                       style={{ background: 'var(--text-muted)' }}
                     ></span>
                     <div>
-                      <div className="project-header-name">Sans projet</div>
+                      <div className="project-header-name">{t('campaigns.noProject')}</div>
                       <div className="project-header-meta">
-                        Campagnes non assignées à un projet
+                        {t('campaigns.noProjectDesc')}
                       </div>
                     </div>
                   </div>
                   <div className="project-header-right">
                     <span className="project-badge">
-                      {campaignsByProject._orphans.length} campagne
-                      {campaignsByProject._orphans.length > 1 ? 's' : ''}
+                      {t('campaigns.campaignCount', { count: campaignsByProject._orphans.length, plural: campaignsByProject._orphans.length > 1 ? 's' : '' })}
                     </span>
                   </div>
                 </div>
@@ -325,6 +333,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
                         onArchive={handleArchive}
                         onDelete={handleDelete}
                         loading={actionLoading[c.id]}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -342,6 +351,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
               onArchive={handleArchive}
               onDelete={handleDelete}
               loading={actionLoading[c.id]}
+              t={t}
             />
           ))
         )}
@@ -356,7 +366,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
               fontSize: '14px',
             }}
           >
-            Aucune campagne ne correspond au filtre sélectionné.
+            {t('campaigns.noMatchFilter')}
           </div>
         )}
       </div>
@@ -369,7 +379,7 @@ export default function CampaignsList({ onNavigateCampaign }) {
    Campaign Row
    ═══════════════════════════════════════════════════ */
 
-function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
+function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading, t }) {
   const isPrep = c.status === 'prep';
   const isLinkedin = c.channel === 'linkedin';
 
@@ -377,12 +387,12 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
     c.status === 'active' ? (
       <span className="status-badge status-active">
         <span className="pulse-dot" style={{ width: 6, height: 6 }}></span>{' '}
-        Active
+        {t('campaigns.statusActive')}
       </span>
     ) : c.status === 'archived' ? (
-      <span className="status-badge" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>📦 Archivée</span>
+      <span className="status-badge" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>📦 {t('campaigns.statusArchived')}</span>
     ) : (
-      <span className="status-badge status-prep">⏳ Préparation</span>
+      <span className="status-badge status-prep">⏳ {t('campaigns.statusPrep')}</span>
     );
 
   let stat1Value, stat1Label, stat2Value, stat2Label;
@@ -393,14 +403,14 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
     stat2Label = '—';
   } else if (isLinkedin) {
     stat1Value = '—';
-    stat1Label = 'N/A LinkedIn';
+    stat1Label = t('campaigns.naLinkedin');
     stat2Value = (c.kpis?.replyRate ?? 0) + '%';
-    stat2Label = 'Réponse';
+    stat2Label = t('campaigns.replyRate');
   } else {
     stat1Value = (c.kpis?.openRate ?? 0) + '%';
-    stat1Label = 'Ouverture';
+    stat1Label = t('campaigns.openRate');
     stat2Value = (c.kpis?.replyRate ?? 0) + '%';
-    stat2Label = 'Réponse';
+    stat2Label = t('campaigns.replyRate');
   }
 
   const stat1Color =
@@ -417,7 +427,7 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
         ? 'var(--text-muted)'
         : 'var(--warning)';
 
-  const dateLabel = isPrep ? 'Créée' : 'Lancée';
+  const dateLabel = isPrep ? t('campaigns.created') : t('campaigns.launched');
 
   // Show actual prospect count from DB first, then sent, then planned (last resort)
   const audienceCount =
@@ -436,7 +446,7 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
           {c.name}
           {audienceCount > 0 && (
             <span className="campaign-audience">
-              {audienceCount} prospects
+              {audienceCount} {t('campaigns.prospects')}
             </span>
           )}
         </div>
@@ -466,7 +476,7 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
           <button
             onClick={(e) => onArchive(e, c)}
             disabled={!!loading}
-            title="Archiver cette campagne"
+            title={t('campaigns.archiveTitle')}
             style={{
               background: 'var(--bg-elevated, rgba(255,255,255,0.04))',
               border: '1px solid var(--border)',
@@ -486,13 +496,13 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated, rgba(255,255,255,0.04))'; e.currentTarget.style.borderColor = 'var(--border)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
-            {loading === 'archiving' ? 'Archivage...' : 'Archiver'}
+            {loading === 'archiving' ? t('campaigns.archiving') : t('campaigns.archive')}
           </button>
         )}
         <button
           onClick={(e) => onDelete(e, c)}
           disabled={!!loading}
-          title="Supprimer cette campagne"
+          title={t('campaigns.deleteTitle')}
           style={{
             background: 'transparent',
             border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -512,7 +522,7 @@ function CampaignRow({ campaign: c, onClick, onArchive, onDelete, loading }) {
           onMouseLeave={e => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.background = 'transparent'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          {loading === 'deleting' ? 'Suppression...' : 'Supprimer'}
+          {loading === 'deleting' ? t('campaigns.deleting') : t('campaigns.delete')}
         </button>
         <div className="campaign-row-arrow">&rarr;</div>
       </div>

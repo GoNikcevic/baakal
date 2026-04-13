@@ -7,9 +7,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM, syncOutreach } from '../services/api-client';
+import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM, syncOutreach, saveLanguage } from '../services/api-client';
 import { useNotifications } from '../context/NotificationContext';
 import { useSocket } from '../context/SocketContext';
+import { useI18n } from '../i18n';
 
 /* ─── Unified tool list organized by category ─── */
 
@@ -93,6 +94,7 @@ export default function SettingsPage() {
   const [crmSyncStatus, setCrmSyncStatus] = useState(null);
   const { socket } = useSocket();
   const { showToast: notifyToast } = useNotifications();
+  const { lang, setLang, t } = useI18n();
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
     return saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : { ...DEFAULT_PREFERENCES };
@@ -788,6 +790,44 @@ export default function SettingsPage() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Language selector */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header">
+          <div className="card-title">{t('settings.language')}</div>
+        </div>
+        <div className="card-body">
+          <div className="settings-pref-row">
+            <label className="settings-pref-label">{t('settings.languageDesc')}</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setLang('fr'); saveLanguage('fr').catch(() => {}); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  background: lang === 'fr' ? 'var(--blue)' : 'var(--bg-elevated)',
+                  color: lang === 'fr' ? 'white' : 'var(--text-muted)',
+                  border: '1px solid var(--border)', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                FR
+              </button>
+              <button
+                onClick={() => { setLang('en'); saveLanguage('en').catch(() => {}); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  background: lang === 'en' ? 'var(--blue)' : 'var(--bg-elevated)',
+                  color: lang === 'en' ? 'white' : 'var(--text-muted)',
+                  border: '1px solid var(--border)', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                EN
+              </button>
+            </div>
           </div>
         </div>
       </div>
