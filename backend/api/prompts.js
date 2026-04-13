@@ -129,7 +129,8 @@ Chaque touchpoint doit suivre un rôle précis dans la séquence :
 ## Règles impératives
 
 1. **Variables Lemlist** : Utilise UNIQUEMENT ces variables, préservées telles quelles :
-   - {{firstName}}, {{lastName}}, {{companyName}}, {{jobTitle}}
+   - {{firstName}}, {{lastName}}, {{companyName}}, {{jobTitle}}, {{icebreaker}}
+   - {{icebreaker}} contient une accroche personnalisée basée sur l'actualité de l'entreprise du prospect. Si disponible, intègre-la naturellement dans le premier email (E1) ou la note de connexion LinkedIn (LI1) comme phrase d'ouverture. Si elle n'est pas renseignée, le message doit fonctionner sans.
 2. **Jamais** mentionner "IA", "automatisé", "robot", "logiciel d'envoi"
 3. **Jamais** de jargon marketing inaccessible au prospect
 4. **Chaque email** doit avoir une ligne d'objet (subject) unique et accrocheuse

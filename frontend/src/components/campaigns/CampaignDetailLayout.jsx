@@ -29,6 +29,8 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   const [showOptimize, setShowOptimize] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [optimizeBanner, setOptimizeBanner] = useState(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichBanner, setEnrichBanner] = useState(null);
 
   // Lemlist senders
   const [senders, setSenders] = useState([]);
@@ -163,6 +165,30 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
     setLaunching(false);
   };
 
+  /* ── Enrich prospects handler ── */
+  const hasProspects = (c.kpis?.contacts || c.nb_prospects || 0) > 0;
+
+  const handleEnrichProspects = async () => {
+    setEnriching(true);
+    setEnrichBanner(null);
+    try {
+      const backendId = c._backendId || c.id;
+      const result = await api.enrichCampaignProspects(backendId);
+      setEnrichBanner({
+        type: 'success',
+        title: t('campaigns.enrichDoneTitle', { count: result.enriched }),
+        desc: t('campaigns.enrichDoneDesc', { skipped: result.skipped, errors: result.errors || 0 }),
+      });
+    } catch (err) {
+      setEnrichBanner({
+        type: 'error',
+        title: t('campaigns.enrichFailed'),
+        desc: err.message || t('campaigns.enrichFailedDesc'),
+      });
+    }
+    setEnriching(false);
+  };
+
   /* ── Tags ── */
   const tags = [c.channelLabel, c.sector, c.size, c.angle, c.zone].filter(Boolean);
 
@@ -250,6 +276,16 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
               {showHelp && <OptimizeHelpTooltip t={t} />}
             </div>
           )}
+          {isPrep && hasProspects && (
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: '12px', padding: '8px 14px', color: 'var(--accent)' }}
+              onClick={handleEnrichProspects}
+              disabled={enriching}
+            >
+              {enriching ? `\u23F3 ${t('campaigns.enriching')}` : `\u2728 ${t('campaigns.enrichProspects')}`}
+            </button>
+          )}
           {isPrep && (
             <button
               className="btn btn-success"
@@ -324,6 +360,39 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             className="btn btn-ghost"
             style={{ fontSize: 11, padding: '6px 12px' }}
             onClick={() => setOptimizeBanner(null)}
+          >
+            {'\u2715'}
+          </button>
+        </div>
+      )}
+
+      {/* Enrichment banner */}
+      {enrichBanner && (
+        <div
+          style={{
+            background: enrichBanner.type === 'error' ? 'var(--danger-bg)' : 'rgba(0, 214, 143, 0.1)',
+            border: `1px solid ${enrichBanner.type === 'error' ? 'rgba(255,107,107,0.3)' : 'rgba(0, 214, 143, 0.3)'}`,
+            borderRadius: '12px',
+            padding: '14px 16px',
+            margin: '16px 0',
+            fontSize: 13,
+            color: enrichBanner.type === 'error' ? 'var(--danger)' : 'var(--success)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>{enrichBanner.type === 'error' ? '\u26A0\uFE0F' : '\u2728'}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>{enrichBanner.title}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+              {enrichBanner.desc}
+            </div>
+          </div>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 11, padding: '6px 12px' }}
+            onClick={() => setEnrichBanner(null)}
           >
             {'\u2715'}
           </button>

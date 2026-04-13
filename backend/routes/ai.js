@@ -1040,6 +1040,30 @@ router.post('/enrich-contact', async (req, res, next) => {
   }
 });
 
+// POST /api/ai/enrich-campaign — enrich all prospects with personalized icebreakers
+router.post('/enrich-campaign', async (req, res, next) => {
+  try {
+    const { campaignId } = req.body;
+    if (!campaignId) return res.status(400).json({ error: 'campaignId required' });
+
+    // Verify campaign belongs to user
+    const campaign = await db.campaigns.get(campaignId);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const { enrichCampaignProspects } = require('../lib/personalization-agent');
+    const result = await enrichCampaignProspects(campaignId);
+
+    res.json({
+      enriched: result.enriched,
+      skipped: result.skipped,
+      errors: result.errors,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- Helpers ---
 
 function extractPriorities(diagnostic) {

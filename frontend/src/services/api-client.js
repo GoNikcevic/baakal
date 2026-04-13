@@ -816,6 +816,14 @@ export async function enrichContact(email) {
   });
 }
 
+/** Enrich all prospects in a campaign with personalized icebreakers */
+export async function enrichCampaignProspects(campaignId) {
+  return request('/ai/enrich-campaign', {
+    method: 'POST',
+    body: JSON.stringify({ campaignId }),
+  });
+}
+
 /** Fetch template library (public, no auth) */
 export async function fetchTemplates() {
   const data = await request('/templates');
@@ -896,6 +904,7 @@ const BakalAPI = {
   sendRecoFeedback,
   searchProspects,
   enrichContact,
+  enrichCampaignProspects,
   addProspectsToCampaign,
   listCampaignProspects,
   launchCampaignToLemlist,

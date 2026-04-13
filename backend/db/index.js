@@ -1232,13 +1232,16 @@ const opportunities = {
       crm_provider: 'crm_provider', crmProvider: 'crm_provider',
       crm_contact_id: 'crm_contact_id', crmContactId: 'crm_contact_id',
       crm_deal_id: 'crm_deal_id', crmDealId: 'crm_deal_id',
+      personalization: 'personalization',
     };
+    const jsonbCols = new Set(['personalization']);
     const seen = new Set();
     for (const [inputKey, col] of Object.entries(mapping)) {
       if (data[inputKey] !== undefined && !seen.has(col)) {
         seen.add(col);
         sets.push(`${col} = $${i++}`);
-        values.push(data[inputKey]);
+        const val = data[inputKey];
+        values.push(jsonbCols.has(col) && typeof val === 'object' ? JSON.stringify(val) : val);
       }
     }
     if (sets.length === 0) return null;
