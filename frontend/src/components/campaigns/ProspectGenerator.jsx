@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api-client';
+import { useT } from '../../i18n';
 
 /**
  * 3-step prospect generator for a campaign in prep:
@@ -8,6 +9,7 @@ import api from '../../services/api-client';
  * 3. Add selected prospects to the campaign
  */
 export default function ProspectGenerator({ campaign, onProspectsAdded }) {
+  const t = useT();
   const [titles, setTitles] = useState(campaign.position || '');
   const [sectors, setSectors] = useState(campaign.sector || '');
   const [locations, setLocations] = useState(campaign.zone || '');
@@ -93,7 +95,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       if (data.diagnostics) setSearchDiagnostics(data.diagnostics);
       if (data.fallback) setSearchFallback(data.fallback);
     } catch (err) {
-      setError(err.message || 'Recherche échouée');
+      setError(err.message || t('prospectGen.searchFailed'));
     }
     setSearching(false);
   };
@@ -123,7 +125,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
 
       // If no enrichment was dispatched (all failed pre-validation), show error
       if (data.dispatched === 0) {
-        setError(`Impossible de révéler : Lemlist exige un profil LinkedIn OU (nom + entreprise + domaine). ${data.errors || leadsToReveal.length} contacts ne respectent pas ces critères.`);
+        setError(t('prospectGen.revealCannotValidate', { errors: data.errors || leadsToReveal.length }));
       }
 
       // Mark them as pending in UI
@@ -166,7 +168,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
         }
       }, 3000);
     } catch (err) {
-      setError(err.message || 'Révélation échouée');
+      setError(err.message || t('campaigns.revealFailed'));
       setRevealing(false);
     }
   };
@@ -176,7 +178,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
     pollRef.current = null;
     setRevealing(false);
     setRevealJobId(null);
-    setError('Révélation annulée — tu peux relancer manuellement.');
+    setError(t('prospectGen.revealCancelled'));
   };
 
   /* ── Step 3: Save to campaign ── */
@@ -187,7 +189,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       // Only save contacts with a verified email
       const contacts = results.filter(c => selected.has(c.id) && c.email);
       if (contacts.length === 0) {
-        setError("Aucun contact avec email vérifié dans la sélection. Révèle d'abord les emails.");
+        setError(t('prospectGen.noVerifiedEmail'));
         setSaving(false);
         return;
       }
@@ -198,7 +200,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       setSelected(new Set());
       if (onProspectsAdded) onProspectsAdded(data.created);
     } catch (err) {
-      setError(err.message || 'Sauvegarde échouée');
+      setError(err.message || t('prospectGen.saveFailed'));
     }
     setSaving(false);
   };
@@ -264,7 +266,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
 
     const lines = raw.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) {
-      return { contacts: [], error: 'Le CSV doit contenir au moins une ligne d\'en-têtes + une ligne de données.' };
+      return { contacts: [], error: t('prospectGen.csvMinLines') };
     }
 
     const delimiter = detectDelimiter(lines[0]);
@@ -275,7 +277,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
     if (!fieldMap.includes('email')) {
       return {
         contacts: [],
-        error: `Colonne "email" introuvable. En-têtes détectés : ${headers.join(', ')}. Attendu : email (obligatoire) + firstName, lastName, company, title (optionnels).`,
+        error: t('prospectGen.csvEmailNotFound', { headers: headers.join(', ') }),
       };
     }
 
@@ -326,7 +328,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => handleCsvChange(String(e.target?.result || ''));
-    reader.onerror = () => setCsvError('Impossible de lire le fichier.');
+    reader.onerror = () => setCsvError(t('prospectGen.csvReadError'));
     reader.readAsText(file);
     // Reset input so the same file can be re-selected later
     event.target.value = '';
@@ -345,7 +347,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       setCsvParsed([]);
       if (onProspectsAdded) onProspectsAdded(data.created);
     } catch (err) {
-      setCsvError(err.message || 'Import échoué');
+      setCsvError(err.message || t('prospectGen.csvImportFailed'));
     }
     setImporting(false);
   };
@@ -369,12 +371,12 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-            🎯 Générer des prospects
+            {'\uD83C\uDFAF'} {t('prospectGen.title')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             {existingCount > 0
-              ? `${existingCount} prospect${existingCount > 1 ? 's' : ''} déjà dans la campagne`
-              : 'Aucun prospect dans la campagne pour le moment'}
+              ? t('prospectGen.existingCount', { count: existingCount, plural: existingCount > 1 ? 's' : '' })
+              : t('campaigns.noProspects')}
           </div>
         </div>
         {credits !== null && credits !== 'error' && creditsConfigured && (
@@ -386,15 +388,15 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
               borderRadius: 8,
               border: '1px solid var(--border)',
             }}
-            title="Crédits Lemlist Leads restants (pour révéler les emails)"
+            title={t('prospectGen.creditsTitle')}
           >
-            💳 {credits} crédits Lemlist
+            {'\uD83D\uDCB3'} {t('prospectGen.creditsLabel', { count: credits })}
           </div>
         )}
       </div>
 
       {/* Stepper */}
-      <Stepper step={currentStep} />
+      <Stepper step={currentStep} t={t} />
 
       {/* Step 1: Search form (always visible) */}
       <div
@@ -405,11 +407,11 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           marginBottom: '12px',
         }}
       >
-        <Field label="Titres (séparés par virgule)" value={titles} onChange={setTitles} placeholder="CEO, COO, Head of Lab" />
-        <Field label="Secteurs (séparés par virgule)" value={sectors} onChange={setSectors} placeholder="Biotech, Diagnostics" />
-        <Field label="Localisations" value={locations} onChange={setLocations} placeholder="France, Germany" />
+        <Field label={t('prospectGen.fieldTitles')} value={titles} onChange={setTitles} placeholder="CEO, COO, Head of Lab" />
+        <Field label={t('prospectGen.fieldSectors')} value={sectors} onChange={setSectors} placeholder="Biotech, Diagnostics" />
+        <Field label={t('prospectGen.fieldLocations')} value={locations} onChange={setLocations} placeholder="France, Germany" />
         <div>
-          <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Taille d'entreprise</label>
+          <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('prospectGen.fieldCompanySize')}</label>
           <select
             className="form-input"
             value={companySizes}
@@ -425,7 +427,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           </select>
         </div>
         <div>
-          <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Nombre max</label>
+          <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{t('prospectGen.fieldMaxResults')}</label>
           <input
             className="form-input"
             type="number"
@@ -445,16 +447,16 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           disabled={searching}
           style={{ fontSize: '12px', padding: '8px 14px' }}
         >
-          {searching ? 'Recherche en cours...' : '🔍 Chercher des prospects'}
+          {searching ? t('prospectGen.searching') : `\uD83D\uDD0D ${t('prospectGen.searchBtn')}`}
         </button>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>ou</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('prospectGen.or')}</span>
         <button
           type="button"
           className="btn btn-ghost"
           onClick={() => setCsvOpen(v => !v)}
           style={{ fontSize: '12px', padding: '8px 14px' }}
         >
-          📋 {csvOpen ? 'Masquer l\'import CSV' : 'Importer un CSV / liste'}
+          {'\uD83D\uDCCB'} {csvOpen ? t('prospectGen.hideCsvImport') : t('prospectGen.importCsv')}
         </button>
       </div>
 
@@ -470,19 +472,19 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           }}
         >
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-            Importer des prospects depuis un CSV ou une liste
+            {t('prospectGen.csvTitle')}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-            Colonne <strong>email</strong> obligatoire. Optionnelles : <code>firstName</code>, <code>lastName</code>, <code>name</code>, <code>company</code>, <code>title</code>, <code>linkedinUrl</code>.
-            &nbsp;Séparateur auto-détecté (virgule, point-virgule, tab). Les doublons email sont ignorés.
-          </div>
+          <div
+            style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}
+            dangerouslySetInnerHTML={{ __html: t('prospectGen.csvHelp') }}
+          />
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             <label
               className="btn btn-ghost"
               style={{ fontSize: 11, padding: '6px 12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              📁 Choisir un fichier .csv
+              {'\uD83D\uDCC1'} {t('prospectGen.csvChooseFile')}
               <input
                 type="file"
                 accept=".csv,text/csv,.txt,text/plain"
@@ -490,7 +492,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 style={{ display: 'none' }}
               />
             </label>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>ou colle le contenu ci-dessous</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>{t('prospectGen.csvPasteLabel')}</span>
           </div>
 
           <textarea
@@ -522,14 +524,14 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
               fontSize: 11,
               color: 'var(--danger, #dc2626)',
             }}>
-              ⚠️ {csvError}
+              {'\u26A0\uFE0F'} {csvError}
             </div>
           )}
 
           {csvParsed.length > 0 && !csvError && (
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                ✓ <strong>{csvParsed.length}</strong> contact{csvParsed.length > 1 ? 's' : ''} prêt{csvParsed.length > 1 ? 's' : ''} à importer (aperçu des 5 premiers) :
+                {'\u2713'} <strong>{csvParsed.length}</strong> {t('prospectGen.csvReadyCount', { count: csvParsed.length, plural: csvParsed.length > 1 ? 's' : '', pluralReady: csvParsed.length > 1 ? 's' : '' })}
               </div>
               <div style={{
                 background: 'var(--bg-card)',
@@ -548,19 +550,19 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                     gap: 8,
                   }}>
                     <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || '—'}
+                      {c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || '\u2014'}
                     </div>
                     <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.title || '—'}
+                      {c.title || '\u2014'}
                     </div>
                     <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.company || '—'} · {c.email}
+                      {c.company || '\u2014'} {'\u00B7'} {c.email}
                     </div>
                   </div>
                 ))}
                 {csvParsed.length > 5 && (
                   <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
-                    + {csvParsed.length - 5} autres…
+                    {t('prospectGen.csvMoreItems', { count: csvParsed.length - 5 })}
                   </div>
                 )}
               </div>
@@ -572,8 +574,8 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 style={{ marginTop: 10, fontSize: 12, padding: '8px 14px' }}
               >
                 {importing
-                  ? 'Import en cours…'
-                  : `➕ Ajouter ${csvParsed.length} prospect${csvParsed.length > 1 ? 's' : ''} à la campagne`}
+                  ? t('prospectGen.csvImporting')
+                  : `\u2795 ${t('prospectGen.csvImportBtn', { count: csvParsed.length, plural: csvParsed.length > 1 ? 's' : '' })}`}
               </button>
             </div>
           )}
@@ -588,7 +590,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
               fontSize: 11,
               color: 'var(--success, #16a34a)',
             }}>
-              ✅ {importedCount} prospect{importedCount > 1 ? 's' : ''} ajouté{importedCount > 1 ? 's' : ''} à la campagne.
+              {'\u2705'} {t('prospectGen.csvImported', { count: importedCount, plural: importedCount > 1 ? 's' : '', pluralAdded: importedCount > 1 ? 's' : '' })}
             </div>
           )}
         </div>
@@ -606,7 +608,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
             fontSize: '12px',
           }}
         >
-          ⚠️ {error}
+          {'\u26A0\uFE0F'} {error}
         </div>
       )}
 
@@ -620,9 +622,9 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           borderRadius: 8,
           fontSize: 12,
           color: 'var(--warning, #d97706)',
-        }}>
-          ⚠️ Lemlist Leads indisponible — résultats via <strong>Apollo</strong> (fallback).
-        </div>
+        }}
+          dangerouslySetInnerHTML={{ __html: `\u26A0\uFE0F ${t('prospectGen.fallbackBanner')}` }}
+        />
       )}
 
       {/* Filter diagnostics banner (dropped criteria) */}
@@ -638,16 +640,16 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           lineHeight: 1.6,
         }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            ⚠️ Filtres non appliqués — les résultats peuvent être peu pertinents
+            {'\u26A0\uFE0F'} {t('prospectGen.diagnosticsTitle')}
           </div>
           <div>
-            Ces critères n'ont pas été reconnus par Lemlist et ont été ignorés :&nbsp;
+            {t('prospectGen.diagnosticsDropped')}&nbsp;
             <strong>{searchDiagnostics.dropped.map(d => d.criterion).join(', ')}</strong>.
             <br />
-            Seuls ces critères ont été envoyés :&nbsp;
+            {t('prospectGen.diagnosticsApplied')}&nbsp;
             {(searchDiagnostics.applied?.length ?? 0) > 0
               ? <strong>{searchDiagnostics.applied.map(a => a.criterion).join(', ')}</strong>
-              : <strong>aucun</strong>}.
+              : <strong>{t('prospectGen.diagnosticsNone')}</strong>}.
           </div>
         </div>
       )}
@@ -666,16 +668,21 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
             }}
           >
             <span>
-              {results.length} résultat{results.length > 1 ? 's' : ''} — {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
+              {t('prospectGen.resultsCount', {
+                results: results.length,
+                pluralResults: results.length > 1 ? 's' : '',
+                selected: selected.size,
+                pluralSelected: selected.size > 1 ? 's' : '',
+              })}
               {selectedWithEmail > 0 && (
                 <span style={{ color: 'var(--success)', marginLeft: 8 }}>
-                  ({selectedWithEmail} avec email ✓)
+                  {t('prospectGen.withEmailCount', { count: selectedWithEmail })}
                 </span>
               )}
             </span>
             {revealing && (
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                ⏳ Révélation {revealProgress.done}/{revealProgress.total}
+                {'\u23F3'} {t('prospectGen.revealProgress', { done: revealProgress.done, total: revealProgress.total })}
               </span>
             )}
           </div>
@@ -689,9 +696,9 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
               fontStyle: 'italic',
             }}
           >
-            {currentStep === 2 && !revealing && `Étape 2 : décoche les non-pertinents, puis clique "Révéler" pour récupérer leurs emails (1 crédit Lemlist par contact).`}
-            {revealing && `Lemlist enrichit les contacts via son API asynchrone. Délai ~20-30 secondes.`}
-            {currentStep === 3 && `Étape 3 : vérifie les emails révélés (✅ verified / ❌ non trouvé) puis ajoute-les à la campagne.`}
+            {currentStep === 2 && !revealing && t('prospectGen.stepHelper2')}
+            {revealing && t('prospectGen.stepHelperRevealing')}
+            {currentStep === 3 && t('prospectGen.stepHelper3')}
           </div>
 
           <div style={{ maxHeight: 320, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
@@ -714,11 +721,11 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {c.name}
-                    <RevealBadge status={c.revealStatus} email={c.email} error={c.revealError} />
+                    <RevealBadge status={c.revealStatus} email={c.email} error={c.revealError} t={t} />
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {c.title} · {c.company} · {c.location}
-                    {c.email && <span style={{ color: 'var(--success)', marginLeft: 6 }}>· {c.email}</span>}
+                    {c.title} {'\u00B7'} {c.company} {'\u00B7'} {c.location}
+                    {c.email && <span style={{ color: 'var(--success)', marginLeft: 6 }}>{'\u00B7'} {c.email}</span>}
                   </div>
                 </div>
               </div>
@@ -734,7 +741,11 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 disabled={credits !== null && credits !== 'error' && credits < selectedNeedingReveal.length}
                 style={{ fontSize: '12px', padding: '8px 14px' }}
               >
-                💰 Révéler {selectedNeedingReveal.length} email{selectedNeedingReveal.length > 1 ? 's' : ''} ({selectedNeedingReveal.length} crédit{selectedNeedingReveal.length > 1 ? 's' : ''})
+                {'\uD83D\uDCB0'} {t('prospectGen.revealBtn', {
+                  count: selectedNeedingReveal.length,
+                  plural: selectedNeedingReveal.length > 1 ? 's' : '',
+                  pluralCredits: selectedNeedingReveal.length > 1 ? 's' : '',
+                })}
               </button>
             )}
 
@@ -744,7 +755,7 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 onClick={cancelReveal}
                 style={{ fontSize: '12px', padding: '8px 14px' }}
               >
-                ✕ Annuler
+                {'\u2715'} {t('prospectGen.cancelReveal')}
               </button>
             )}
 
@@ -755,14 +766,14 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
                 disabled={saving}
                 style={{ fontSize: '12px', padding: '8px 14px' }}
               >
-                {saving ? 'Ajout...' : `➕ Ajouter ${selectedWithEmail} à la campagne`}
+                {saving ? t('prospectGen.adding') : `\u2795 ${t('prospectGen.addToCampaign', { count: selectedWithEmail })}`}
               </button>
             )}
           </div>
 
           {credits !== null && credits !== 'error' && credits < selectedNeedingReveal.length && selectedNeedingReveal.length > 0 && (
             <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 6 }}>
-              ⚠️ Solde insuffisant : {credits} crédits dispo, {selectedNeedingReveal.length} requis.
+              {'\u26A0\uFE0F'} {t('prospectGen.insufficientCredits', { available: credits, required: selectedNeedingReveal.length })}
             </div>
           )}
         </div>
@@ -775,17 +786,18 @@ export default function ProspectGenerator({ campaign, onProspectsAdded }) {
           credits={credits}
           onConfirm={startReveal}
           onCancel={() => setShowRevealConfirm(false)}
+          t={t}
         />
       )}
     </div>
   );
 }
 
-function Stepper({ step }) {
+function Stepper({ step, t }) {
   const steps = [
-    { n: 1, label: 'Recherche', icon: '🔍' },
-    { n: 2, label: 'Révéler les emails', icon: '💰' },
-    { n: 3, label: 'Ajouter à la campagne', icon: '➕' },
+    { n: 1, label: t('prospectGen.stepSearch'), icon: '\uD83D\uDD0D' },
+    { n: 2, label: t('prospectGen.stepReveal'), icon: '\uD83D\uDCB0' },
+    { n: 3, label: t('prospectGen.stepAdd'), icon: '\u2795' },
   ];
   return (
     <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
@@ -806,7 +818,7 @@ function Stepper({ step }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {step > s.n ? '✓' : s.icon} {s.label}
+            {step > s.n ? '\u2713' : s.icon} {s.label}
           </div>
           {i < steps.length - 1 && (
             <div
@@ -824,31 +836,31 @@ function Stepper({ step }) {
   );
 }
 
-function RevealBadge({ status, email, error }) {
+function RevealBadge({ status, email, error, t }) {
   if (status === 'verified' && email) {
-    return <span style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600 }}>✅ Verified</span>;
+    return <span style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600 }}>{'\u2705'} {t('prospectGen.revealVerified')}</span>;
   }
   if (status === 'not_found') {
-    return <span style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 600 }}>❌ Email non trouvé</span>;
+    return <span style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 600 }}>{'\u274C'} {t('prospectGen.revealNotFound')}</span>;
   }
   if (status === 'error') {
     return (
       <span
         style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600, cursor: 'help' }}
-        title={error || 'Erreur inconnue'}
+        title={error || t('common.error')}
       >
-        ⚠️ Erreur
+        {'\u26A0\uFE0F'} {t('prospectGen.revealError')}
       </span>
     );
   }
   if (status === 'revealing') {
-    return <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>⏳ Révélation…</span>;
+    return <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{'\u23F3'} {t('prospectGen.revealRevealing')}</span>;
   }
-  return <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>(email non révélé)</span>;
+  return <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{t('prospectGen.revealPending')}</span>;
 }
 
-function ConfirmRevealModal({ count, credits, onConfirm, onCancel }) {
-  const creditDisplay = credits === null || credits === 'error' ? 'inconnu' : credits;
+function ConfirmRevealModal({ count, credits, onConfirm, onCancel, t }) {
+  const creditDisplay = credits === null || credits === 'error' ? t('prospectGen.balanceUnknown') : credits;
   const afterReveal = typeof credits === 'number' ? credits - count : null;
 
   return (
@@ -876,30 +888,27 @@ function ConfirmRevealModal({ count, credits, onConfirm, onCancel }) {
         }}
       >
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
-          💰 Révéler {count} email{count > 1 ? 's' : ''} ?
+          {'\uD83D\uDCB0'} {t('prospectGen.revealConfirmTitle', { count, plural: count > 1 ? 's' : '' })}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
-          Cette action va consommer <strong>{count} crédit{count > 1 ? 's' : ''} Lemlist Leads</strong>.
-          <br />
-          Solde actuel : <strong>{creditDisplay}</strong>
-          {afterReveal !== null && (
-            <>
-              {' → '}
-              <strong style={{ color: afterReveal < 10 ? 'var(--warning)' : 'var(--text-primary)' }}>
-                {afterReveal} après
-              </strong>
-            </>
-          )}
-        </div>
+        <div
+          style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}
+          dangerouslySetInnerHTML={{
+            __html: t('prospectGen.revealConfirmBody', { count, plural: count > 1 ? 's' : '' }) +
+              `<br />${t('prospectGen.revealConfirmBalance')} <strong>${creditDisplay}</strong>` +
+              (afterReveal !== null
+                ? ` → <strong style="color: ${afterReveal < 10 ? 'var(--warning)' : 'var(--text-primary)'}">${t('prospectGen.revealConfirmAfter', { count: afterReveal })}</strong>`
+                : '')
+          }}
+        />
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 20 }}>
-          L'enrichissement est asynchrone — délai ~20-30 secondes.
+          {t('prospectGen.revealConfirmAsync')}
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" onClick={onCancel} style={{ fontSize: 12 }}>
-            Annuler
+            {t('common.cancel')}
           </button>
           <button className="btn btn-primary" onClick={onConfirm} style={{ fontSize: 12 }}>
-            Confirmer et révéler
+            {t('prospectGen.revealConfirmBtn')}
           </button>
         </div>
       </div>

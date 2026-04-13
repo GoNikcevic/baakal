@@ -14,15 +14,10 @@ import HistoryTab from './tabs/HistoryTab';
 import ABTestTab from './tabs/ABTestTab';
 import OptimizeCampaignModal from './OptimizeCampaignModal';
 import LoadingOverlay from '../shared/LoadingOverlay';
-
-const LEMLIST_LAUNCH_STEPS = [
-  'Création de la campagne sur Lemlist…',
-  'Déploiement des séquences email & LinkedIn…',
-  'Ajout des prospects dans la liste…',
-  'Activation de la campagne…',
-];
+import { useT } from '../../i18n';
 
 export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns }) {
+  const t = useT();
   const isPrep = c.status === 'prep';
   const isActive = c.status === 'active';
   const isArchived = c.status === 'archived';
@@ -38,6 +33,13 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   // Lemlist senders
   const [senders, setSenders] = useState([]);
   const [selectedSender, setSelectedSender] = useState(null);
+
+  const LEMLIST_LAUNCH_STEPS = [
+    t('campaigns.launchStepCreate'),
+    t('campaigns.launchStepSequences'),
+    t('campaigns.launchStepProspects'),
+    t('campaigns.launchStepActivate'),
+  ];
 
   useEffect(() => {
     if (isPrep) {
@@ -57,21 +59,21 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
 
   // Tab definitions — show conditionally based on status
   const tabs = [
-    { key: 'settings', label: 'Paramètres', icon: '⚙️' },
-    { key: 'copy', label: 'Copy & Séquences', icon: '✉️' },
-    { key: 'prospects', label: 'Prospects', icon: '👥' },
-    ...(hasABTest ? [{ key: 'abtest', label: 'A/B Test', icon: '🧬' }] : []),
+    { key: 'settings', label: t('campaigns.settings'), icon: '\u2699\uFE0F' },
+    { key: 'copy', label: t('campaigns.copy'), icon: '\u2709\uFE0F' },
+    { key: 'prospects', label: t('campaigns.prospects'), icon: '\uD83D\uDC65' },
+    ...(hasABTest ? [{ key: 'abtest', label: t('campaigns.abTest'), icon: '\uD83E\uDDEC' }] : []),
     ...(isActive
       ? [
-          { key: 'performance', label: 'Performance', icon: '📊' },
-          { key: 'history', label: 'Historique', icon: '📜' },
+          { key: 'performance', label: t('campaigns.performance'), icon: '\uD83D\uDCCA' },
+          { key: 'history', label: t('campaigns.history'), icon: '\uD83D\uDCDC' },
         ]
       : []),
   ];
 
   /* ── Archive handler ── */
   const handleArchive = async () => {
-    if (!window.confirm(`Archiver la campagne "${c.name}" ? Elle reste consultable via le filtre "Archivées".`)) return;
+    if (!window.confirm(t('campaigns.confirmArchive', { name: c.name }))) return;
     setArchiving(true);
     try {
       const backendId = c._backendId || c.id;
@@ -81,7 +83,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
       });
     } catch (err) {
       console.error('Failed to archive campaign:', err);
-      window.alert(`Impossible d'archiver la campagne : ${err.message || 'erreur inconnue'}`);
+      window.alert(t('campaigns.archiveFailed', { error: err.message || 'erreur inconnue' }));
       setArchiving(false);
       return;
     }
@@ -99,8 +101,8 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
     if (!c.sequence || c.sequence.length === 0) {
       setLaunchAlert({
         type: 'error',
-        title: 'Impossible de lancer — séquences manquantes',
-        desc: "Génère d'abord les séquences via Baakalai depuis l'onglet Copy & Séquences.",
+        title: t('campaigns.launchMissingSequence'),
+        desc: t('campaigns.launchMissingSequenceDesc'),
       });
       return;
     }
@@ -109,9 +111,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
     const prospectCount = c.kpis?.contacts || c.nb_prospects || 0;
     if (!options.confirmed && !c.batch_mode && prospectCount > 100 && !options.batchMode) {
       const choice = window.confirm(
-        `Tu as ${prospectCount} prospects. Veux-tu lancer en mode batch ?\n\n` +
-        `• OK = Mode batch : envoie les 100 premiers, A/B test, puis batch suivant\n` +
-        `• Annuler = Tout envoyer d'un coup (${prospectCount} prospects)`
+        t('campaigns.batchConfirm', { count: prospectCount })
       );
       if (choice) {
         return handleLaunch({ ...options, batchMode: true, confirmed: true });
@@ -139,25 +139,25 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
       }));
       const stepsOk = (result.sequenceSteps || []).filter(s => s.ok).length;
       const stepsTotal = (result.sequenceSteps || []).length;
-      const baseDesc = `${result.leads?.pushed || 0} prospects ajoutés · ${stepsOk}/${stepsTotal} étapes créées`;
+      const baseDesc = `${result.leads?.pushed || 0} prospects · ${stepsOk}/${stepsTotal} steps`;
       const statusLine = result.started
-        ? ' · ✅ Campagne démarrée automatiquement'
+        ? ` · \u2705 ${t('campaigns.started')}`
         : result.startError
-          ? ` · ⚠️ Démarrage auto échoué (${result.startError}) — démarre manuellement depuis Lemlist`
-          : ' · ℹ️ Campagne en draft sur Lemlist (pas de leads/étapes à envoyer)';
+          ? ` · \u26A0\uFE0F ${t('campaigns.startFailed', { error: result.startError })}`
+          : ` · \u2139\uFE0F ${t('campaigns.inDraft')}`;
       const batchLine = result.batch
-        ? ` · 📦 Batch ${result.batch.batch}/${result.batch.totalBatches} (${result.batch.remaining} restants)`
+        ? ` · \uD83D\uDCE6 Batch ${result.batch.batch}/${result.batch.totalBatches} (${result.batch.remaining} remaining)`
         : '';
       setLaunchAlert({
         type: 'success',
-        title: result.batch ? `🚀 Batch ${result.batch.batch} déployé vers Lemlist` : '🚀 Campagne déployée vers Lemlist',
+        title: result.batch ? `\uD83D\uDE80 ${t('campaigns.batchDeployed', { batch: result.batch.batch })}` : `\uD83D\uDE80 ${t('campaigns.deployed')}`,
         desc: baseDesc + statusLine + batchLine,
       });
     } catch (err) {
       setLaunchAlert({
         type: 'error',
-        title: 'Échec du lancement Lemlist',
-        desc: err.message || 'Erreur inconnue — vérifie ta clé API Lemlist dans Intégrations.',
+        title: t('campaigns.launchFailed'),
+        desc: err.message || t('campaigns.launchFailedDesc'),
       });
     }
     setLaunching(false);
@@ -170,13 +170,13 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
     <div className="campaign-detail">
       <LoadingOverlay
         show={launching}
-        title="🚀 Déploiement vers Lemlist"
+        title={`\uD83D\uDE80 ${t('campaigns.deployToLemlist')}`}
         steps={LEMLIST_LAUNCH_STEPS}
       />
 
       {/* Back button */}
       <button className="campaign-detail-back" onClick={onBack}>
-        ← Retour aux campagnes
+        {'\u2190'} {t('campaigns.backToCampaigns')}
       </button>
 
       {/* Header */}
@@ -184,22 +184,22 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
         <div>
           <div className="campaign-detail-title">{c.name}</div>
           <div className="campaign-detail-tags">
-            {tags.map((t, i) => (
-              <span className="campaign-tag" key={i}>{t}</span>
+            {tags.map((tg, i) => (
+              <span className="campaign-tag" key={i}>{tg}</span>
             ))}
             {isPrep && (
               <span className="campaign-tag" style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}>
-                ⏳ En préparation
+                {'\u23F3'} {t('campaigns.prep')}
               </span>
             )}
             {isActive && (
               <span className="campaign-tag" style={{ borderColor: 'var(--success)', color: 'var(--success)' }}>
-                ● Active
+                {'\u25CF'} {t('campaigns.statusActive')}
               </span>
             )}
             {isArchived && (
               <span className="campaign-tag" style={{ borderColor: 'var(--text-muted)', color: 'var(--text-muted)' }}>
-                📦 Archivée
+                {'\uD83D\uDCE6'} {t('campaigns.statusArchived')}
               </span>
             )}
           </div>
@@ -212,7 +212,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
               onClick={handleArchive}
               disabled={archiving}
             >
-              {archiving ? '...' : '📦 Archiver'}
+              {archiving ? '...' : `\uD83D\uDCE6 ${t('campaigns.archive')}`}
             </button>
           )}
           {isActive && (
@@ -222,13 +222,13 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
                 style={{ fontSize: '12px', padding: '8px 14px' }}
                 onClick={() => setShowOptimize(true)}
               >
-                🔄 Optimiser la campagne
+                {'\uD83D\uDD04'} {t('campaigns.optimizeCampaign')}
               </button>
               <button
                 onClick={() => setShowHelp(prev => !prev)}
                 onMouseEnter={() => setShowHelp(true)}
                 onMouseLeave={() => setShowHelp(false)}
-                aria-label="Aide — Comment fonctionne l'optimisation"
+                aria-label={t('campaigns.optimizeHelpLabel')}
                 style={{
                   width: 22,
                   height: 22,
@@ -247,7 +247,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
               >
                 ?
               </button>
-              {showHelp && <OptimizeHelpTooltip />}
+              {showHelp && <OptimizeHelpTooltip t={t} />}
             </div>
           )}
           {isPrep && (
@@ -257,7 +257,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
               onClick={handleLaunch}
               disabled={launching}
             >
-              {launching ? '⏳ Déploiement Lemlist...' : '🚀 Lancer vers Lemlist'}
+              {launching ? `\u23F3 ${t('campaigns.launching')}` : `\uD83D\uDE80 ${t('campaigns.launch')}`}
             </button>
           )}
           {isActive && c.batch_mode && c.current_batch < c.total_batches && (
@@ -268,8 +268,8 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
               disabled={launching}
             >
               {launching
-                ? '⏳ Déploiement...'
-                : `📦 Lancer batch ${(c.current_batch || 0) + 1}/${c.total_batches}`}
+                ? `\u23F3 ${t('campaigns.deploying')}`
+                : `\uD83D\uDCE6 ${t('campaigns.launchBatch', { current: (c.current_batch || 0) + 1, total: c.total_batches })}`}
             </button>
           )}
           {isPrep && senders.length > 1 && (
@@ -285,7 +285,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
               }}
-              title="Choisir le sender Lemlist"
+              title={t('campaigns.senderTitle')}
             >
               {senders.map(s => (
                 <option key={s.id} value={s.id}>
@@ -313,7 +313,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             gap: 12,
           }}
         >
-          <span style={{ fontSize: 18 }}>✅</span>
+          <span style={{ fontSize: 18 }}>{'\u2705'}</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600 }}>{optimizeBanner.title}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -325,7 +325,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             style={{ fontSize: 11, padding: '6px 12px' }}
             onClick={() => setOptimizeBanner(null)}
           >
-            ✕
+            {'\u2715'}
           </button>
         </div>
       )}
@@ -338,8 +338,8 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
           onSuccess={(result) => {
             const stepsCount = result?.variants?.length || 0;
             setOptimizeBanner({
-              title: `Optimisation déployée — ${stepsCount} touchpoint${stepsCount > 1 ? 's' : ''} mis à jour`,
-              desc: 'Le nouveau test A/B est visible dans l\'onglet 🧬 A/B Test. Les stats arriveront après les prochains envois Lemlist.',
+              title: t('campaigns.optimizeDeployedTitle', { count: stepsCount, plural: stepsCount > 1 ? 's' : '' }),
+              desc: t('campaigns.optimizeDeployedDesc'),
             });
             // Optionally switch to A/B tab if it's visible
             if (hasABTest || result?.variants?.length) {
@@ -375,7 +375,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
           }}
         >
           <span style={{ fontSize: '18px' }}>
-            {launchAlert.type === 'error' ? '⚠️' : launchAlert.type === 'success' ? '✅' : '⏳'}
+            {launchAlert.type === 'error' ? '\u26A0\uFE0F' : launchAlert.type === 'success' ? '\u2705' : '\u23F3'}
           </span>
           <div style={{ flex: 1 }}>
             <div
@@ -394,7 +394,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
             style={{ fontSize: '11px', padding: '6px 12px' }}
             onClick={() => setLaunchAlert(null)}
           >
-            ✕
+            {'\u2715'}
           </button>
         </div>
       )}
@@ -409,23 +409,23 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
           marginBottom: '24px',
         }}
       >
-        {tabs.map((t) => (
+        {tabs.map((tb) => (
           <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            key={tb.key}
+            onClick={() => setActiveTab(tb.key)}
             style={{
               padding: '10px 18px',
               border: 'none',
               background: 'transparent',
-              borderBottom: `2px solid ${activeTab === t.key ? 'var(--accent)' : 'transparent'}`,
-              color: activeTab === t.key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: activeTab === t.key ? 600 : 500,
+              borderBottom: `2px solid ${activeTab === tb.key ? 'var(--accent)' : 'transparent'}`,
+              color: activeTab === tb.key ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontWeight: activeTab === tb.key ? 600 : 500,
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
           >
-            {t.icon} {t.label}
+            {tb.icon} {tb.label}
           </button>
         ))}
       </div>
@@ -443,7 +443,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
   );
 }
 
-function OptimizeHelpTooltip() {
+function OptimizeHelpTooltip({ t }) {
   return (
     <div
       style={{
@@ -463,17 +463,15 @@ function OptimizeHelpTooltip() {
       }}
     >
       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>
-        Comment fonctionne l'optimisation
+        {t('campaigns.optimizeHelpTitle')}
       </div>
       <div style={{ marginBottom: 10 }}>
-        Baakalai analyse les performances de ta campagne et identifie le touchpoint qui performe le moins.
-        Il propose ensuite une nouvelle variante que tu peux valider avant de la pousser vers Lemlist
-        en A/B testing.
+        {t('campaigns.optimizeHelpBody')}
       </div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-        <div>• Min. 20 prospects contactés</div>
-        <div>• 1 optimisation / 7 jours recommandée</div>
-        <div>• Au-delà de 50 prospects, le pattern alimente la mémoire collective</div>
+        <div>{'\u2022'} {t('campaigns.optimizeHelpMinProspects')}</div>
+        <div>{'\u2022'} {t('campaigns.optimizeHelpFrequency')}</div>
+        <div>{'\u2022'} {t('campaigns.optimizeHelpMemory')}</div>
       </div>
     </div>
   );

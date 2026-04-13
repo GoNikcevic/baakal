@@ -11,6 +11,7 @@ import { useSocket } from '../context/SocketContext';
 import api from '../services/api-client';
 import { sanitizeHtml } from '../services/sanitize';
 import Confetti from '../components/Confetti';
+import { useT } from '../i18n';
 
 /* ─── Helpers ─── */
 
@@ -230,6 +231,7 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
 
 function WebSearchProspectsCard({ metadata, onActionExecute }) {
   const { campaigns } = useApp();
+  const t = useT();
   const [searching, setSearching] = useState(false);
   const [contacts, setContacts] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -262,7 +264,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
         errors: data.errors || [],
       });
     } catch (err) {
-      setError(err.message || 'Recherche web echouee');
+      setError(err.message || t('prospectGen.searchFailed'));
     }
     setSearching(false);
   };
@@ -284,7 +286,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
       setSavedCount(r.created || 0);
       setShowCampaignPicker(false);
     } catch (err) {
-      setError(err.message || 'Sauvegarde echouee');
+      setError(err.message || t('prospectGen.saveFailed'));
     }
     setSaving(false);
   };
@@ -300,13 +302,13 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
 
   return (
     <div className="chat-action-card">
-      <div className="chat-action-title">🌐 Recherche web approfondie</div>
+      <div className="chat-action-title">{'\uD83C\uDF10'} {t('chat.webSearch')}</div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px' }}>
         {companies.length} entreprise{companies.length > 1 ? 's' : ''} :&nbsp;
         {companies.slice(0, 5).join(', ')}{companies.length > 5 ? `, +${companies.length - 5}...` : ''}
       </div>
       <div className="chat-action-params">
-        {titles.map((t, i) => <span key={i} className="chat-action-param">{t}</span>)}
+        {titles.map((ti, i) => <span key={i} className="chat-action-param">{ti}</span>)}
       </div>
 
       {!contacts && (
@@ -317,8 +319,8 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
             disabled={searching}
           >
             {searching
-              ? `Recherche en cours (${companies.length} entreprises)...`
-              : `🔍 Lancer la recherche web (${companies.length} entreprises)`}
+              ? t('chat.webSearching', { count: companies.length })
+              : `\uD83D\uDD0D ${t('chat.launchWebSearch', { count: companies.length })}`}
           </button>
         </div>
       )}
@@ -333,13 +335,13 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
           borderRadius: 6,
           lineHeight: 1.6,
         }}>
-          {stats.searched} entreprises analysees · {stats.withResults} avec resultats
+          {t('chat.companiesAnalyzed', { searched: stats.searched, withResults: stats.withResults })}
           {stats.without.length > 0 && (
-            <span> · Sans resultat : {stats.without.slice(0, 5).join(', ')}{stats.without.length > 5 ? '...' : ''}</span>
+            <span> {'\u00B7'} {t('chat.noResults')} {stats.without.slice(0, 5).join(', ')}{stats.without.length > 5 ? '...' : ''}</span>
           )}
           {stats.errors && stats.errors.length > 0 && (
             <div style={{ marginTop: 4, color: 'var(--danger, #dc2626)' }}>
-              Erreurs : {stats.errors.map(e => `${e.company}: ${e.error}`).join(' | ')}
+              {t('chat.errors')} {stats.errors.map(e => `${e.company}: ${e.error}`).join(' | ')}
             </div>
           )}
         </div>
@@ -348,7 +350,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
       {contacts && contacts.length > 0 && (
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-            {contacts.length} contacts trouves · {selected.size} selectionnes
+            {t('chat.contactsFound', { count: contacts.length, selected: selected.size })}
           </div>
           <div style={{ maxHeight: 240, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
             {contacts.map(c => (
@@ -382,7 +384,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
                     )}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {c.title} · {c.company}
+                    {c.title} {'\u00B7'} {c.company}
                   </div>
                 </div>
               </div>
@@ -391,15 +393,15 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
 
           {savedCount > 0 ? (
             <div style={{ color: 'var(--success)', fontSize: 12, marginTop: 8, fontWeight: 600 }}>
-              {savedCount} prospects ajoutes a la campagne
+              {t('chat.savedToCampaign', { count: savedCount })}
             </div>
           ) : showCampaignPicker ? (
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-                Choisis la campagne :
+                {t('chat.chooseCampaign')}
               </div>
               {pickableCampaigns.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Aucune campagne en preparation.</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('chat.noPrepCampaigns')}</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {pickableCampaigns.map(c => (
@@ -423,7 +425,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
                 onClick={handleSaveClick}
                 disabled={saving || selected.size === 0}
               >
-                {saving ? 'Ajout...' : `+ Ajouter ${selected.size} (choisir campagne)`}
+                {saving ? t('prospectGen.adding') : `+ ${t('chat.addToCampaign', { count: selected.size })}`}
               </button>
             </div>
           )}
@@ -432,7 +434,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
 
       {contacts && contacts.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-          Aucun contact trouve via la recherche web pour ces entreprises.
+          {t('chat.noContactsWeb')}
         </div>
       )}
 
@@ -474,6 +476,7 @@ function ChooseSourceCard({ metadata, onActionExecute }) {
 
 function AddProspectsManualCard({ metadata, onActionExecute }) {
   const { campaigns } = useApp();
+  const t = useT();
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState(null);
@@ -514,7 +517,7 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
       setSavedCount(r.created || 0);
       setShowCampaignPicker(false);
     } catch (err) {
-      setError(err.message || 'Sauvegarde échouée');
+      setError(err.message || t('prospectGen.saveFailed'));
     }
     setSaving(false);
   };
@@ -538,15 +541,15 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
 
   return (
     <div className="chat-action-card">
-      <div className="chat-action-title">📋 Ajouter une liste de prospects</div>
+      <div className="chat-action-title">{'\uD83D\uDCCB'} {t('chat.addProspectsList')}</div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 10px' }}>
-        {contacts.length} contact{contacts.length > 1 ? 's' : ''} détecté{contacts.length > 1 ? 's' : ''}
-        {metadata.campaignName && <> · destination : <strong>{metadata.campaignName}</strong></>}
+        {t('chat.contactsDetected', { count: contacts.length, plural: contacts.length > 1 ? 's' : '', pluralDetected: contacts.length > 1 ? 's' : '' })}
+        {metadata.campaignName && <> {'\u00B7'} {t('chat.destination')} <strong>{metadata.campaignName}</strong></>}
       </div>
 
       {contacts.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--danger, #dc2626)' }}>
-          Aucun contact valide (email manquant). Vérifie que la liste contient bien des emails.
+          {t('chat.noValidContacts')}
         </div>
       )}
 
@@ -569,19 +572,19 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
               gap: 8,
             }}>
               <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {c.name || '—'}
+                {c.name || '\u2014'}
               </div>
               <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {c.title || '—'}
+                {c.title || '\u2014'}
               </div>
               <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {c.company || '—'} · {c.email}
+                {c.company || '\u2014'} {'\u00B7'} {c.email}
               </div>
             </div>
           ))}
           {contacts.length > 8 && (
             <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
-              + {contacts.length - 8} autres…
+              {t('chat.moreContacts', { count: contacts.length - 8 })}
             </div>
           )}
         </div>
@@ -589,16 +592,16 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
 
       {savedCount > 0 ? (
         <div style={{ color: 'var(--success)', fontSize: 12, fontWeight: 600 }}>
-          ✅ {savedCount} prospect{savedCount > 1 ? 's' : ''} ajouté{savedCount > 1 ? 's' : ''} à la campagne
+          {'\u2705'} {t('chat.prospectsAdded', { count: savedCount, plural: savedCount > 1 ? 's' : '', pluralAdded: savedCount > 1 ? 's' : '' })}
         </div>
       ) : showCampaignPicker ? (
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-            Choisis la campagne où ajouter les {contacts.length} prospects :
+            {t('chat.chooseCampaignForCount', { count: contacts.length })}
           </div>
           {pickableCampaigns.length === 0 ? (
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Aucune campagne en préparation. Crée-en d'abord une.
+              {t('chat.noPrepCampaignsCreate')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflow: 'auto' }}>
@@ -612,7 +615,7 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
                 >
                   <div style={{ fontWeight: 600, fontSize: 12 }}>{c.name}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {[c.sector, c.size].filter(Boolean).join(' · ')}
+                    {[c.sector, c.size].filter(Boolean).join(' \u00B7 ')}
                   </div>
                 </button>
               ))}
@@ -623,7 +626,7 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
             onClick={() => setShowCampaignPicker(false)}
             style={{ marginTop: 8, fontSize: 11 }}
           >
-            Annuler
+            {t('common.cancel')}
           </button>
         </div>
       ) : contacts.length > 0 ? (
@@ -634,17 +637,17 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
             disabled={saving}
           >
             {saving
-              ? 'Ajout...'
+              ? t('prospectGen.adding')
               : metadata.campaignId
-                ? `➕ Ajouter ${contacts.length} à la campagne`
-                : `➕ Ajouter ${contacts.length} (choisir une campagne)`}
+                ? `\u2795 ${t('chat.addCountToCampaign', { count: contacts.length })}`
+                : `\u2795 ${t('chat.addCountChoose', { count: contacts.length })}`}
           </button>
         </div>
       ) : null}
 
       {error && (
         <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 8 }}>
-          ⚠️ {error}
+          {'\u26A0\uFE0F'} {error}
         </div>
       )}
     </div>
@@ -653,6 +656,7 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
 
 function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
   const navigate = useNavigate();
+  const t = useT();
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
   const [createdId, setCreatedId] = useState(null);
@@ -691,7 +695,7 @@ function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
 
   return (
     <div className="chat-action-card">
-      <div className="chat-action-title">Campagne prête : {campaign.name}</div>
+      <div className="chat-action-title">{t('chat.campaignReady', { name: campaign.name })}</div>
       <div className="chat-action-params">{params}</div>
       {steps && <div className="chat-action-sequence">{steps}</div>}
       <div className="chat-action-buttons">
@@ -702,10 +706,10 @@ function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
               onClick={handleCreate}
               disabled={creating}
             >
-              {creating ? '⏳ Création...' : 'Créer la campagne'}
+              {creating ? `\u23F3 ${t('chat.creating')}` : t('chat.createCampaign')}
             </button>
             <button className="chat-action-btn ghost" onClick={onModify} disabled={creating}>
-              Modifier
+              {t('chat.modify')}
             </button>
           </>
         ) : (
@@ -714,7 +718,7 @@ function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
             onClick={handleViewCampaign}
             disabled={!createdId}
           >
-            ✅ Campagne créée · Voir la campagne →
+            {'\u2705'} {t('chat.viewCampaign')}
           </button>
         )}
       </div>
@@ -724,6 +728,7 @@ function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
 
 function ProspectSearchCard({ metadata, onActionExecute }) {
   const { campaigns } = useApp();
+  const t = useT();
   const [searching, setSearching] = useState(false);
   const [contacts, setContacts] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -763,7 +768,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
       if (data.diagnostics) setDiagnostics(data.diagnostics);
       if (data.fallback) setFallback(data.fallback);
     } catch (err) {
-      setError(err.message || 'Recherche échouée');
+      setError(err.message || t('prospectGen.searchFailed'));
     }
     setSearching(false);
   };
@@ -785,7 +790,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
       setSavedCount(r.created || 0);
       setShowCampaignPicker(false);
     } catch (err) {
-      setError(err.message || 'Sauvegarde échouée');
+      setError(err.message || t('prospectGen.saveFailed'));
     }
     setSaving(false);
   };
@@ -816,7 +821,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
 
   return (
     <div className="chat-action-card">
-      <div className="chat-action-title">🎯 Recherche de prospects ({sourceLabel})</div>
+      <div className="chat-action-title">{'\uD83C\uDFAF'} {t('chat.prospectSearch', { source: sourceLabel })}</div>
       <div className="chat-action-params">
         {criteriaSummary.map((s, i) => (
           <span key={i} className="chat-action-param">{s}</span>
@@ -830,12 +835,12 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
             onClick={handleSearch}
             disabled={searching}
           >
-            {searching ? 'Recherche...' : `🔍 Lancer la recherche (${metadata.limit || 25} max)`}
+            {searching ? t('chat.searchingShort') : `\uD83D\uDD0D ${t('chat.launchSearch', { limit: metadata.limit || 25 })}`}
           </button>
         </div>
       )}
 
-      {/* Fallback banner — Lemlist indisponible → Apollo */}
+      {/* Fallback banner */}
       {fallback && (
         <div style={{
           marginTop: 12,
@@ -846,12 +851,12 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
           fontSize: 11,
           color: 'var(--warning, #d97706)',
           lineHeight: 1.5,
-        }}>
-          ⚠️ Lemlist Leads indisponible — résultats via <strong>Apollo</strong> (fallback automatique).
-        </div>
+        }}
+          dangerouslySetInnerHTML={{ __html: `\u26A0\uFE0F ${t('chat.fallbackBanner')}` }}
+        />
       )}
 
-      {/* Filter diagnostics — critères ignorés */}
+      {/* Filter diagnostics */}
       {diagnostics && (diagnostics.dropped?.length > 0) && (
         <div style={{
           marginTop: 12,
@@ -864,29 +869,29 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
           lineHeight: 1.5,
         }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            ⚠️ Filtres non appliqués — résultats peu pertinents
+            {'\u26A0\uFE0F'} {t('chat.diagnosticsTitle')}
           </div>
           <div>
-            Ignorés par Lemlist :&nbsp;
+            {t('chat.diagnosticsDropped')}&nbsp;
             <strong>{diagnostics.dropped.map(d => d.criterion).join(', ')}</strong>.
-            &nbsp;·&nbsp; Seuls envoyés :&nbsp;
+            &nbsp;{'\u00B7'}&nbsp; {t('chat.diagnosticsApplied')}&nbsp;
             {(diagnostics.applied?.length ?? 0) > 0
               ? <strong>{diagnostics.applied.map(a => a.criterion).join(', ')}</strong>
-              : <strong>aucun</strong>}.
+              : <strong>{t('chat.diagnosticsNone')}</strong>}.
           </div>
         </div>
       )}
 
       {contacts && contacts.length === 0 && (
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-          Aucun contact trouvé pour ces critères.
+          {t('chat.noContactsFound')}
         </div>
       )}
 
       {contacts && contacts.length > 0 && (
         <div style={{ marginTop: '12px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-            {contacts.length} résultats · {selected.size} sélectionnés
+            {t('chat.resultsAndSelected', { results: contacts.length, selected: selected.size })}
           </div>
           <div style={{ maxHeight: 240, overflow: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
             {contacts.map(c => (
@@ -906,10 +911,10 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
                 <input type="checkbox" checked={selected.has(c.id)} readOnly />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 600 }}>
-                    {c.name} {!c.email && <span style={{ color: 'var(--warning)', fontSize: 10 }}>(sans email)</span>}
+                    {c.name} {!c.email && <span style={{ color: 'var(--warning)', fontSize: 10 }}>{t('common.noEmail')}</span>}
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {c.title} · {c.company}
+                    {c.title} {'\u00B7'} {c.company}
                   </div>
                 </div>
               </div>
@@ -918,16 +923,16 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
 
           {savedCount > 0 ? (
             <div style={{ color: 'var(--success)', fontSize: 12, marginTop: 8, fontWeight: 600 }}>
-              ✅ {savedCount} prospects ajoutés à la campagne
+              {'\u2705'} {t('chat.savedToCampaign', { count: savedCount })}
             </div>
           ) : showCampaignPicker ? (
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-                Choisis la campagne où ajouter les {selected.size} prospects :
+                {t('chat.chooseCampaignForCount', { count: selected.size })}
               </div>
               {pickableCampaigns.length === 0 ? (
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>
-                  Aucune campagne en préparation. Crée d'abord une campagne via le chat.
+                  {t('chat.noPrepCampaignsChat')}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflow: 'auto' }}>
@@ -941,7 +946,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
                     >
                       <div style={{ fontWeight: 600, fontSize: 12 }}>{c.name}</div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                        {[c.sector, c.size].filter(Boolean).join(' · ')}
+                        {[c.sector, c.size].filter(Boolean).join(' \u00B7 ')}
                       </div>
                     </button>
                   ))}
@@ -952,7 +957,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
                 onClick={() => setShowCampaignPicker(false)}
                 style={{ marginTop: 8, fontSize: 11 }}
               >
-                Annuler
+                {t('common.cancel')}
               </button>
             </div>
           ) : (
@@ -962,9 +967,9 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
                 onClick={handleSaveClick}
                 disabled={saving || selected.size === 0}
               >
-                {saving ? 'Ajout...' : metadata.campaignId
-                  ? `➕ Ajouter ${selected.size} à la campagne`
-                  : `➕ Ajouter ${selected.size} (choisir une campagne)`}
+                {saving ? t('prospectGen.adding') : metadata.campaignId
+                  ? `\u2795 ${t('chat.addCountToCampaign', { count: selected.size })}`
+                  : `\u2795 ${t('chat.addCountChoose', { count: selected.size })}`}
               </button>
             </div>
           )}
@@ -973,7 +978,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
 
       {error && (
         <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 8 }}>
-          ⚠️ {error}
+          {'\u26A0\uFE0F'} {error}
         </div>
       )}
     </div>

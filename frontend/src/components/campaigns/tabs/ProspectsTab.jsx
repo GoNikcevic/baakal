@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../../services/api-client';
 import ProspectGenerator from '../ProspectGenerator';
+import { useT } from '../../../i18n';
 
 export default function ProspectsTab({ campaign: c }) {
+  const t = useT();
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +48,7 @@ export default function ProspectsTab({ campaign: c }) {
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm(`Supprimer les ${prospects.length} prospects de cette campagne ?`)) return;
+    if (!window.confirm(t('campaigns.confirmDeleteAll', { count: prospects.length }))) return;
     const backendId = c._backendId || c.id;
     try {
       await api.request(`/campaigns/${backendId}/prospects`, { method: 'DELETE' });
@@ -78,7 +80,7 @@ export default function ProspectsTab({ campaign: c }) {
       const data = await api.revealEmails('lemlist', leads);
       if (!data.jobId || data.dispatched === 0) {
         setRevealError(
-          `Impossible de révéler : ${data.errors || leads.length} contacts ne respectent pas les critères Lemlist (LinkedIn URL OU nom + entreprise requis).`
+          t('campaigns.revealCannotMsg', { errors: data.errors || leads.length })
         );
         setRevealing(false);
         return;
@@ -122,7 +124,7 @@ export default function ProspectsTab({ campaign: c }) {
         }
       }, 3000);
     } catch (err) {
-      setRevealError(err.message || 'Révélation échouée');
+      setRevealError(err.message || t('campaigns.revealFailed'));
       setRevealing(false);
     }
   };
@@ -147,7 +149,7 @@ export default function ProspectsTab({ campaign: c }) {
           marginBottom: 16,
         }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>
-            📋 Prospects liés à la campagne ({prospects.length})
+            {'\uD83D\uDCCB'} {t('campaigns.prospectsLinked', { count: prospects.length })}
           </div>
 
           {/* Action buttons */}
@@ -158,7 +160,7 @@ export default function ProspectsTab({ campaign: c }) {
               onClick={handleDeleteAll}
               style={{ fontSize: 11, padding: '6px 10px', color: 'var(--text-muted)' }}
             >
-              🗑 Tout supprimer
+              {'\uD83D\uDDD1'} {t('campaigns.deleteAll')}
             </button>
           )}
           {prospectsWithoutEmail.length > 0 && !loading && (
@@ -169,8 +171,8 @@ export default function ProspectsTab({ campaign: c }) {
               style={{ fontSize: 12, padding: '8px 14px' }}
             >
               {revealing
-                ? `⏳ Révélation ${revealProgress.done}/${revealProgress.total}...`
-                : `🔓 Révéler ${prospectsWithoutEmail.length} email${prospectsWithoutEmail.length > 1 ? 's' : ''} (${prospectsWithoutEmail.length} crédits)`}
+                ? `\u23F3 ${t('campaigns.revealing', { done: revealProgress.done, total: revealProgress.total })}`
+                : `\uD83D\uDD13 ${t('campaigns.revealEmails', { count: prospectsWithoutEmail.length })}`}
             </button>
           )}
           </div>
@@ -186,15 +188,15 @@ export default function ProspectsTab({ campaign: c }) {
             color: 'var(--danger, #dc2626)',
             marginBottom: 12,
           }}>
-            ⚠️ {revealError}
+            {'\u26A0\uFE0F'} {revealError}
           </div>
         )}
 
         {loading ? (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Chargement...</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('common.loading')}</div>
         ) : prospects.length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0' }}>
-            Aucun prospect pour le moment. Génère-en avec le panel ci-dessus ou ajoute-en depuis le chat.
+            {t('campaigns.noProspectsYet')}
           </div>
         ) : (
           <div style={{ maxHeight: 400, overflow: 'auto' }}>
@@ -218,7 +220,7 @@ export default function ProspectsTab({ campaign: c }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        title="Voir le profil LinkedIn"
+                        title={t('campaigns.viewLinkedIn')}
                         style={{ color: 'var(--blue, #0077b5)', fontSize: 11, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
@@ -226,8 +228,8 @@ export default function ProspectsTab({ campaign: c }) {
                       </a>
                     )}
                     {p.email
-                      ? <span style={{ color: 'var(--success, #16a34a)', fontSize: 10 }}>✓ {p.email}</span>
-                      : <span style={{ color: 'var(--warning)', fontSize: 10 }}>(sans email)</span>}
+                      ? <span style={{ color: 'var(--success, #16a34a)', fontSize: 10 }}>{'\u2713'} {p.email}</span>
+                      : <span style={{ color: 'var(--warning)', fontSize: 10 }}>{t('common.noEmail')}</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {p.title && <span style={{ color: 'var(--text-secondary)' }}>{p.title}</span>}
@@ -253,7 +255,7 @@ export default function ProspectsTab({ campaign: c }) {
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteProspect(p.id); }}
-                    title="Supprimer ce prospect"
+                    title={t('campaigns.deleteProspect')}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -268,7 +270,7 @@ export default function ProspectsTab({ campaign: c }) {
                     onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
                   >
-                    ×
+                    {'\u00D7'}
                   </button>
                 </div>
               </div>
