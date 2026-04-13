@@ -223,7 +223,10 @@ router.post('/threads/:id/messages', async (req, res, next) => {
 
     const saved = await db.chatMessages.create(thread.id, 'assistant', aiResponse.content, metadata);
 
-    // Notify stream end with full content so frontend can add the message
+    // Notify stream end with full content so frontend can add the message.
+    // This is the ONLY socket event that adds the assistant message to the UI.
+    // We intentionally do NOT also emit 'chat:message' here — that caused
+    // duplicate messages because the frontend was receiving both events.
     notifyUser(userId, 'chat:stream-end', {
       threadId,
       fullContent: aiResponse.content,
@@ -244,7 +247,9 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       created_at: new Date().toISOString(),
     };
 
-    emitToThread(thread.id, 'chat:message', responseMsg);
+    // NOTE: emitToThread('chat:message') removed here — it was sending the same
+    // message a second time. stream-end already delivered the full content.
+    // If multi-user threading is needed later, add dedup by message ID.
 
     res.json({ message: responseMsg, usage: aiResponse.usage });
   } catch (err) {
