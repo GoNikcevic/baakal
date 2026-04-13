@@ -141,7 +141,13 @@
     "deleteProspect": "Supprimer ce prospect",
     "confirmDeleteAll": "Supprimer les {count} prospects de cette campagne ?",
     "revealFailed": "Révélation échouée",
-    "revealCannotMsg": "Impossible de révéler : {errors} contacts ne respectent pas les critères Lemlist (LinkedIn URL OU nom + entreprise requis)."
+    "revealCannotMsg": "Impossible de révéler : {errors} contacts ne respectent pas les critères Lemlist (LinkedIn URL OU nom + entreprise requis).",
+    "enrichProspects": "Personnaliser les accroches",
+    "enriching": "Personnalisation en cours...",
+    "enrichDoneTitle": "{count} prospect(s) enrichi(s)",
+    "enrichDoneDesc": "{skipped} ignoré(s) · {errors} erreur(s)",
+    "enrichFailed": "Échec de la personnalisation",
+    "enrichFailedDesc": "Erreur inconnue — vérifiez votre clé API Brave Search."
   },
   "prospectGen": {
     "title": "Générer des prospects",
@@ -273,5 +279,16 @@
     "model": "Modèle Claude",
     "tone": "Ton par défaut",
     "formality": "Formalité"
+  },
+  "onboarding": {
+    "title": "Bienvenue sur Baakalai !",
+    "subtitle": "Configuration {done}/{total}",
+    "profileFilled": "Profil entreprise complété",
+    "lemlistConnected": "Lemlist connecté",
+    "firstCampaign": "Première campagne créée",
+    "prospectsAdded": "Prospects ajoutés",
+    "firstLaunch": "Première campagne lancée",
+    "continueChat": "Continuer la configuration dans le chat →",
+    "allDone": "Tout est prêt ! Tu peux commencer à prospecter."
   }
 }

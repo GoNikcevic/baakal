@@ -14,6 +14,7 @@ import PerformanceChart from '../components/charts/PerformanceChart';
 import { sanitizeHtml } from '../services/sanitize';
 import ScoreBadge from '../components/ScoreBadge';
 import AnimatedCounter from '../components/AnimatedCounter';
+import OnboardingChecklist from '../components/OnboardingChecklist';
 import { scoreLeads, exportScoresToCRM, downloadScoresCSV, sendRecoFeedback } from '../services/api-client';
 
 const KPI_LABELS = {
@@ -102,6 +103,9 @@ export default function DashboardPage() {
           <span>Analyse {syncStatus.type} en cours — {syncStatus.message || `${syncStatus.progress || 0}%`}</span>
         </div>
       )}
+
+      {/* Onboarding checklist for new users */}
+      <OnboardingChecklist />
 
       {/* Overview content */}
       <OverviewSection

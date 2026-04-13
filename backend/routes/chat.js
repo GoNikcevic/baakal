@@ -91,12 +91,13 @@ router.post('/threads/:id/messages', async (req, res, next) => {
 
     // Build bounded context — all queries in parallel
     const { listUserSources } = require('../lib/prospect-sources');
-    const [profile, docs, campaigns, patterns, prospectSources] = await Promise.all([
+    const [profile, docs, campaigns, patterns, prospectSources, userIntegrations] = await Promise.all([
       db.profiles.get(req.user.id),
       db.documents.getParsedTextByUser(req.user.id, 5),
       db.campaigns.list({ userId: req.user.id, limit: MAX_CAMPAIGNS_IN_CONTEXT }),
       db.memoryPatterns.list({ limit: MAX_PATTERNS_IN_CONTEXT }),
       listUserSources(req.user.id),
+      db.userIntegrations.listByUser(req.user.id),
     ]);
 
     const contextParts = [];
@@ -204,6 +205,38 @@ router.post('/threads/:id/messages', async (req, res, next) => {
       if (versionLines.length > 0) {
         contextParts.push(`OPTIMISATIONS RÉCENTES:\n${versionLines.join('\n')}`);
       }
+    }
+
+    // ── Onboarding detection ──
+    // Detect if the user is new and inject onboarding context dynamically.
+    // A user is considered "new" if they have no campaigns AND an incomplete profile.
+    const profileFilled = !!(profile && profile.company && profile.sector);
+    const hasCampaigns = campaigns.length > 0;
+    const lemlistConnected = userIntegrations.some(i => i.provider === 'lemlist' && i.access_token);
+    const apolloConnected = userIntegrations.some(i => i.provider === 'apollo' && i.access_token);
+    const hasDocuments = docs && docs.length > 0;
+    const hasActiveCampaign = campaigns.some(c => c.status === 'active');
+
+    if (!profileFilled || !hasCampaigns) {
+      const onboardingLines = [
+        'ONBOARDING STATUS: This user is NEW.',
+        `- Profile: ${profileFilled ? 'FILLED' : 'NOT filled (no company, no sector, no targets)'}`,
+        `- Campaigns: ${campaigns.length} created`,
+        `- Integrations: Lemlist ${lemlistConnected ? 'CONNECTED' : 'NOT connected'} / Apollo ${apolloConnected ? 'CONNECTED' : 'NOT connected'}`,
+        `- Documents: ${docs ? docs.length : 0} uploaded`,
+        '',
+        'ONBOARDING INSTRUCTIONS: Guide this user step by step. Be warm and helpful.',
+        'Start by asking about their company and what they do, then help them:',
+        '1. Fill their company profile (propose to do it conversationally)',
+        '2. Connect Lemlist (explain where to find the API key)',
+        '3. Create their first campaign',
+        '4. Search for prospects',
+        '5. Launch',
+        '',
+        'Use quick_replies buttons at each step to make it easy.',
+        "Don't overwhelm — one step at a time.",
+      ];
+      contextParts.push(onboardingLines.join('\n'));
     }
 
     // Detect user language for Claude response language
