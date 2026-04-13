@@ -13,6 +13,8 @@ const hubspot = require('../api/hubspot');
 const salesforce = require('../api/salesforce');
 const pipedrive = require('../api/pipedrive');
 const folk = require('../api/folk');
+const notionCrm = require('../api/notion-crm');
+const airtableCrm = require('../api/airtable-crm');
 const { decrypt } = require('../config/crypto');
 
 const router = Router();
@@ -227,7 +229,8 @@ async function syncOpportunityToHubspot(accessToken, opportunity) {
 
 router.get('/providers', async (req, res, next) => {
   try {
-    const providers = ['hubspot', 'salesforce', 'pipedrive', 'folk'];
+    const providers = ['hubspot', 'salesforce', 'pipedrive', 'folk', 'notion', 'airtable'];
+    const labelMap = { hubspot: 'HubSpot', salesforce: 'Salesforce', pipedrive: 'Pipedrive', folk: 'Folk', notion: 'Notion', airtable: 'Airtable' };
     const statuses = [];
 
     for (const provider of providers) {
@@ -235,12 +238,37 @@ router.get('/providers', async (req, res, next) => {
       statuses.push({
         provider,
         connected: !!integration,
-        label: provider === 'hubspot' ? 'HubSpot' : provider === 'salesforce' ? 'Salesforce' : provider === 'pipedrive' ? 'Pipedrive' : 'Folk',
+        label: labelMap[provider] || provider,
       });
     }
 
     res.json({ providers: statuses });
   } catch (err) {
+    next(err);
+  }
+});
+
+// =============================================
+// GET /api/crm/notion/databases — List user's Notion databases
+// =============================================
+
+router.get('/notion/databases', async (req, res, next) => {
+  try {
+    const integration = await db.userIntegrations.get(req.user.id, 'notion');
+    if (!integration) {
+      return res.status(400).json({ error: 'Notion not configured. Add your integration token in Settings.' });
+    }
+
+    let token;
+    try { token = decrypt(integration.access_token); } catch { return res.status(400).json({ error: 'Invalid stored Notion credentials' }); }
+
+    const databases = await notionCrm.listDatabases(token);
+    res.json({ databases });
+  } catch (err) {
+    // Handle Notion API errors gracefully
+    if (err.code === 'unauthorized' || err.status === 401) {
+      return res.status(401).json({ error: 'Notion token is invalid or expired. Re-connect in Settings.' });
+    }
     next(err);
   }
 });
@@ -309,6 +337,32 @@ router.post('/sync-to/:provider', async (req, res, next) => {
       const person = await folk.createPerson(token, personData);
       result = { opportunityId: opportunity.id, provider: 'folk', personId: person.id };
       await db.opportunities.update(opportunity.id, { crm_provider: 'folk', crm_contact_id: person.id });
+    } else if (provider === 'notion') {
+      const metadata = typeof integration.metadata === 'string' ? JSON.parse(integration.metadata) : (integration.metadata || {});
+      const databaseId = metadata.database_id;
+      if (!databaseId) return res.status(400).json({ error: 'Notion database ID not configured. Select a database in Settings.' });
+
+      const prospect = {
+        name: opportunity.name || '',
+        email: opportunity.email || '',
+        title: opportunity.title || '',
+        company: opportunity.company || '',
+        company_size: opportunity.company_size || '',
+        linkedin_url: opportunity.linkedin_url || '',
+      };
+      const { pageId } = await notionCrm.pushProspectToNotion(token, databaseId, prospect);
+      result = { opportunityId: opportunity.id, provider: 'notion', pageId };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'notion', crm_contact_id: pageId });
+    } else if (provider === 'airtable') {
+      const metadata = typeof integration.metadata === 'string' ? JSON.parse(integration.metadata) : (integration.metadata || {});
+      const baseId = metadata.base_id;
+      const tableName = metadata.table_name;
+      if (!baseId || !tableName) return res.status(400).json({ error: 'Airtable base ID and table name not configured. Update in Settings.' });
+
+      const prospect = airtableCrm.mapOpportunityToProspect(opportunity);
+      const { recordId } = await airtableCrm.pushProspectToAirtable(token, baseId, tableName, prospect);
+      result = { opportunityId: opportunity.id, provider: 'airtable', recordId };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'airtable', crm_contact_id: recordId });
     } else {
       return res.status(400).json({ error: `Unsupported CRM provider: ${provider}` });
     }
@@ -354,6 +408,34 @@ router.post('/bulk-sync/:provider', async (req, res, next) => {
 
     res.json({ synced: results.length, errors: errors.length, total: opportunities.length });
   } catch (err) {
+    next(err);
+  }
+});
+
+// =============================================
+// GET /api/crm/airtable/tables — List tables in user's Airtable base
+// =============================================
+
+router.get('/airtable/tables', async (req, res, next) => {
+  try {
+    const integration = await db.userIntegrations.get(req.user.id, 'airtable');
+    if (!integration) {
+      return res.status(400).json({ error: 'Airtable not configured. Add your API key in Settings.' });
+    }
+
+    let token;
+    try { token = decrypt(integration.access_token); } catch { return res.status(400).json({ error: 'Invalid stored Airtable credentials' }); }
+
+    const metadata = typeof integration.metadata === 'string' ? JSON.parse(integration.metadata) : (integration.metadata || {});
+    const baseId = metadata.base_id;
+    if (!baseId) return res.status(400).json({ error: 'Airtable base ID not configured. Update in Settings.' });
+
+    const { tables } = await airtableCrm.listAirtableTables(token, baseId);
+    res.json({ tables });
+  } catch (err) {
+    if (err.status === 401 || err.status === 403) {
+      return res.status(401).json({ error: 'Airtable token is invalid or expired. Re-connect in Settings.' });
+    }
     next(err);
   }
 });
