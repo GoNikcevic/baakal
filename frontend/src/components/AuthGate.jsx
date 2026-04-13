@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { login, register, resendVerification } from '../services/auth';
+import { useT } from '../i18n';
 
 /* ─── Inline styles matching the vanilla app's auth overlay ─── */
 const styles = {
@@ -127,6 +128,7 @@ const styles = {
 };
 
 export default function AuthGate({ onAuth }) {
+  const t = useT();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -260,7 +262,7 @@ export default function AuthGate({ onAuth }) {
             </span>
           </div>
           <p style={styles.subtitle}>
-            Plateforme de prospection intelligente
+            {t('common.tagline') || 'Plateforme de prospection intelligente'}
           </p>
         </div>
 
@@ -277,16 +279,16 @@ export default function AuthGate({ onAuth }) {
             }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📬</div>
               <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-                Vérifie ta boîte de réception
+                {t('auth.checkEmail')}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 4 }}>
-                On vient d'envoyer un lien de confirmation à&nbsp;:
+                {t('auth.checkEmailDesc')}
               </p>
               <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 12 }}>
                 {registeredEmail}
               </p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Clique sur le lien dans l'email pour activer ton compte Baakalai, puis reviens ici pour te connecter.
+                {t('auth.checkEmailAction')}
               </p>
             </div>
 
@@ -315,8 +317,8 @@ export default function AuthGate({ onAuth }) {
               }}
             >
               {resendCooldown > 0
-                ? `Renvoyer dans ${resendCooldown}s`
-                : 'Je n\'ai rien reçu — Renvoyer l\'email'}
+                ? t('auth.resendIn', { seconds: resendCooldown })
+                : t('auth.resend')}
             </button>
 
             <button
@@ -332,7 +334,7 @@ export default function AuthGate({ onAuth }) {
               }}
               style={styles.submitBtn}
             >
-              Retour à la connexion
+              {t('auth.backToLogin')}
             </button>
           </div>
         ) :
@@ -420,7 +422,7 @@ export default function AuthGate({ onAuth }) {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Se connecter avec Google
+            {t('auth.googleLogin')}
           </button>
 
           <div style={{ textAlign: 'center', margin: '12px 0', fontSize: 12, color: 'var(--text-muted)' }}>ou</div>
@@ -440,7 +442,7 @@ export default function AuthGate({ onAuth }) {
             gap: 8,
           }}>
             <span>✅</span>
-            <span>Email vérifié. Tu peux maintenant te connecter.</span>
+            <span>{t('auth.verified')}</span>
           </div>
         )}
 
@@ -449,7 +451,7 @@ export default function AuthGate({ onAuth }) {
           {isRegister && (
             <div style={styles.fieldGroup}>
               <label style={styles.label} htmlFor="auth-name">
-                Nom complet
+                {t('auth.name')}
               </label>
               <input
                 ref={firstInputRef}
@@ -469,7 +471,7 @@ export default function AuthGate({ onAuth }) {
           {/* Email */}
           <div style={styles.fieldGroup}>
             <label style={styles.label} htmlFor="auth-email">
-              Email
+              {t('auth.email')}
             </label>
             <input
               ref={isRegister ? undefined : firstInputRef}
@@ -489,8 +491,7 @@ export default function AuthGate({ onAuth }) {
           {isRegister && (
             <div style={styles.fieldGroup}>
               <label style={styles.label} htmlFor="auth-company">
-                Entreprise{' '}
-                <span style={styles.labelOptional}>(optionnel)</span>
+                {t('auth.companyOptional')}
               </label>
               <input
                 type="text"
@@ -508,7 +509,7 @@ export default function AuthGate({ onAuth }) {
           {/* Password */}
           <div style={{ marginBottom: 8 }}>
             <label style={styles.label} htmlFor="auth-password">
-              Mot de passe
+              {t('auth.password')}
             </label>
             <input
               type="password"
@@ -536,7 +537,7 @@ export default function AuthGate({ onAuth }) {
                 style={{ ...styles.toggleLink, fontSize: 12, color: 'var(--text-muted)' }}
                 onClick={() => { setShowForgot(true); setError(''); }}
               >
-                Mot de passe oublié ?
+                {t('auth.forgotPassword')}
               </button>
             </div>
           )}
@@ -555,21 +556,21 @@ export default function AuthGate({ onAuth }) {
             }}
           >
             {loading
-              ? 'Chargement...'
+              ? t('auth.loading')
               : isRegister
-                ? 'Créer mon compte'
-                : 'Se connecter'}
+                ? t('auth.createAccount')
+                : t('auth.login')}
           </button>
 
           {/* Toggle login / register */}
           <p style={styles.toggleText}>
-            {isRegister ? 'Déjà un compte ? ' : 'Pas encore de compte ? '}
+            {isRegister ? t('auth.hasAccount') + ' ' : t('auth.noAccount') + ' '}
             <button
               type="button"
               style={styles.toggleLink}
               onClick={toggleMode}
             >
-              {isRegister ? 'Se connecter' : 'Créer un compte'}
+              {isRegister ? t('auth.login') : t('auth.register')}
             </button>
           </p>
         </form>

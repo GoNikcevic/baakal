@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import { NotificationProvider } from './context/NotificationContext'
+import { I18nProvider } from './i18n'
 import ErrorBoundary from './components/ErrorBoundary'
 import ToastContainer from './components/ToastContainer'
 import App from './App.jsx'
@@ -16,12 +17,14 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <NotificationProvider>
-          <AppProvider>
-            <App />
-            <ToastContainer />
-          </AppProvider>
-        </NotificationProvider>
+        <I18nProvider>
+          <NotificationProvider>
+            <AppProvider>
+              <App />
+              <ToastContainer />
+            </AppProvider>
+          </NotificationProvider>
+        </I18nProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </StrictMode>,
