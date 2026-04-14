@@ -292,6 +292,20 @@
     "replyRate": "Reply rate",
     "meetings": "Meetings booked"
   },
+  "deliverability": {
+    "title": "Deliverability Health",
+    "score": "Score",
+    "excellent": "Excellent",
+    "good": "Good",
+    "warning": "Warning",
+    "critical": "Critical",
+    "checkNow": "Check now",
+    "checking": "Checking...",
+    "noActiveCampaigns": "No active campaigns to check",
+    "recommendation": "Recommendation",
+    "allGood": "No issues detected",
+    "checked": "campaigns checked"
+  },
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",

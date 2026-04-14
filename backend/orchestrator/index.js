@@ -84,7 +84,17 @@ function start() {
     }
   });
 
-  console.log('[orchestrator] Scheduler active — WF1: daily 8:00 AM, WF3: monthly 1st 9:00 AM, Pruning: monthly 1st 10:00 AM, Templates: monthly 1st 11:00 AM, Batch A/B: 8:00 AM + 8:00 PM');
+  // Deliverability checks — daily at 10:00 AM
+  cron.schedule('0 8 * * *', async () => {
+    try {
+      const { runDeliverabilityChecks } = require('../lib/deliverability-agent');
+      await runDeliverabilityChecks();
+    } catch (err) {
+      logger.error('orchestrator', 'Deliverability checks failed: ' + err.message);
+    }
+  });
+
+  console.log('[orchestrator] Scheduler active — WF1: daily 8:00 AM, WF3: monthly 1st 9:00 AM, Pruning: monthly 1st 10:00 AM, Templates: monthly 1st 11:00 AM, Batch A/B: 8:00 AM + 8:00 PM, Deliverability: daily 10:00 AM');
 }
 
 module.exports = { start, collectStats, regenerate, consolidate, runBatchOrchestrator };

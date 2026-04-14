@@ -301,6 +301,20 @@
     "hoursAgo": "Il y a {count}h",
     "daysAgo": "Il y a {count}j"
   },
+  "deliverability": {
+    "title": "Santé délivrabilité",
+    "score": "Score",
+    "excellent": "Excellent",
+    "good": "Bon",
+    "warning": "Attention",
+    "critical": "Critique",
+    "checkNow": "Vérifier maintenant",
+    "checking": "Vérification...",
+    "noActiveCampaigns": "Aucune campagne active à vérifier",
+    "recommendation": "Recommandation",
+    "allGood": "Aucun problème détecté",
+    "checked": "campagnes vérifiées"
+  },
   "onboarding": {
     "title": "Bienvenue sur Baakalai !",
     "subtitle": "Configuration {done}/{total}",

@@ -1065,6 +1065,17 @@ router.post('/enrich-campaign', async (req, res, next) => {
   }
 });
 
+// GET /api/ai/deliverability-check — run deliverability check for the current user
+router.get('/deliverability-check', async (req, res, next) => {
+  try {
+    const { checkDeliverability } = require('../lib/deliverability-agent');
+    const result = await checkDeliverability(req.user.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/ai/icp-analysis — returns the user's ICP analysis (cached or fresh)
 router.get('/icp-analysis', async (req, res, next) => {
   try {
