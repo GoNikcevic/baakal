@@ -84,6 +84,16 @@ function start() {
     }
   });
 
+  // Weekly report — Monday 9:00 AM Paris (7 UTC summer)
+  cron.schedule('0 7 * * 1', async () => {
+    try {
+      const { runWeeklyReports } = require('./jobs/weekly-report');
+      await runWeeklyReports();
+    } catch (err) {
+      logger.error('orchestrator', 'Weekly reports failed: ' + err.message);
+    }
+  });
+
   // Deliverability checks — daily at 10:00 AM
   cron.schedule('0 8 * * *', async () => {
     try {

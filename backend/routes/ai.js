@@ -1065,6 +1065,34 @@ router.post('/enrich-campaign', async (req, res, next) => {
   }
 });
 
+// GET /api/ai/weekly-report/preview — generate and return the report HTML without sending
+router.get('/weekly-report/preview', async (req, res, next) => {
+  try {
+    const { buildUserReport } = require('../orchestrator/jobs/weekly-report');
+    const user = await db.users.getById(req.user.id);
+    const report = await buildUserReport({ ...user, id: req.user.id });
+    if (!report) return res.json({ html: null, message: 'No active campaigns' });
+    res.json({ html: report.html, subject: report.subject, stats: report.stats });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/ai/weekly-report/send — manually trigger for the current user
+router.post('/weekly-report/send', async (req, res, next) => {
+  try {
+    const { buildUserReport } = require('../orchestrator/jobs/weekly-report');
+    const { sendEmail } = require('../lib/email');
+    const user = await db.users.getById(req.user.id);
+    const report = await buildUserReport({ ...user, id: req.user.id });
+    if (!report) return res.json({ sent: false, message: 'No active campaigns' });
+    await sendEmail({ to: user.email, subject: report.subject, html: report.html });
+    res.json({ sent: true, subject: report.subject });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/ai/deliverability-check — run deliverability check for the current user
 router.get('/deliverability-check', async (req, res, next) => {
   try {
