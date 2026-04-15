@@ -662,9 +662,12 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
 
     let lemlistCampaignId = campaign.lemlist_id;
 
+    // Extract senderId from request body (passed from frontend dropdown)
+    const senderId = req.body.senderId || null;
+
     // 1) Create Lemlist campaign if not already linked
     if (!lemlistCampaignId) {
-      const created = await lemlist.createCampaign(campaign.name, apiKey);
+      const created = await lemlist.createCampaign(campaign.name, apiKey, senderId);
       lemlistCampaignId = created._id || created.id;
       if (!lemlistCampaignId) {
         return res.status(500).json({ error: 'Lemlist n\'a pas retourné d\'ID de campagne. Vérifiez votre plan Lemlist et votre clé API.' });

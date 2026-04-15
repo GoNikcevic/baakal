@@ -56,10 +56,13 @@ async function lemlistFetch(endpoint, options = {}, apiKey = null) {
 
 // --- Create / deploy ---
 
-async function createCampaign(name, apiKey) {
+async function createCampaign(name, apiKey, senderId) {
+  const payload = { name };
+  // Assign a sender to the campaign if provided
+  if (senderId) payload.senderId = senderId;
   return lemlistFetch('/campaigns', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   }, apiKey);
 }
 
@@ -148,6 +151,15 @@ async function addSequenceStep(campaignId, step, apiKey) {
   let messageText = step.body || '';
   if (lemlistType === 'linkedinInvite' && messageText.length > 300) {
     messageText = messageText.slice(0, 300);
+  }
+
+  // Convert line breaks to HTML for email steps so Lemlist renders paragraphs.
+  // Claude generates copy with \n\n between paragraphs — without this conversion,
+  // emails appear as one continuous block in Lemlist.
+  if (lemlistType === 'email' && messageText.includes('\n')) {
+    messageText = messageText
+      .split('\n\n').map(p => p.trim()).filter(Boolean).join('<br><br>')
+      .replace(/\n/g, '<br>');
   }
 
   // Build payload per Lemlist's current schema:

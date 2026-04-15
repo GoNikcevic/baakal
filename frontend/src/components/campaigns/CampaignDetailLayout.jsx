@@ -129,6 +129,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
       const result = await api.launchCampaignToLemlist(backendId, {
         batchMode: options.batchMode || false,
         batchSize: 100,
+        senderId: selectedSender || undefined,
       });
       setCampaigns((prev) => ({
         ...prev,
