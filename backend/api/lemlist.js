@@ -99,10 +99,28 @@ const LEMLIST_STEP_TYPE_MAP = {
  */
 async function resolveSequenceId(campaignId, apiKey) {
   const res = await lemlistFetch(`/campaigns/${campaignId}/sequences`, {}, apiKey);
-  // Lemlist returns either a single sequence object or an array of sequences
-  // depending on the endpoint version. Handle both.
-  const seq = Array.isArray(res) ? res[0] : res;
-  const sequenceId = seq?._id || seq?.id || seq?.sequenceId;
+
+  // Lemlist returns sequences in different formats:
+  // - Array: [{ _id: "seq_xxx", ... }]
+  // - Object keyed by ID: { "seq_xxx": { "_id": "seq_xxx", "steps": [], ... } }
+  // - Single object: { _id: "seq_xxx", ... }
+  let sequenceId = null;
+
+  if (Array.isArray(res) && res.length > 0) {
+    sequenceId = res[0]?._id || res[0]?.id;
+  } else if (res && typeof res === 'object') {
+    if (res._id) {
+      // Single object with _id at root
+      sequenceId = res._id;
+    } else {
+      // Object keyed by sequence ID: { "seq_xxx": { "_id": "seq_xxx", ... } }
+      const values = Object.values(res);
+      if (values.length > 0 && values[0]?._id) {
+        sequenceId = values[0]._id;
+      }
+    }
+  }
+
   if (!sequenceId) {
     throw new Error(
       `Lemlist n'a pas retourné de sequenceId pour la campagne ${campaignId}. ` +
