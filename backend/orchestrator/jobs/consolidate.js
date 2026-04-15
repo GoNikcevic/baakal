@@ -65,6 +65,27 @@ async function run() {
     });
 
     console.log(`[consolidate] Done. Created: ${savedIds.length}, Updated: ${updatedCount}, HubSpot: ${hubspotResult.synced} deals`);
+
+    // Optional: store patterns as embeddings for semantic search (pgvector sandbox)
+    if (process.env.PGVECTOR_ENABLED === 'true') {
+      try {
+        const { storeEmbedding } = require('../../lib/vector-store');
+        const allPatterns = await db.memoryPatterns.list({ limit: 500 });
+        let embedded = 0;
+        for (const p of allPatterns) {
+          const stored = await storeEmbedding(null, 'pattern', p.pattern, {
+            category: p.category,
+            confidence: p.confidence,
+            sectors: p.sectors,
+          }, p.id);
+          if (stored) embedded++;
+        }
+        console.log(`[consolidate] pgvector: embedded ${embedded}/${allPatterns.length} patterns`);
+      } catch (pgErr) {
+        console.warn('[consolidate] pgvector embedding failed (non-fatal):', pgErr.message);
+      }
+    }
+
     return {
       patternsCreated: savedIds.length,
       patternsUpdated: updatedCount,
