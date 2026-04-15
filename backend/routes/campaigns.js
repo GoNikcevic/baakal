@@ -734,8 +734,15 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
         await lemlist.startCampaign(lemlistCampaignId, apiKey);
         started = true;
       } catch (err) {
-        startError = err.message;
-        logger.warn('launch-lemlist', `Auto-start failed (campaign stays in draft): ${err.message}`);
+        // "already running" is not a real error — the campaign was started
+        // by a previous attempt or manually in Lemlist. Treat as success.
+        if (err.message && err.message.includes('already running')) {
+          started = true;
+          logger.info('launch-lemlist', 'Campaign already running — treating as success');
+        } else {
+          startError = err.message;
+          logger.warn('launch-lemlist', `Auto-start failed: ${err.message}`);
+        }
       }
     }
 
