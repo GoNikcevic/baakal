@@ -5,7 +5,7 @@
    =============================================================================== */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { useSocket } from '../context/SocketContext';
 import api from '../services/api-client';
@@ -1280,6 +1280,16 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Handle prefilled message from other pages (e.g. Memory Explorer "Apply")
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.prefillMessage) {
+      setInputValue(location.state.prefillMessage);
+      // Clear the state so it doesn't re-apply on re-render
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
