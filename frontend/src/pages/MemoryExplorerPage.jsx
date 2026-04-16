@@ -204,30 +204,81 @@ export default function MemoryExplorerPage() {
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>{t('memory.noPatterns')}</div>
       ) : (
-        <div className="memory-pattern-list">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(p => (
-            <div key={p.id} className="memory-pattern-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div className="memory-pattern-text">{p.pattern}</div>
-                  <div className="memory-pattern-meta">
-                    <span className="memory-badge" style={{ background: (CATEGORY_COLORS[p.category] || '#888') + '18', color: CATEGORY_COLORS[p.category] || '#888', border: `1px solid ${(CATEGORY_COLORS[p.category] || '#888')}30` }}>{p.category}</span>
-                    <span className="memory-badge" style={{ color: CONFIDENCE_COLORS[p.confidence] || '#888' }}>{p.confidence}</span>
-                    {p.sectors?.map(s => <span key={s} className="memory-badge-sector">{s}</span>)}
-                    {p.date_discovered && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('memory.discoveredOn')} {formatDate(p.date_discovered)}</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button className="btn btn-primary" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => handleApply(p)}>{t('memory.applyPattern')}</button>
-                  <button className="btn btn-ghost" style={{ fontSize: 11, padding: '4px 8px' }} onClick={() => toggleData(p.id)}>{expandedData[p.id] ? '\u25B2' : '\u25BC'}</button>
+            <div key={p.id} style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: '20px 24px',
+              transition: 'border-color 0.15s',
+            }}>
+              {/* Pattern text */}
+              <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: 14 }}>
+                {p.pattern}
+              </div>
+
+              {/* Badges row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                  background: (CATEGORY_COLORS[p.category] || '#888') + '18',
+                  color: CATEGORY_COLORS[p.category] || '#888',
+                  border: `1px solid ${(CATEGORY_COLORS[p.category] || '#888')}30`,
+                }}>{p.category}</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                  background: (CONFIDENCE_COLORS[p.confidence] || '#888') + '15',
+                  color: CONFIDENCE_COLORS[p.confidence] || '#888',
+                }}>{p.confidence}</span>
+                {p.sectors?.map(s => (
+                  <span key={s} style={{
+                    fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                    background: 'var(--bg-elevated, rgba(255,255,255,0.06))',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border)',
+                  }}>{s}</span>
+                ))}
+              </div>
+
+              {/* Footer: date + actions */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {p.date_discovered && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {t('memory.discoveredOn')} {formatDate(p.date_discovered)}
+                  </span>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ fontSize: 11, padding: '6px 14px', borderRadius: 8 }}
+                    onClick={() => handleApply(p)}
+                  >
+                    {t('memory.applyPattern')}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ fontSize: 11, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}
+                    onClick={() => toggleData(p.id)}
+                  >
+                    {expandedData[p.id] ? '\u25B2' : '\u25BC'}
+                  </button>
                 </div>
               </div>
+
+              {/* Expanded data */}
               {expandedData[p.id] && p.data && (
-                <div style={{ marginTop: 10, padding: 10, background: 'var(--bg-elevated)', borderRadius: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-                  <div>{t('memory.rawData')}</div>
-                  {p.data.sample_size && <div>{t('memory.sampleSize')}: {p.data.sample_size}</div>}
-                  {p.data.avg_improvement && <div>{t('memory.improvement')}: +{p.data.avg_improvement}%</div>}
-                  <pre style={{ margin: '4px 0 0', fontSize: 10, opacity: 0.7, whiteSpace: 'pre-wrap' }}>{JSON.stringify(p.data, null, 2)}</pre>
+                <div style={{
+                  marginTop: 14, padding: 14,
+                  background: 'var(--bg-elevated, rgba(255,255,255,0.03))',
+                  borderRadius: 8,
+                  fontSize: 12, color: 'var(--text-muted)',
+                  borderTop: '1px solid var(--border)',
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>{t('memory.rawData')}</div>
+                  {p.data.sample_size && <div>{t('memory.sampleSize')}: <strong>{p.data.sample_size}</strong></div>}
+                  {p.data.avg_improvement && <div>{t('memory.improvement')}: <strong style={{ color: '#16a34a' }}>+{p.data.avg_improvement}%</strong></div>}
+                  <pre style={{ margin: '8px 0 0', fontSize: 10, opacity: 0.6, whiteSpace: 'pre-wrap' }}>{JSON.stringify(p.data, null, 2)}</pre>
                 </div>
               )}
             </div>
