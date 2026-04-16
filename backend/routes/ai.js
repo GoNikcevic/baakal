@@ -374,6 +374,16 @@ router.post('/consolidate-memory', async (req, res, next) => {
   }
 });
 
+// DELETE /api/ai/memory/:id — delete a single memory pattern
+router.delete('/memory/:id', async (req, res, next) => {
+  try {
+    await db.memoryPatterns.delete(req.params.id);
+    res.json({ deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/ai/memory — paginated
 router.get('/memory', async (req, res, next) => {
   try {

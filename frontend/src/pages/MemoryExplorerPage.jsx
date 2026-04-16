@@ -102,6 +102,15 @@ export default function MemoryExplorerPage() {
     navigate('/chat', { state: { prefillMessage: msg } });
   }, [navigate, t]);
 
+  const handleDelete = useCallback(async (patternId) => {
+    try {
+      await api.request(`/ai/memory/${patternId}`, { method: 'DELETE' });
+      setPatterns(prev => prev.filter(p => p.id !== patternId));
+    } catch (err) {
+      console.warn('Delete pattern failed:', err.message);
+    }
+  }, []);
+
   const handleExport = useCallback(() => {
     const headers = ['pattern', 'category', 'confidence', 'sectors', 'date_discovered', 'sample_size'];
     const rows = filtered.map(p => [
@@ -212,7 +221,24 @@ export default function MemoryExplorerPage() {
               borderRadius: 12,
               padding: '20px 24px',
               transition: 'border-color 0.15s',
+              position: 'relative',
             }}>
+              {/* Delete button */}
+              <button
+                onClick={() => handleDelete(p.id)}
+                title={t('common.close') || 'Supprimer'}
+                style={{
+                  position: 'absolute', top: 12, right: 14,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', fontSize: 16, padding: '2px 6px',
+                  borderRadius: 4, opacity: 0.4, transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+              >
+                {'\u00D7'}
+              </button>
+
               {/* Pattern text */}
               <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: 14 }}>
                 {p.pattern}
