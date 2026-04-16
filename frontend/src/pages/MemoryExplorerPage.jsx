@@ -102,14 +102,39 @@ export default function MemoryExplorerPage() {
     navigate('/chat', { state: { prefillMessage: msg } });
   }, [navigate, t]);
 
-  const handleDelete = useCallback(async (patternId) => {
-    try {
-      await api.request(`/ai/memory/${patternId}`, { method: 'DELETE' });
-      setPatterns(prev => prev.filter(p => p.id !== patternId));
-    } catch (err) {
-      console.warn('Delete pattern failed:', err.message);
+  const [undoPattern, setUndoPattern] = useState(null);
+  const undoTimerRef = useRef(null);
+
+  const handleDelete = useCallback((patternId) => {
+    // Soft delete: remove from UI immediately, show undo toast for 5s
+    const pattern = patterns.find(p => p.id === patternId);
+    setPatterns(prev => prev.filter(p => p.id !== patternId));
+    setUndoPattern(pattern);
+
+    // Clear any existing timer
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+
+    // After 5s, actually delete from DB
+    undoTimerRef.current = setTimeout(async () => {
+      try {
+        await api.request(`/ai/memory/${patternId}`, { method: 'DELETE' });
+      } catch (err) {
+        console.warn('Delete pattern failed:', err.message);
+      }
+      setUndoPattern(null);
+      undoTimerRef.current = null;
+    }, 5000);
+  }, [patterns]);
+
+  const handleUndo = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = null;
+    if (undoPattern) {
+      setPatterns(prev => [...prev, undoPattern].sort((a, b) =>
+        (b.date_discovered || '').localeCompare(a.date_discovered || '')));
+      setUndoPattern(null);
     }
-  }, []);
+  }, [undoPattern]);
 
   const handleExport = useCallback(() => {
     const headers = ['pattern', 'category', 'confidence', 'sectors', 'date_discovered', 'sample_size'];
@@ -228,13 +253,14 @@ export default function MemoryExplorerPage() {
                 onClick={() => handleDelete(p.id)}
                 title={t('common.close') || 'Supprimer'}
                 style={{
-                  position: 'absolute', top: 12, right: 14,
+                  position: 'absolute', top: 10, right: 12,
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-muted)', fontSize: 16, padding: '2px 6px',
-                  borderRadius: 4, opacity: 0.4, transition: 'opacity 0.15s',
+                  color: 'var(--text-muted)', fontSize: 22, lineHeight: 1,
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 8, opacity: 0.35, transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '0.35'; e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; }}
               >
                 {'\u00D7'}
               </button>
@@ -311,6 +337,38 @@ export default function MemoryExplorerPage() {
           ))}
         </div>
       )}
+      {/* Undo toast */}
+      {undoPattern && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: '#18181b', color: '#fff', padding: '12px 20px',
+          borderRadius: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 14,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.3)', zIndex: 9999,
+          animation: 'fadeInUp 0.25s ease',
+        }}>
+          <span>{t('memory.patternDeleted') || 'Pattern supprimé'}</span>
+          <button
+            onClick={handleUndo}
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+              padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+              fontSize: 12, fontWeight: 600,
+            }}
+          >
+            {t('common.cancel') || 'Annuler'}
+          </button>
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, height: 3, borderRadius: '0 0 10px 10px',
+            background: 'var(--blue, #2AB7CA)',
+            animation: 'shrinkBar 5s linear forwards',
+          }} />
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes shrinkBar { from { width: 100%; } to { width: 0%; } }
+      `}</style>
     </div>
   );
 }

@@ -351,7 +351,8 @@
     "timeline": "Timeline",
     "patternsPerMonth": "patterns",
     "noPatterns": "Aucun pattern découvert. Lance des campagnes pour que l'IA apprenne.",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "patternDeleted": "Pattern supprimé"
   },
   "legal": {
     "terms": "CGU",
