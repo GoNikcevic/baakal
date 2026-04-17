@@ -824,12 +824,12 @@ async function addLead(campaignId, lead, apiKey) {
 
 // --- Campaign endpoints ---
 
-async function listCampaigns() {
-  return lemlistFetch('/campaigns');
+async function listCampaigns(apiKey) {
+  return lemlistFetch('/campaigns', {}, apiKey);
 }
 
-async function getCampaign(campaignId) {
-  return lemlistFetch(`/campaigns/${campaignId}`);
+async function getCampaign(campaignId, apiKey) {
+  return lemlistFetch(`/campaigns/${campaignId}`, {}, apiKey);
 }
 
 /**

@@ -4,36 +4,11 @@
    and populates memory_patterns table.
    =============================================================================== */
 
-const { config } = require('../config');
 const { getUserKey } = require('../config');
 const claude = require('../api/claude');
 const lemlist = require('../api/lemlist');
 const db = require('../db');
 const { notifyUser } = require('../socket');
-
-/**
- * Make a Lemlist API request using a specific API key (per-user).
- * The existing lemlist module uses config.lemlist.apiKey globally,
- * so we replicate the fetch logic here for per-user key support.
- */
-async function lemlistFetchWithKey(endpoint, apiKey) {
-  const url = `${config.lemlist.baseUrl}${endpoint}`;
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${Buffer.from(`:${apiKey}`).toString('base64')}`,
-    },
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw Object.assign(
-      new Error(`Lemlist API ${res.status}: ${body}`),
-      { status: res.status }
-    );
-  }
-  return res.json();
-}
 
 /**
  * Sync all Lemlist campaigns and analyze them with Claude.
@@ -51,8 +26,8 @@ async function syncAndAnalyze(userId) {
     // Notify: starting
     notifyUser(userId, 'lemlist:sync', { status: 'starting', progress: 0 });
 
-    // Step 1: Pull all campaigns
-    const campaigns = await lemlistFetchWithKey('/campaigns', apiKey);
+    // Step 1: Pull all campaigns (uses per-user API key)
+    const campaigns = await lemlist.listCampaigns(apiKey);
     notifyUser(userId, 'lemlist:sync', {
       status: 'fetching',
       progress: 10,
@@ -64,8 +39,8 @@ async function syncAndAnalyze(userId) {
     for (let i = 0; i < campaigns.length; i++) {
       const camp = campaigns[i];
       try {
-        const rawExport = await lemlistFetchWithKey(`/campaigns/${camp._id}/export`, apiKey);
-        const transformed = lemlist.transformCampaignStats(rawExport);
+        const rawStats = await lemlist.getCampaignStats(camp._id, apiKey);
+        const transformed = lemlist.transformCampaignStats(rawStats);
         allStats.push({
           name: camp.name,
           id: camp._id,

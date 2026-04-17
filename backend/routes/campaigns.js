@@ -153,7 +153,8 @@ router.post('/:id/sync-stats', async (req, res, next) => {
       return res.status(400).json({ error: 'No Lemlist ID linked to this campaign' });
     }
 
-    const rawStats = await lemlist.getCampaignStats(campaign.lemlist_id);
+    const apiKey = await getUserKey(req.user.id, 'lemlist');
+    const rawStats = await lemlist.getCampaignStats(campaign.lemlist_id, apiKey);
     const stats = lemlist.transformCampaignStats(rawStats);
 
     await db.campaigns.update(campaign.id, {
