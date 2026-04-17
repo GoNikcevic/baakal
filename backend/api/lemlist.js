@@ -832,8 +832,19 @@ async function getCampaign(campaignId) {
   return lemlistFetch(`/campaigns/${campaignId}`);
 }
 
-async function getCampaignStats(campaignId) {
-  return lemlistFetch(`/campaigns/${campaignId}/export`);
+/**
+ * Fetch campaign stats from Lemlist v2 API.
+ * GET /v2/campaigns/{campaignId}/stats
+ *
+ * Returns: { nbLeads, nbLeadsOpened, nbLeadsAnswered, messagesSent,
+ *            delivered, opened, replied, clicked, meetingBooked, steps[], ... }
+ *
+ * NOTE: Previously this used the legacy /campaigns/{id}/export endpoint
+ * which was an async CSV export and returned empty/object data, breaking
+ * all stats collection. The v2/stats endpoint returns JSON directly.
+ */
+async function getCampaignStats(campaignId, apiKey) {
+  return lemlistFetch(`/v2/campaigns/${campaignId}/stats`, {}, apiKey);
 }
 
 async function getSequences(campaignId, apiKey) {
@@ -892,8 +903,19 @@ async function getAllActivities(campaignId, apiKey, type) {
 
 // --- Data transformation ---
 
+/**
+ * Transform Lemlist v2 campaign stats into our internal format.
+ *
+ * The v2 endpoint (GET /v2/campaigns/{id}/stats) returns a flat object:
+ *   { nbLeads, nbLeadsLaunched, nbLeadsReached, nbLeadsOpened,
+ *     nbLeadsAnswered, nbLeadsInterested, nbLeadsUnsubscribed,
+ *     messagesSent, delivered, opened, replied, clicked,
+ *     invitationAccepted, meetingBooked, steps[] }
+ *
+ * Also supports the LEGACY format (array of lead objects from /export)
+ * as a fallback to avoid breaking existing data.
+ */
 function transformCampaignStats(raw) {
-  // Transform raw Lemlist export into our internal format
   const stats = {
     contacts: 0,
     openRate: null,
@@ -904,7 +926,38 @@ function transformCampaignStats(raw) {
     stops: null,
   };
 
-  if (!raw || !Array.isArray(raw)) return stats;
+  if (!raw) return stats;
+
+  // --- V2 format: flat object with nbLeads, messagesSent, etc. ---
+  if (raw.nbLeads !== undefined || raw.messagesSent !== undefined) {
+    stats.contacts = raw.nbLeads || raw.nbLeadsLaunched || 0;
+    const sent = raw.messagesSent || 0;
+    const reached = raw.nbLeadsReached || raw.delivered || 0;
+
+    if (sent > 0) {
+      stats.openRate = Math.round(((raw.nbLeadsOpened || raw.opened || 0) / reached || sent) * 100) || 0;
+      stats.replyRate = Math.round(((raw.nbLeadsAnswered || raw.replied || 0) / reached || sent) * 100) || 0;
+      stats.stops = raw.nbLeadsUnsubscribed
+        ? Math.round((raw.nbLeadsUnsubscribed / stats.contacts) * 100)
+        : null;
+    }
+
+    if (raw.invitationAccepted !== undefined) {
+      // Acceptance rate: invitationAccepted / nbLeads with LinkedIn steps
+      // Approximate: use nbLeads as base since we don't have LinkedIn-only count
+      stats.acceptRate = stats.contacts > 0
+        ? Math.round((raw.invitationAccepted / stats.contacts) * 100)
+        : null;
+    }
+
+    stats.interested = raw.nbLeadsInterested || 0;
+    stats.meetings = raw.meetingBooked || 0;
+
+    return stats;
+  }
+
+  // --- LEGACY format: array of lead objects from old /export endpoint ---
+  if (!Array.isArray(raw)) return stats;
 
   stats.contacts = raw.length;
 
@@ -924,27 +977,40 @@ function transformCampaignStats(raw) {
     stats.acceptRate = Math.round((accepted / withLinkedIn.length) * 100);
   }
 
-  const interested = raw.filter((r) => r.leadStatus === 'interested');
-  stats.interested = interested.length;
+  stats.interested = raw.filter((r) => r.leadStatus === 'interested').length;
 
   return stats;
 }
 
+/**
+ * Extract per-step stats. Supports both v2 format (steps[] array in stats
+ * response) and legacy format (array of lead objects from /export).
+ */
 function transformStepStats(raw, stepIndex) {
+  // V2 format: raw is the full stats object with a `steps` array
+  if (raw && raw.steps && Array.isArray(raw.steps)) {
+    const step = raw.steps[stepIndex];
+    if (!step) return null;
+    const sent = step.sent || step.delivered || 1;
+    return {
+      open: sent > 0 ? Math.round((step.opened || 0) / sent * 100) : 0,
+      reply: sent > 0 ? Math.round((step.replied || 0) / sent * 100) : 0,
+    };
+  }
+
+  // Legacy format: array of lead objects
   if (!raw || !Array.isArray(raw)) return null;
 
-  const step = {};
   const relevant = raw.filter((r) => (r.emailsSent || 0) > stepIndex || r.sequenceStep > stepIndex);
-
   if (relevant.length === 0) return null;
 
   const opened = relevant.filter((r) => r[`emailOpened_${stepIndex}`]).length;
   const replied = relevant.filter((r) => r[`emailReplied_${stepIndex}`]).length;
 
-  step.open = relevant.length > 0 ? Math.round((opened / relevant.length) * 100) : 0;
-  step.reply = relevant.length > 0 ? Math.round((replied / relevant.length) * 100) : 0;
-
-  return step;
+  return {
+    open: Math.round((opened / relevant.length) * 100),
+    reply: Math.round((replied / relevant.length) * 100),
+  };
 }
 
 // --- Workflow / branching tree transformation ---

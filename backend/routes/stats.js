@@ -59,14 +59,7 @@ router.post('/collect', statsLimiter, async (req, res, next) => {
 
       const batchResults = await Promise.allSettled(
         batchCampaigns.map(async (lc) => {
-          const statsResp = await fetchWithRetry(
-            `https://api.lemlist.com/api/campaigns/${lc._id}/export`,
-            { headers }
-          );
-
-          if (!statsResp || !statsResp.ok) return null;
-
-          const rawStats = await statsResp.json();
+          const rawStats = await lemlist.getCampaignStats(lc._id, apiKey);
           const stats = lemlist.transformCampaignStats(rawStats);
 
           let campaign = await db.campaigns.getByLemlistId(lc._id);
