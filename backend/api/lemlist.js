@@ -192,6 +192,184 @@ function parseDelayFromTiming(timing) {
   return match ? parseInt(match[1], 10) : 0;
 }
 
+// Map Baakal condition_type → Lemlist conditionKey
+// Per Lemlist API (developer.lemlist.com/api-reference/endpoints/sequences/add-step-to-sequence):
+// Valid conditionKeys: emailsOpened, emailsClicked, emailsUnsubscribed,
+//                      meetingBooked, linkedinInviteAccepted, hasWhatsappAccount
+const LEMLIST_CONDITION_MAP = {
+  opened: 'emailsOpened',
+  not_opened: 'emailsOpened',    // same key, "not" is the fallback branch
+  replied: 'emailsClicked',      // closest match — Lemlist doesn't have emailsReplied as conditionKey
+  not_replied: 'emailsClicked',
+  clicked: 'emailsClicked',
+  not_clicked: 'emailsClicked',
+  accepted: 'linkedinInviteAccepted',
+  not_accepted: 'linkedinInviteAccepted',
+};
+
+/**
+ * Create a conditional step in Lemlist.
+ *
+ * Per Lemlist's API, creating a `conditional` step returns TWO sub-sequences:
+ *   - conditions[0]: the "yes/true" branch (condition met)
+ *   - conditions[1]: the "fallback" branch (condition NOT met)
+ *
+ * Callers should then push child steps into each branch's sequenceId.
+ *
+ * @returns {{ _id, conditions: [{ sequenceId, label, key, fallback? }] }}
+ */
+async function addConditionalStep(sequenceId, conditionKey, apiKey, { delay, delayType = 'within' } = {}) {
+  const body = {
+    type: 'conditional',
+    conditionKey,
+    delayType,
+  };
+  if (typeof delay === 'number') body.delay = delay;
+
+  return lemlistFetch(`/sequences/${sequenceId}/steps`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }, apiKey);
+}
+
+/**
+ * Push a full touchpoint tree to Lemlist, including conditional branches.
+ *
+ * Flow:
+ * 1. Build tree from flat touchpoint list (parent_step_id → children)
+ * 2. Walk tree depth-first
+ * 3. For root steps with children grouped by condition:
+ *    a. Push the root step (email/linkedin)
+ *    b. Create a conditional step → get branch sequenceIds
+ *    c. Push "yes" children into the true-branch sequenceId
+ *    d. Push "not_" children into the fallback-branch sequenceId
+ * 4. For root steps without children → push normally
+ */
+async function pushSequenceTree(campaignId, touchpoints, apiKey) {
+  const sequenceId = await resolveSequenceId(campaignId, apiKey);
+
+  // Build tree from flat touchpoints
+  const roots = [];
+  const childrenOf = new Map(); // parentId → [touchpoints]
+  for (const tp of touchpoints) {
+    const parentId = tp.parent_step_id;
+    if (!parentId) {
+      roots.push(tp);
+    } else {
+      if (!childrenOf.has(parentId)) childrenOf.set(parentId, []);
+      childrenOf.get(parentId).push(tp);
+    }
+  }
+
+  // Sort roots by sort_order
+  roots.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  const results = [];
+
+  for (const root of roots) {
+    // Push the root step
+    try {
+      const r = await addSequenceStep(campaignId, {
+        type: root.type,
+        subject: root.subject,
+        body: root.body,
+        timing: root.timing,
+        sequenceId,
+      }, apiKey);
+      results.push({ step: root.step, ok: true, id: r._id || r.id });
+
+      // Check if this root has conditional children
+      const children = childrenOf.get(root.id) || [];
+      if (children.length === 0) continue;
+
+      // Group children: "positive" conditions (opened, accepted, replied, clicked)
+      // vs "negative" conditions (not_opened, not_accepted, not_replied, not_clicked)
+      const positiveChildren = children.filter(c =>
+        c.condition_type && !c.condition_type.startsWith('not_')
+      );
+      const negativeChildren = children.filter(c =>
+        c.condition_type && c.condition_type.startsWith('not_')
+      );
+
+      // Determine the conditionKey from children
+      const anyCondition = children[0]?.condition_type || 'opened';
+      const baseCondition = anyCondition.replace(/^not_/, '');
+      const conditionKey = LEMLIST_CONDITION_MAP[baseCondition] || 'emailsOpened';
+
+      // Determine delay type: "waitUntil" for linkedin acceptance, "within" for emails
+      const delayType = baseCondition === 'accepted' ? 'waitUntil' : 'within';
+      const delay = parseDelayFromTiming(children[0]?.timing) || 1;
+
+      // Create conditional step → returns branch sequenceIds
+      const condResult = await addConditionalStep(sequenceId, conditionKey, apiKey, { delay, delayType });
+      const conditions = condResult.conditions || [];
+
+      // Find the true branch and fallback branch sequenceIds
+      const trueBranch = conditions.find(c => !c.fallback);
+      const fallbackBranch = conditions.find(c => c.fallback);
+
+      // Push positive children into the true branch
+      if (trueBranch && positiveChildren.length > 0) {
+        for (const child of positiveChildren) {
+          try {
+            await addSequenceStep(campaignId, {
+              type: child.type,
+              subject: child.subject,
+              body: child.body,
+              timing: child.timing,
+              sequenceId: trueBranch.sequenceId,
+            }, apiKey);
+            results.push({ step: child.step, ok: true, branch: 'true' });
+          } catch (err) {
+            results.push({ step: child.step, ok: false, error: err.message, branch: 'true' });
+          }
+        }
+      }
+
+      // Push negative children into the fallback branch
+      if (fallbackBranch && negativeChildren.length > 0) {
+        for (const child of negativeChildren) {
+          try {
+            await addSequenceStep(campaignId, {
+              type: child.type,
+              subject: child.subject,
+              body: child.body,
+              timing: child.timing,
+              sequenceId: fallbackBranch.sequenceId,
+            }, apiKey);
+            results.push({ step: child.step, ok: true, branch: 'fallback' });
+          } catch (err) {
+            results.push({ step: child.step, ok: false, error: err.message, branch: 'fallback' });
+          }
+        }
+      }
+
+      // If there are children without clear condition (default), push to fallback
+      const defaultChildren = children.filter(c => !c.condition_type || c.condition_type === 'default');
+      if (fallbackBranch && defaultChildren.length > 0) {
+        for (const child of defaultChildren) {
+          try {
+            await addSequenceStep(campaignId, {
+              type: child.type,
+              subject: child.subject,
+              body: child.body,
+              timing: child.timing,
+              sequenceId: fallbackBranch.sequenceId,
+            }, apiKey);
+            results.push({ step: child.step, ok: true, branch: 'default' });
+          } catch (err) {
+            results.push({ step: child.step, ok: false, error: err.message, branch: 'default' });
+          }
+        }
+      }
+    } catch (err) {
+      results.push({ step: root.step, ok: false, error: err.message });
+    }
+  }
+
+  return results;
+}
+
 // --- Lemlist Leads Database (600M contacts) ---
 
 /**
@@ -872,4 +1050,6 @@ module.exports = {
   flattenTree,
   getActivities,
   getAllActivities,
+  addConditionalStep,
+  pushSequenceTree,
 };

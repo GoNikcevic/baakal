@@ -675,35 +675,52 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
       await db.campaigns.update(campaign.id, { lemlist_id: lemlistCampaignId });
     }
 
-    // 2) Resolve the sequenceId once (Lemlist auto-creates one sequence per
-    //    campaign). Previously we were calling the wrong endpoint per step
-    //    and silently 404ing, leaving campaigns empty in Lemlist.
-    let sequenceId;
-    try {
-      sequenceId = await lemlist.resolveSequenceId(lemlistCampaignId, apiKey);
-    } catch (err) {
-      logger.error('launch-lemlist', `sequenceId resolution failed: ${err.message}`);
-      return res.status(502).json({
-        error: `Impossible de récupérer la séquence Lemlist de la campagne (${err.message}). Vérifie que la campagne existe dans ton compte Lemlist.`,
-      });
-    }
+    // 2) Push sequence steps — tree-aware (supports conditional branches)
+    //    If the sequence has parent/child relationships (conditional branches),
+    //    use pushSequenceTree which creates Lemlist conditional steps with
+    //    sub-sequences. Otherwise, fall back to flat push for simple sequences.
+    const hasTree = touchpoints.some(tp => tp.parent_step_id || tp.condition_type);
+    let sequenceResults;
 
-    // 3) Push sequence steps (all to the same sequenceId, no N+1)
-    const sequenceResults = [];
-    for (const tp of touchpoints) {
+    if (hasTree) {
+      // Tree mode: handles conditional branches (if opened → A, if not → B)
+      logger.info('launch-lemlist', `Pushing ${touchpoints.length} steps as tree (conditional branches detected)`);
       try {
-        const step = {
-          type: tp.type,
-          subject: tp.subject,
-          body: tp.body,
-          timing: tp.timing,
-          sequenceId, // pre-resolved, saves a round-trip per step
-        };
-        const r = await lemlist.addSequenceStep(lemlistCampaignId, step, apiKey);
-        sequenceResults.push({ step: tp.step, ok: true, id: r._id || r.id });
+        sequenceResults = await lemlist.pushSequenceTree(lemlistCampaignId, touchpoints, apiKey);
       } catch (err) {
-        sequenceResults.push({ step: tp.step, ok: false, error: err.message });
-        logger.warn('launch-lemlist', `Sequence step ${tp.step} failed: ${err.message}`);
+        logger.error('launch-lemlist', `Tree push failed: ${err.message}`);
+        return res.status(502).json({
+          error: `Erreur lors du déploiement de la séquence conditionnelle vers Lemlist: ${err.message}`,
+        });
+      }
+    } else {
+      // Flat mode: simple sequential steps (no branching)
+      let sequenceId;
+      try {
+        sequenceId = await lemlist.resolveSequenceId(lemlistCampaignId, apiKey);
+      } catch (err) {
+        logger.error('launch-lemlist', `sequenceId resolution failed: ${err.message}`);
+        return res.status(502).json({
+          error: `Impossible de récupérer la séquence Lemlist de la campagne (${err.message}). Vérifie que la campagne existe dans ton compte Lemlist.`,
+        });
+      }
+
+      sequenceResults = [];
+      for (const tp of touchpoints) {
+        try {
+          const step = {
+            type: tp.type,
+            subject: tp.subject,
+            body: tp.body,
+            timing: tp.timing,
+            sequenceId,
+          };
+          const r = await lemlist.addSequenceStep(lemlistCampaignId, step, apiKey);
+          sequenceResults.push({ step: tp.step, ok: true, id: r._id || r.id });
+        } catch (err) {
+          sequenceResults.push({ step: tp.step, ok: false, error: err.message });
+          logger.warn('launch-lemlist', `Sequence step ${tp.step} failed: ${err.message}`);
+        }
       }
     }
 
