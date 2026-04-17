@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import api from '../services/api-client';
+import { useState, useEffect, useCallback } from 'react';
+import api, { request, fetchDashboard } from '../services/api-client';
+import { useApp } from '../context/useApp';
 import { useT } from '../i18n';
 
 export default function DeliverabilityCard() {
@@ -7,6 +8,8 @@ export default function DeliverabilityCard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { setGlobalKpis } = useApp();
 
   const load = async () => {
     setLoading(true);
@@ -21,6 +24,19 @@ export default function DeliverabilityCard() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await request('/dashboard/refresh-stats', { method: 'POST' });
+      const fresh = await fetchDashboard();
+      setGlobalKpis(fresh);
+      await load();
+    } catch (err) {
+      console.error('Stats refresh failed:', err);
+    }
+    setRefreshing(false);
+  }, [setGlobalKpis]);
 
   if (loading) return null;
   if (error) return null;
@@ -42,8 +58,8 @@ export default function DeliverabilityCard() {
           {t('deliverability.title')}
         </div>
         <button
-          onClick={load}
-          disabled={loading}
+          onClick={handleRefresh}
+          disabled={refreshing}
           style={{
             background: 'none',
             border: '1px solid var(--border)',
@@ -54,7 +70,7 @@ export default function DeliverabilityCard() {
             color: 'var(--text-muted)',
           }}
         >
-          {loading ? t('deliverability.checking') : t('deliverability.checkNow')}
+          {refreshing ? '\u23F3 Sync...' : '\uD83D\uDD04 Rafra\u00eechir'}
         </button>
       </div>
 
