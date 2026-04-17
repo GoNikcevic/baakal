@@ -64,9 +64,9 @@ async function deployToApollo(apiKey, campaignName, steps) {
   }));
 
   const res = await withRetry(async () => {
-    const r = await fetch('https://api.apollo.io/api/v1/emailer_campaigns', {
+    const r = await fetch('https://api.apollo.io/v1/emailer_campaigns', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
       body: JSON.stringify({
         name: campaignName,
         emailer_steps: emailerSteps,

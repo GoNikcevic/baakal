@@ -14,11 +14,11 @@ const logger = require('./logger');
 const PROVIDERS = {
   apollo: {
     name: 'Apollo',
-    baseUrl: 'https://api.apollo.io/api/v1',
+    baseUrl: 'https://api.apollo.io/v1',
     async fetchCampaigns(apiKey) {
-      const res = await fetch('https://api.apollo.io/api/v1/emailer_campaigns', {
+      const res = await fetch('https://api.apollo.io/v1/emailer_campaigns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
         body: JSON.stringify({ per_page: 100 }),
       });
       if (!res.ok) throw new Error(`Apollo API ${res.status}`);
@@ -30,8 +30,8 @@ const PROVIDERS = {
       }));
     },
     async fetchStats(apiKey, campaignId) {
-      const res = await fetch(`https://api.apollo.io/api/v1/emailer_campaigns/${campaignId}`, {
-        headers: { 'X-Api-Key': apiKey },
+      const res = await fetch(`https://api.apollo.io/v1/emailer_campaigns/${campaignId}`, {
+        headers: { 'x-api-key': apiKey },
       });
       if (!res.ok) throw new Error(`Apollo stats ${res.status}`);
       const data = await res.json();

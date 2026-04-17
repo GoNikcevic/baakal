@@ -36,13 +36,14 @@ async function searchContacts(userId, criteria) {
   }
 
   const result = await withRetry(async () => {
-    const res = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+    const res = await fetch('https://api.apollo.io/v1/mixed_people/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = new Error(`Apollo API ${res.status}`);
+      const body = await res.text();
+      const err = new Error(`Apollo API ${res.status}: ${body || '(empty)'}`);
       err.status = res.status;
       throw err;
     }
@@ -79,12 +80,15 @@ async function enrichContact(userId, email) {
   if (!apiKey) throw new Error('Apollo API key not configured');
 
   const result = await withRetry(async () => {
-    const res = await fetch('https://api.apollo.io/api/v1/people/match', {
+    const res = await fetch('https://api.apollo.io/v1/people/match', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
       body: JSON.stringify({ email }),
     });
-    if (!res.ok) throw Object.assign(new Error(`Apollo ${res.status}`), { status: res.status });
+    if (!res.ok) {
+      const body = await res.text();
+      throw Object.assign(new Error(`Apollo ${res.status}: ${body || '(empty)'}`), { status: res.status });
+    }
     return res.json();
   });
 
