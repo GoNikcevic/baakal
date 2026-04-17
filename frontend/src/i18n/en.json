@@ -383,8 +383,7 @@
     "opened": "Opens",
     "clicked": "Clicks",
     "bounced": "Bounces",
-    "noActivities": "No activities found",
-    "noActivitiesHint": "Click \"Sync from Lemlist\" to pull the latest data",
+    "noActivities": "No activities yet",
     "unknownProspect": "Unknown prospect"
   }
 }

@@ -227,6 +227,7 @@ router.post('/sync-activities', async (req, res, next) => {
             companyName: a.companyName || null,
             sequenceStep: a.sequenceStep ?? a.sequenceStepNumber ?? null,
             happenedAt: a.createdAt || a.happenedAt || new Date(),
+            content: a.extractedText || a.text || a.replyText || a.body || null,
           }));
 
           const inserted = await db.prospectActivities.bulkUpsert(mapped);
