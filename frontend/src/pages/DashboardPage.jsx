@@ -17,7 +17,7 @@ import AnimatedCounter from '../components/AnimatedCounter';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import ICPInsightsCard from '../components/ICPInsightsCard';
 import DeliverabilityCard from '../components/DeliverabilityCard';
-import { scoreLeads, exportScoresToCRM, downloadScoresCSV, sendRecoFeedback } from '../services/api-client';
+import { request, fetchDashboard, scoreLeads, exportScoresToCRM, downloadScoresCSV, sendRecoFeedback } from '../services/api-client';
 
 const KPI_LABELS = {
   contacts: '\u{1F4E4} Contacts atteints',
@@ -35,6 +35,20 @@ export default function DashboardPage() {
   const openCreator = useCallback(() => navigate('/chat'), [navigate]);
   const { socket } = useSocket();
   const [syncStatus, setSyncStatus] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { setGlobalKpis } = useApp();
+
+  const handleRefreshStats = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await request('/dashboard/refresh-stats', { method: 'POST' });
+      const fresh = await fetchDashboard();
+      setGlobalKpis(fresh);
+    } catch (err) {
+      console.error('Stats refresh failed:', err);
+    }
+    setRefreshing(false);
+  }, [setGlobalKpis]);
 
   useEffect(() => {
     if (!socket) return;
@@ -86,6 +100,16 @@ export default function DashboardPage() {
             &nbsp;&nbsp;{subtitle}
           </div>
         </div>
+        {!isEmpty && (
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 12, padding: '6px 14px', color: 'var(--text-muted)' }}
+            onClick={handleRefreshStats}
+            disabled={refreshing}
+          >
+            {refreshing ? '\u23F3 Sync...' : '\u{1F504} Rafra\u00eechir'}
+          </button>
+        )}
       </div>
 
       {/* Sync in progress indicator */}

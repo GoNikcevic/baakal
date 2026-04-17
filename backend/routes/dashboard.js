@@ -78,6 +78,17 @@ async function syncStatsBackground(userId) {
   }
 }
 
+// POST /api/dashboard/refresh-stats — Manual refresh of Lemlist stats
+router.post('/refresh-stats', async (req, res, next) => {
+  try {
+    await syncStatsBackground(req.user.id);
+    const kpis = await db.dashboardKpis(req.user.id);
+    res.json({ ok: true, kpis });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/dashboard/memory — Cross-campaign patterns (paginated)
 router.get('/memory', async (req, res, next) => {
   try {
