@@ -844,7 +844,11 @@ async function getCampaign(campaignId, apiKey) {
  * all stats collection. The v2/stats endpoint returns JSON directly.
  */
 async function getCampaignStats(campaignId, apiKey) {
-  return lemlistFetch(`/v2/campaigns/${campaignId}/stats`, {}, apiKey);
+  // v2/stats requires startDate and endDate params.
+  // Use campaign creation as start (or 1 year ago) and today as end.
+  const end = new Date().toISOString().split('T')[0];   // 2026-04-17
+  const start = new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0]; // 1 year ago
+  return lemlistFetch(`/v2/campaigns/${campaignId}/stats?startDate=${start}&endDate=${end}`, {}, apiKey);
 }
 
 async function getSequences(campaignId, apiKey) {
