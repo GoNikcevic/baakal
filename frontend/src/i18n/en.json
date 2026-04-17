@@ -66,6 +66,7 @@
     "prospects": "Prospects",
     "performance": "Performance",
     "history": "History",
+    "replies": "Replies",
     "abTest": "A/B Test",
     "noProspects": "No prospects in this campaign yet",
     "searchProspects": "Search prospects",
@@ -370,5 +371,20 @@
     "firstLaunch": "First campaign launched",
     "continueChat": "Continue setup in chat →",
     "allDone": "All set! You can start prospecting."
+  },
+  "replies": {
+    "title": "Prospect Activities",
+    "repliesTotal": "total reply(ies)",
+    "syncFromLemlist": "Sync from Lemlist",
+    "syncing": "Syncing...",
+    "syncSuccess": "{count} new activity(ies) synced",
+    "syncFailed": "Sync failed",
+    "replied": "Replies",
+    "opened": "Opens",
+    "clicked": "Clicks",
+    "bounced": "Bounces",
+    "noActivities": "No activities found",
+    "noActivitiesHint": "Click \"Sync from Lemlist\" to pull the latest data",
+    "unknownProspect": "Unknown prospect"
   }
 }

@@ -12,6 +12,7 @@ import ProspectsTab from './tabs/ProspectsTab';
 import PerformanceTab from './tabs/PerformanceTab';
 import HistoryTab from './tabs/HistoryTab';
 import ABTestTab from './tabs/ABTestTab';
+import RepliesTab from './tabs/RepliesTab';
 import OptimizeCampaignModal from './OptimizeCampaignModal';
 import LoadingOverlay from '../shared/LoadingOverlay';
 import { useT } from '../../i18n';
@@ -66,6 +67,9 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
     { key: 'settings', label: t('campaigns.settings'), icon: '\u2699\uFE0F' },
     { key: 'copy', label: t('campaigns.copy'), icon: '\u2709\uFE0F' },
     { key: 'prospects', label: t('campaigns.prospects'), icon: '\uD83D\uDC65' },
+    ...(isActive
+      ? [{ key: 'replies', label: t('campaigns.replies'), icon: '\uD83D\uDCEC' }]
+      : []),
     ...(hasABTest ? [{ key: 'abtest', label: t('campaigns.abTest'), icon: '\uD83E\uDDEC' }] : []),
     ...(isActive
       ? [
@@ -575,6 +579,7 @@ export default function CampaignDetailLayout({ campaign: c, onBack, setCampaigns
         {activeTab === 'settings' && <SettingsTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'copy' && <CopyTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'prospects' && <ProspectsTab campaign={c} />}
+        {activeTab === 'replies' && <RepliesTab campaign={c} />}
         {activeTab === 'abtest' && <ABTestTab campaign={c} setCampaigns={setCampaigns} />}
         {activeTab === 'performance' && <PerformanceTab campaign={c} />}
         {activeTab === 'history' && <HistoryTab campaign={c} />}

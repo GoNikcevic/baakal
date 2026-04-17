@@ -65,6 +65,35 @@ async function run() {
         console.warn(`[collect-stats] Notion sync failed for ${campaign.name}:`, err.message)
       );
 
+      // Sync individual activities (replies, opens, etc.) for this campaign
+      try {
+        const ACTIVITY_TYPES = ['emailsReplied', 'emailsOpened', 'emailsClicked', 'emailsBounced'];
+        let activityCount = 0;
+        for (const type of ACTIVITY_TYPES) {
+          const activities = await lemlist.getAllActivities(lc._id, null, type);
+          if (!activities || activities.length === 0) continue;
+          const mapped = activities.map(a => ({
+            userId: campaign.user_id,
+            campaignId: campaign.id,
+            lemlistActivityId: a._id || `${lc._id}_${type}_${a.leadEmail || a.leadId}_${a.createdAt || Date.now()}`,
+            type,
+            leadEmail: a.leadEmail || a.leadId || null,
+            leadFirstName: a.leadFirstName || null,
+            leadLastName: a.leadLastName || null,
+            companyName: a.companyName || null,
+            sequenceStep: a.sequenceStep ?? a.sequenceStepNumber ?? null,
+            happenedAt: a.createdAt || a.happenedAt || new Date(),
+          }));
+          const inserted = await db.prospectActivities.bulkUpsert(mapped);
+          activityCount += inserted;
+        }
+        if (activityCount > 0) {
+          console.log(`[collect-stats] Synced ${activityCount} new activities for ${campaign.name}`);
+        }
+      } catch (err) {
+        console.warn(`[collect-stats] Activity sync failed for ${campaign.name}:`, err.message);
+      }
+
       // Notify user in real-time if connected
       if (campaign.user_id) {
         notifyStatsRefresh(campaign.user_id, {

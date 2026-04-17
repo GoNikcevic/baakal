@@ -673,6 +673,45 @@ async function getWorkflow(campaignId) {
   return lemlistFetch(`/campaigns/${campaignId}/workflow`);
 }
 
+// --- Activities / Replies ---
+
+/**
+ * Fetch activities for a campaign from Lemlist.
+ * GET /api/activities?campaignId={id}&type={type}
+ *
+ * Types: emailsSent, emailsOpened, emailsClicked, emailsReplied,
+ *        emailsBounced, emailsUnsubscribed, linkedinConnectionSent, etc.
+ *
+ * Returns array of activity objects with leadEmail, timestamp, step, etc.
+ */
+async function getActivities(campaignId, apiKey, { type, offset = 0, limit = 100 } = {}) {
+  const params = new URLSearchParams({ campaignId });
+  if (type) params.set('type', type);
+  if (offset) params.set('offset', String(offset));
+  if (limit) params.set('limit', String(limit));
+  return lemlistFetch(`/activities?${params.toString()}`, {}, apiKey);
+}
+
+/**
+ * Fetch ALL activities of a given type for a campaign, paginating automatically.
+ * Lemlist caps at 100 per page.
+ */
+async function getAllActivities(campaignId, apiKey, type) {
+  const all = [];
+  let offset = 0;
+  const PAGE = 100;
+  while (true) {
+    const page = await getActivities(campaignId, apiKey, { type, offset, limit: PAGE });
+    if (!Array.isArray(page) || page.length === 0) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    offset += PAGE;
+    // Safety cap — don't fetch more than 1000 activities per type
+    if (all.length >= 1000) break;
+  }
+  return all;
+}
+
 // --- Data transformation ---
 
 function transformCampaignStats(raw) {
@@ -831,4 +870,6 @@ module.exports = {
   transformStepStats,
   transformWorkflowToTree,
   flattenTree,
+  getActivities,
+  getAllActivities,
 };

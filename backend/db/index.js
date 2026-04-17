@@ -1595,6 +1595,89 @@ const notifications = {
   },
 };
 
+// =============================================
+// Prospect Activities (Lemlist replies, opens, etc.)
+// =============================================
+
+const prospectActivities = {
+  async listByCampaign(campaignId, { type, limit = 50, offset = 0 } = {}) {
+    const conditions = ['campaign_id = $1'];
+    const params = [campaignId];
+    let idx = 2;
+    if (type) {
+      conditions.push(`type = $${idx++}`);
+      params.push(type);
+    }
+    params.push(limit, offset);
+    const result = await query(
+      `SELECT * FROM prospect_activities WHERE ${conditions.join(' AND ')} ORDER BY happened_at DESC LIMIT $${idx++} OFFSET $${idx}`,
+      params
+    );
+    return result.rows;
+  },
+
+  async listByUser(userId, { type, limit = 50, offset = 0 } = {}) {
+    const conditions = ['user_id = $1'];
+    const params = [userId];
+    let idx = 2;
+    if (type) {
+      conditions.push(`type = $${idx++}`);
+      params.push(type);
+    }
+    params.push(limit, offset);
+    const result = await query(
+      `SELECT pa.*, c.name as campaign_name FROM prospect_activities pa LEFT JOIN campaigns c ON c.id = pa.campaign_id WHERE ${conditions.join(' AND ')} ORDER BY pa.happened_at DESC LIMIT $${idx++} OFFSET $${idx}`,
+      params
+    );
+    return result.rows;
+  },
+
+  async countByCampaign(campaignId, type) {
+    const conditions = ['campaign_id = $1'];
+    const params = [campaignId];
+    if (type) {
+      conditions.push('type = $2');
+      params.push(type);
+    }
+    const result = await query(
+      `SELECT COUNT(*) as count FROM prospect_activities WHERE ${conditions.join(' AND ')}`,
+      params
+    );
+    return parseInt(result.rows[0]?.count || '0', 10);
+  },
+
+  async upsert(data) {
+    const result = await query(`
+      INSERT INTO prospect_activities (user_id, campaign_id, opportunity_id, lemlist_activity_id, type, lead_email, lead_first_name, lead_last_name, company_name, sequence_step, happened_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (lemlist_activity_id) DO NOTHING
+      RETURNING *
+    `, [
+      data.userId || null,
+      data.campaignId || null,
+      data.opportunityId || null,
+      data.lemlistActivityId,
+      data.type,
+      data.leadEmail || null,
+      data.leadFirstName || null,
+      data.leadLastName || null,
+      data.companyName || null,
+      data.sequenceStep || null,
+      data.happenedAt || new Date(),
+    ]);
+    return result.rows[0] || null;
+  },
+
+  async bulkUpsert(activities) {
+    let inserted = 0;
+    for (const a of activities) {
+      const row = await this.upsert(a);
+      if (row) inserted++;
+    }
+    return inserted;
+  },
+};
+
 module.exports = {
   query: rawQuery,
   closeDb,
@@ -1623,4 +1706,5 @@ module.exports = {
   recoFeedback,
   templates,
   notifications,
+  prospectActivities,
 };

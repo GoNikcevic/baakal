@@ -190,6 +190,93 @@ router.get('/diagnostics/:campaignId', async (req, res, next) => {
   }
 });
 
+// POST /api/stats/sync-activities — Sync Lemlist activities (replies, opens, etc.) for user's campaigns
+router.post('/sync-activities', async (req, res, next) => {
+  try {
+    const keyRow = await db.userIntegrations.get(req.user.id, 'lemlist');
+    if (!keyRow) return res.status(400).json({ error: 'Lemlist API key not configured' });
+
+    let apiKey;
+    try { apiKey = decrypt(keyRow.access_token); }
+    catch { return res.status(500).json({ error: 'Could not decrypt Lemlist key' }); }
+
+    // Get user's campaigns that have a lemlist_id
+    const campaigns = await db.campaigns.list({ userId: req.user.id });
+    const linked = campaigns.filter(c => c.lemlist_id);
+
+    const types = ['emailsReplied', 'emailsOpened', 'emailsClicked', 'emailsBounced'];
+    let totalInserted = 0;
+    const errors = [];
+
+    for (const campaign of linked) {
+      for (const type of types) {
+        try {
+          const activities = await lemlist.getAllActivities(campaign.lemlist_id, apiKey, type);
+          if (!activities || activities.length === 0) continue;
+
+          const mapped = activities.map(a => ({
+            userId: req.user.id,
+            campaignId: campaign.id,
+            lemlistActivityId: a._id || `${campaign.lemlist_id}_${type}_${a.leadEmail || a.leadId}_${a.createdAt || Date.now()}`,
+            type,
+            leadEmail: a.leadEmail || a.leadId || null,
+            leadFirstName: a.leadFirstName || null,
+            leadLastName: a.leadLastName || null,
+            companyName: a.companyName || null,
+            sequenceStep: a.sequenceStep ?? a.sequenceStepNumber ?? null,
+            happenedAt: a.createdAt || a.happenedAt || new Date(),
+          }));
+
+          const inserted = await db.prospectActivities.bulkUpsert(mapped);
+          totalInserted += inserted;
+        } catch (err) {
+          errors.push({ campaign: campaign.name, type, error: err.message });
+        }
+      }
+
+      // Small delay between campaigns to respect rate limits
+      if (linked.length > 1) await sleep(300);
+    }
+
+    res.json({
+      synced: totalInserted,
+      campaigns: linked.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/stats/activities/:campaignId — Get activities for a campaign
+router.get('/activities/:campaignId', async (req, res, next) => {
+  try {
+    const { type, limit, offset } = req.query;
+    const activities = await db.prospectActivities.listByCampaign(
+      req.params.campaignId,
+      { type, limit: parseInt(limit, 10) || 50, offset: parseInt(offset, 10) || 0 }
+    );
+    const replyCount = await db.prospectActivities.countByCampaign(req.params.campaignId, 'emailsReplied');
+    res.json({ activities, replyCount });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/stats/replies — Get all replies across user's campaigns
+router.get('/replies', async (req, res, next) => {
+  try {
+    const { limit, offset } = req.query;
+    const replies = await db.prospectActivities.listByUser(
+      req.user.id,
+      { type: 'emailsReplied', limit: parseInt(limit, 10) || 50, offset: parseInt(offset, 10) || 0 }
+    );
+    res.json({ replies });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/stats/run-orchestrator
 router.post('/run-orchestrator', async (req, res, next) => {
   try {
