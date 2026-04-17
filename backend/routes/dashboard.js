@@ -1,6 +1,8 @@
 const { Router } = require('express');
 const db = require('../db');
+const lemlist = require('../api/lemlist');
 const { kpiCache } = require('../lib/cache');
+const { getUserKey } = require('../config');
 const hubspotSync = require('../orchestrator/jobs/hubspot-sync');
 
 const router = Router();
@@ -21,6 +23,14 @@ router.get('/', async (req, res, next) => {
       db.campaigns.list({ status: 'active', userId, limit: 50 }),
     ]);
 
+    // Auto-sync stats from Lemlist if campaigns have null open_rate
+    // (means stats were never collected with the working v2 endpoint)
+    const stale = campaigns.some(c => c.lemlist_id && c.open_rate == null);
+    if (stale) {
+      // Fire-and-forget: sync in background, don't block dashboard load
+      syncStatsBackground(userId).catch(() => {});
+    }
+
     const result = { kpis, campaigns };
     kpiCache.set(cacheKey, result, 5 * 60 * 1000); // 5 min TTL
     res.json(result);
@@ -28,6 +38,45 @@ router.get('/', async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * Background stats sync — pulls fresh stats from Lemlist for all
+ * user campaigns and updates the DB. Called automatically when the
+ * dashboard detects stale data (open_rate == null).
+ */
+async function syncStatsBackground(userId) {
+  try {
+    const apiKey = await getUserKey(userId, 'lemlist');
+    if (!apiKey) return;
+
+    const campaigns = await db.campaigns.list({ userId });
+    const linked = campaigns.filter(c => c.lemlist_id);
+
+    for (const campaign of linked) {
+      try {
+        const rawStats = await lemlist.getCampaignStats(campaign.lemlist_id, apiKey);
+        const stats = lemlist.transformCampaignStats(rawStats);
+        await db.campaigns.update(campaign.id, {
+          nb_prospects: stats.contacts,
+          open_rate: stats.openRate,
+          reply_rate: stats.replyRate,
+          accept_rate_lk: stats.acceptRate,
+          interested: stats.interested,
+          meetings: stats.meetings,
+          stops: stats.stops,
+          last_collected: new Date().toISOString().split('T')[0],
+        });
+      } catch (err) {
+        console.warn(`[dashboard] Stats sync failed for ${campaign.name}:`, err.message);
+      }
+    }
+
+    // Invalidate KPI cache so next load shows fresh data
+    kpiCache.delete(`kpis:${userId}`);
+  } catch (err) {
+    console.warn('[dashboard] Background stats sync failed:', err.message);
+  }
+}
 
 // GET /api/dashboard/memory — Cross-campaign patterns (paginated)
 router.get('/memory', async (req, res, next) => {

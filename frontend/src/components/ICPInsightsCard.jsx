@@ -20,7 +20,7 @@ export default function ICPInsightsCard() {
   const fetchAnalysis = useCallback(async () => {
     try {
       setError(null);
-      const res = await request('/api/ai/icp-analysis');
+      const res = await request('/ai/icp-analysis');
       setData(res);
     } catch (err) {
       setError(err.message || 'Error');
@@ -37,7 +37,7 @@ export default function ICPInsightsCard() {
     setRefreshing(true);
     setError(null);
     try {
-      const res = await request('/api/ai/icp-analysis/refresh', { method: 'POST' });
+      const res = await request('/ai/icp-analysis/refresh', { method: 'POST' });
       setData(res);
     } catch (err) {
       setError(err.message || 'Error');
