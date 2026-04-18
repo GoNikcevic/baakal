@@ -1,0 +1,313 @@
+/**
+ * CRM Data Cleaning Agent
+ *
+ * Scans a connected CRM (Pipedrive, HubSpot, Salesforce) and detects:
+ * - Duplicate contacts (by email, by name+company)
+ * - Missing critical fields (email, name, company)
+ * - Invalid email formats
+ * - Inactive contacts (no update in 6+ months)
+ * - Format inconsistencies (phone, name casing)
+ *
+ * Returns a health score /100 and structured issues with suggested actions.
+ * Can apply fixes (merge, update, delete) individually or in bulk.
+ *
+ * Architecture: provider adapters so the same scan logic works for any CRM.
+ */
+
+const pipedrive = require('../api/pipedrive');
+const { getUserKey } = require('../config');
+const db = require('../db');
+
+const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
+
+// ── Provider Adapters ──
+
+function getAdapter(provider) {
+  switch (provider) {
+    case 'pipedrive':
+      return {
+        async listPersons(token) {
+          return pipedrive.listAllPersons(token);
+        },
+        normalizePerson(raw) {
+          const email = Array.isArray(raw.email)
+            ? (raw.email.find(e => e.primary)?.value || raw.email[0]?.value || null)
+            : (raw.email || null);
+          const phone = Array.isArray(raw.phone)
+            ? (raw.phone.find(p => p.primary)?.value || raw.phone[0]?.value || null)
+            : (raw.phone || null);
+          return {
+            id: raw.id,
+            name: raw.name || '',
+            email: email ? email.toLowerCase().trim() : null,
+            phone,
+            title: raw.job_title || '',
+            company: raw.org_name || raw.org_id?.name || '',
+            updatedAt: raw.update_time || raw.add_time || null,
+            raw,
+          };
+        },
+        async updatePerson(token, id, data) {
+          return pipedrive.updatePerson(token, id, data);
+        },
+        async deletePerson(token, id) {
+          return pipedrive.deletePerson(token, id);
+        },
+      };
+
+    default:
+      return {
+        async listPersons() {
+          throw new Error(`CRM cleaning not yet implemented for ${provider}`);
+        },
+        normalizePerson: (r) => r,
+        async updatePerson() { throw new Error('Not implemented'); },
+        async deletePerson() { throw new Error('Not implemented'); },
+      };
+  }
+}
+
+// ── Email validation ──
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email) {
+  return email && EMAIL_RE.test(email);
+}
+
+// ── Scan CRM ──
+
+/**
+ * Full CRM health scan.
+ * @param {string} userId
+ * @param {string} provider — 'pipedrive', 'hubspot', 'salesforce'
+ * @returns {{ score, totalContacts, issues[], summary }}
+ */
+async function scanCRM(userId, provider) {
+  const token = await getUserKey(userId, provider);
+  if (!token) throw new Error(`No ${provider} API key configured`);
+
+  const adapter = getAdapter(provider);
+  const rawPersons = await adapter.listPersons(token);
+  const persons = (rawPersons || []).map(adapter.normalizePerson);
+
+  const issues = [];
+
+  // 1. Duplicates by email
+  const emailGroups = new Map();
+  for (const p of persons) {
+    if (!p.email) continue;
+    const key = p.email.toLowerCase();
+    if (!emailGroups.has(key)) emailGroups.set(key, []);
+    emailGroups.get(key).push({ id: p.id, name: p.name, email: p.email, company: p.company });
+  }
+  for (const [email, group] of emailGroups) {
+    if (group.length > 1) {
+      issues.push({
+        type: 'duplicate_email',
+        severity: 'high',
+        contacts: group,
+        key: email,
+        suggestedAction: 'merge',
+      });
+    }
+  }
+
+  // 2. Duplicates by name+company (fuzzy)
+  const nameGroups = new Map();
+  for (const p of persons) {
+    if (!p.name || !p.company) continue;
+    const key = `${p.name.toLowerCase().trim()}|${p.company.toLowerCase().trim()}`;
+    if (!nameGroups.has(key)) nameGroups.set(key, []);
+    nameGroups.get(key).push({ id: p.id, name: p.name, email: p.email, company: p.company });
+  }
+  for (const [, group] of nameGroups) {
+    if (group.length > 1) {
+      // Skip if already caught by email duplicate
+      const emails = group.map(g => g.email).filter(Boolean);
+      const allSameEmail = emails.length > 0 && new Set(emails).size === 1;
+      if (!allSameEmail) {
+        issues.push({
+          type: 'duplicate_name',
+          severity: 'medium',
+          contacts: group,
+          suggestedAction: 'review',
+        });
+      }
+    }
+  }
+
+  // 3. Missing critical fields
+  const missingEmail = persons.filter(p => !p.email);
+  if (missingEmail.length > 0) {
+    issues.push({
+      type: 'missing_email',
+      severity: 'high',
+      contacts: missingEmail.slice(0, 50).map(p => ({ id: p.id, name: p.name, company: p.company })),
+      count: missingEmail.length,
+      suggestedAction: 'enrich',
+    });
+  }
+
+  const missingName = persons.filter(p => !p.name || p.name.trim() === '');
+  if (missingName.length > 0) {
+    issues.push({
+      type: 'missing_name',
+      severity: 'medium',
+      contacts: missingName.slice(0, 50).map(p => ({ id: p.id, email: p.email })),
+      count: missingName.length,
+      suggestedAction: 'review',
+    });
+  }
+
+  const missingCompany = persons.filter(p => !p.company || p.company.trim() === '');
+  if (missingCompany.length > 0) {
+    issues.push({
+      type: 'missing_company',
+      severity: 'low',
+      contacts: missingCompany.slice(0, 50).map(p => ({ id: p.id, name: p.name, email: p.email })),
+      count: missingCompany.length,
+      suggestedAction: 'enrich',
+    });
+  }
+
+  // 4. Invalid email format
+  const invalidEmails = persons.filter(p => p.email && !isValidEmail(p.email));
+  if (invalidEmails.length > 0) {
+    issues.push({
+      type: 'invalid_email',
+      severity: 'high',
+      contacts: invalidEmails.slice(0, 50).map(p => ({ id: p.id, name: p.name, email: p.email })),
+      count: invalidEmails.length,
+      suggestedAction: 'fix',
+    });
+  }
+
+  // 5. Inactive contacts (no update in 6+ months)
+  const now = Date.now();
+  const inactive = persons.filter(p => {
+    if (!p.updatedAt) return false;
+    return (now - new Date(p.updatedAt).getTime()) > SIX_MONTHS_MS;
+  });
+  if (inactive.length > 0) {
+    issues.push({
+      type: 'inactive',
+      severity: 'low',
+      contacts: inactive.slice(0, 50).map(p => ({ id: p.id, name: p.name, email: p.email, lastUpdate: p.updatedAt })),
+      count: inactive.length,
+      suggestedAction: 'archive',
+    });
+  }
+
+  // 6. Format issues — names in ALL CAPS
+  const allCaps = persons.filter(p => p.name && p.name === p.name.toUpperCase() && p.name.length > 2);
+  if (allCaps.length > 0) {
+    issues.push({
+      type: 'format_name_caps',
+      severity: 'low',
+      contacts: allCaps.slice(0, 50).map(p => ({
+        id: p.id,
+        name: p.name,
+        suggested: p.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+      })),
+      count: allCaps.length,
+      suggestedAction: 'auto_fix',
+    });
+  }
+
+  // Compute health score
+  const dupEmailCount = issues.filter(i => i.type === 'duplicate_email').reduce((s, i) => s + i.contacts.length, 0);
+  const dupNameCount = issues.filter(i => i.type === 'duplicate_name').reduce((s, i) => s + i.contacts.length, 0);
+  let score = 100;
+  score -= dupEmailCount * 3;
+  score -= dupNameCount * 1;
+  score -= (missingEmail.length) * 1;
+  score -= (invalidEmails.length) * 2;
+  score -= Math.min(inactive.length, 20) * 0.5;
+  score -= (allCaps.length) * 0.2;
+  score = Math.max(0, Math.round(score));
+
+  const summary = {
+    duplicateEmails: dupEmailCount,
+    duplicateNames: dupNameCount,
+    missingEmails: missingEmail.length,
+    missingCompanies: missingCompany.length,
+    invalidEmails: invalidEmails.length,
+    inactive: inactive.length,
+    formatIssues: allCaps.length,
+  };
+
+  return { score, totalContacts: persons.length, issues, summary, provider };
+}
+
+// ── Apply Fixes ──
+
+/**
+ * Apply a list of fixes to the CRM.
+ * @param {string} userId
+ * @param {string} provider
+ * @param {{ type, action, contactIds, data }[]} fixes
+ */
+async function applyFixes(userId, provider, fixes) {
+  const token = await getUserKey(userId, provider);
+  if (!token) throw new Error(`No ${provider} API key configured`);
+
+  const adapter = getAdapter(provider);
+  let applied = 0;
+  let skipped = 0;
+  const errors = [];
+
+  for (const fix of fixes) {
+    try {
+      switch (fix.action) {
+        case 'delete':
+          for (const id of (fix.contactIds || [])) {
+            await adapter.deletePerson(token, id);
+            applied++;
+          }
+          break;
+
+        case 'update':
+          for (const id of (fix.contactIds || [])) {
+            await adapter.updatePerson(token, id, fix.data || {});
+            applied++;
+          }
+          break;
+
+        case 'auto_fix_caps':
+          for (const contact of (fix.contacts || [])) {
+            const properName = contact.name
+              .split(' ')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+              .join(' ');
+            await adapter.updatePerson(token, contact.id, { name: properName });
+            applied++;
+          }
+          break;
+
+        case 'merge':
+          // Keep the first contact, merge data from others, delete others
+          if (fix.contactIds && fix.contactIds.length >= 2) {
+            const [keepId, ...deleteIds] = fix.contactIds;
+            if (fix.mergeData) {
+              await adapter.updatePerson(token, keepId, fix.mergeData);
+            }
+            for (const id of deleteIds) {
+              await adapter.deletePerson(token, id);
+            }
+            applied += deleteIds.length;
+          }
+          break;
+
+        default:
+          skipped++;
+      }
+    } catch (err) {
+      errors.push({ fix: fix.type || fix.action, error: err.message });
+    }
+  }
+
+  return { applied, skipped, errors };
+}
+
+module.exports = { scanCRM, applyFixes, getAdapter };

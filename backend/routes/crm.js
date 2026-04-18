@@ -324,13 +324,13 @@ router.post('/sync-to/:provider', async (req, res, next) => {
       await db.opportunities.update(opportunity.id, { crm_provider: 'salesforce', crm_contact_id: contactId, crm_deal_id: deal.id });
     } else if (provider === 'pipedrive') {
       const personData = pipedrive.mapOpportunityToPerson(opportunity);
-      const person = await pipedrive.createPerson(token, personData);
+      const { person, action } = await pipedrive.upsertPerson(token, personData);
       const deal = await pipedrive.createDeal(token, {
         name: `${opportunity.name} — ${opportunity.company || 'Bakal'}`,
         personId: person.id,
         status: opportunity.status,
       });
-      result = { opportunityId: opportunity.id, provider: 'pipedrive', personId: person.id, dealId: deal.id };
+      result = { opportunityId: opportunity.id, provider: 'pipedrive', personId: person.id, dealId: deal.id, action };
       await db.opportunities.update(opportunity.id, { crm_provider: 'pipedrive', crm_contact_id: person.id, crm_deal_id: deal.id });
     } else if (provider === 'folk') {
       const personData = folk.mapOpportunityToPerson(opportunity);
@@ -439,6 +439,150 @@ router.get('/airtable/tables', async (req, res, next) => {
     next(err);
   }
 });
+
+// ═══════════════════════════════════════════════════
+//  CRM Data Cleaning & Import
+// ═══════════════════════════════════════════════════
+
+const crmCleaning = require('../lib/crm-cleaning-agent');
+
+// POST /api/crm/scan/:provider — Run a CRM health scan
+router.post('/scan/:provider', async (req, res, next) => {
+  try {
+    const { provider } = req.params;
+    const report = await crmCleaning.scanCRM(req.user.id, provider);
+
+    // Save report to DB
+    const saved = await db.crmCleaningReports.create({
+      userId: req.user.id,
+      provider,
+      score: report.score,
+      totalContacts: report.totalContacts,
+      summary: report.summary,
+      issues: report.issues,
+    });
+
+    res.json({ ...report, reportId: saved.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/crm/clean/:provider — Apply selected fixes
+router.post('/clean/:provider', async (req, res, next) => {
+  try {
+    const { provider } = req.params;
+    const { reportId, fixes } = req.body;
+    if (!fixes || !Array.isArray(fixes)) {
+      return res.status(400).json({ error: 'fixes array is required' });
+    }
+
+    const result = await crmCleaning.applyFixes(req.user.id, provider, fixes);
+
+    // Update report if provided
+    if (reportId) {
+      await db.crmCleaningReports.update(reportId, {
+        status: result.errors.length === 0 ? 'resolved' : 'partially_fixed',
+        fixesApplied: result,
+      });
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/crm/cleaning-reports — List user's cleaning reports
+router.get('/cleaning-reports', async (req, res, next) => {
+  try {
+    const reports = await db.crmCleaningReports.listByUser(req.user.id);
+    res.json({ reports });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/crm/import/:provider — Import contacts/deals FROM CRM INTO Baakalai
+router.post('/import/:provider', async (req, res, next) => {
+  try {
+    const { provider } = req.params;
+    const token = await getUserCrmToken(req.user.id, provider);
+    if (!token) return res.status(400).json({ error: `${provider} not connected` });
+
+    let imported = 0;
+    let skipped = 0;
+    const errors = [];
+
+    if (provider === 'pipedrive') {
+      const persons = await pipedrive.listAllPersons(token);
+
+      for (const raw of (persons || [])) {
+        try {
+          const email = Array.isArray(raw.email)
+            ? (raw.email.find(e => e.primary)?.value || raw.email[0]?.value || null)
+            : (raw.email || null);
+
+          if (!email) { skipped++; continue; }
+
+          // Check if already imported
+          const existing = await db.opportunities.findByEmail(req.user.id, email);
+          if (existing) { skipped++; continue; }
+
+          await db.opportunities.create({
+            userId: req.user.id,
+            name: raw.name || 'Unknown',
+            email,
+            title: raw.job_title || null,
+            company: raw.org_name || raw.org_id?.name || null,
+            status: 'imported',
+            crmProvider: 'pipedrive',
+            crmContactId: String(raw.id),
+          });
+          imported++;
+        } catch (err) {
+          errors.push({ name: raw.name, error: err.message });
+        }
+      }
+    } else {
+      return res.status(400).json({ error: `Import not yet supported for ${provider}` });
+    }
+
+    res.json({ imported, skipped, errors: errors.length > 0 ? errors : undefined });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/crm/pipedrive/pipelines — List Pipedrive pipelines
+router.get('/pipedrive/pipelines', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'pipedrive');
+    if (!token) return res.status(400).json({ error: 'Pipedrive not connected' });
+    const pipelines = await pipedrive.getPipelines(token);
+    res.json({ pipelines });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/crm/pipedrive/stages/:pipelineId — List stages for a pipeline
+router.get('/pipedrive/stages/:pipelineId', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'pipedrive');
+    if (!token) return res.status(400).json({ error: 'Pipedrive not connected' });
+    const stages = await pipedrive.getStages(token, req.params.pipelineId);
+    res.json({ stages });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Helper: get CRM token for any provider
+async function getUserCrmToken(userId, provider) {
+  const { getUserKey } = require('../config');
+  return getUserKey(userId, provider);
+}
 
 module.exports = router;
 module.exports.syncOpportunityToHubspot = syncOpportunityToHubspot;

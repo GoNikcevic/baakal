@@ -54,6 +54,121 @@ async function searchPersons(apiToken, term) {
   return pdFetch(apiToken, `/persons/search?term=${encodeURIComponent(term)}&limit=5`);
 }
 
+/**
+ * Search a person by email. Returns the first match or null.
+ * Pipedrive search returns { items: [{ item: {...}, result_score }] }
+ */
+async function searchPersonByEmail(apiToken, email) {
+  if (!email) return null;
+  const data = await pdFetch(apiToken, `/persons/search?term=${encodeURIComponent(email)}&fields=email&limit=1`);
+  const items = data?.items || data || [];
+  if (items.length === 0) return null;
+  return items[0]?.item || items[0] || null;
+}
+
+async function updatePerson(apiToken, personId, data) {
+  const body = {};
+  if (data.name) body.name = data.name;
+  if (data.email) body.email = [{ value: data.email, primary: true }];
+  if (data.title || data.job_title) body.job_title = data.title || data.job_title;
+  if (data.orgId || data.org_id) body.org_id = data.orgId || data.org_id;
+  if (data.phone) body.phone = [{ value: data.phone, primary: true }];
+  return pdFetch(apiToken, `/persons/${personId}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+async function deletePerson(apiToken, personId) {
+  return pdFetch(apiToken, `/persons/${personId}`, { method: 'DELETE' });
+}
+
+/**
+ * Upsert a person: search by email, update if found, create if not.
+ * Returns { person, action: 'created' | 'updated' }
+ */
+async function upsertPerson(apiToken, data) {
+  if (data.email) {
+    const existing = await searchPersonByEmail(apiToken, data.email);
+    if (existing) {
+      const updated = await updatePerson(apiToken, existing.id, data);
+      return { person: updated, action: 'updated' };
+    }
+  }
+  const created = await createPerson(apiToken, data);
+  return { person: created, action: 'created' };
+}
+
+/**
+ * List all persons with pagination. Pipedrive returns max 500 per page.
+ * Returns flat array of all persons.
+ */
+async function listAllPersons(apiToken, { limit = 500 } = {}) {
+  const all = [];
+  let start = 0;
+  while (true) {
+    const data = await pdFetch(apiToken, `/persons?start=${start}&limit=${limit}`);
+    if (!data || !Array.isArray(data)) break;
+    all.push(...data);
+    // Check for more pages — pdFetch returns json.data, but we need additional_data
+    // which is at json level. Workaround: if we got exactly `limit` results, there might be more.
+    if (data.length < limit) break;
+    start += limit;
+    if (all.length >= 10000) break; // Safety cap
+  }
+  return all;
+}
+
+// ── Pipelines & Stages ──
+
+async function getPipelines(apiToken) {
+  const data = await pdFetch(apiToken, '/pipelines');
+  return (data || []).map(p => ({
+    id: p.id,
+    name: p.name,
+    active: p.active,
+    dealCount: p.deals_count || 0,
+  }));
+}
+
+async function getStages(apiToken, pipelineId) {
+  const endpoint = pipelineId
+    ? `/stages?pipeline_id=${pipelineId}`
+    : '/stages';
+  const data = await pdFetch(apiToken, endpoint);
+  return (data || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    pipelineId: s.pipeline_id,
+    order: s.order_nr,
+  }));
+}
+
+// ── Fields & Activities ──
+
+async function getPersonFields(apiToken) {
+  const data = await pdFetch(apiToken, '/personFields');
+  return (data || []).map(f => ({
+    id: f.id,
+    key: f.key,
+    name: f.name,
+    fieldType: f.field_type,
+    options: f.options || [],
+  }));
+}
+
+async function getActivities(apiToken, personId) {
+  const data = await pdFetch(apiToken, `/activities?person_id=${personId}&limit=50&sort=due_date DESC`);
+  return (data || []).map(a => ({
+    id: a.id,
+    type: a.type,
+    subject: a.subject,
+    done: a.done,
+    dueDate: a.due_date,
+    note: a.note,
+  }));
+}
+
 // ── Deals ──
 
 async function createDeal(apiToken, data) {
@@ -120,6 +235,15 @@ function mapOpportunityToPerson(opp) {
 module.exports = {
   createPerson,
   searchPersons,
+  searchPersonByEmail,
+  updatePerson,
+  deletePerson,
+  upsertPerson,
+  listAllPersons,
+  getPipelines,
+  getStages,
+  getPersonFields,
+  getActivities,
   createDeal,
   updateDeal,
   getDeals,

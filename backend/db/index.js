@@ -1266,6 +1266,15 @@ const opportunities = {
     const result = await query('DELETE FROM opportunities WHERE id = $1', [id]);
     return { changes: result.rowCount };
   },
+
+  async findByEmail(userId, email) {
+    if (!email) return null;
+    const result = await query(
+      'SELECT * FROM opportunities WHERE user_id = $1 AND LOWER(email) = LOWER($2) LIMIT 1',
+      [userId, email]
+    );
+    return result.rows[0] || null;
+  },
 };
 
 // =============================================
@@ -1680,6 +1689,59 @@ const prospectActivities = {
   },
 };
 
+// =============================================
+// CRM Cleaning Reports
+// =============================================
+
+const crmCleaningReports = {
+  async create(data) {
+    const result = await query(`
+      INSERT INTO crm_cleaning_reports (user_id, provider, score, total_contacts, summary, issues, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [
+      data.userId,
+      data.provider,
+      data.score,
+      data.totalContacts || 0,
+      JSON.stringify(data.summary || {}),
+      JSON.stringify(data.issues || []),
+      data.status || 'pending',
+    ]);
+    return result.rows[0];
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM crm_cleaning_reports WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
+  async listByUser(userId, limit = 20) {
+    const result = await query(
+      'SELECT * FROM crm_cleaning_reports WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [userId, limit]
+    );
+    return result.rows;
+  },
+
+  async update(id, data) {
+    const sets = [];
+    const values = [];
+    let i = 1;
+    if (data.status !== undefined) { sets.push(`status = $${i++}`); values.push(data.status); }
+    if (data.fixesApplied !== undefined) { sets.push(`fixes_applied = $${i++}`); values.push(JSON.stringify(data.fixesApplied)); }
+    if (data.score !== undefined) { sets.push(`score = $${i++}`); values.push(data.score); }
+    if (sets.length === 0) return null;
+    sets.push('updated_at = now()');
+    values.push(id);
+    const result = await query(
+      `UPDATE crm_cleaning_reports SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+};
+
 module.exports = {
   query: rawQuery,
   closeDb,
@@ -1709,4 +1771,5 @@ module.exports = {
   templates,
   notifications,
   prospectActivities,
+  crmCleaningReports,
 };
