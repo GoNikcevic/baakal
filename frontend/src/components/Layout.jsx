@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { i18nKey: 'nav.campaigns',    to: '/campaigns',     icon: 'campaigns' },
   { i18nKey: 'nav.performance',  to: '/performance',   icon: 'reports' },
   { i18nKey: 'nav.memory',       to: '/memory',        icon: 'memory' },
+  { i18nKey: 'nav.clients',      to: '/clients',       icon: 'clients' },
   { i18nKey: 'nav.crmAnalytics', to: '/crm-analytics', icon: 'crm' },
   { i18nKey: 'nav.profile',      to: '/profil',        icon: 'profil' },
   { i18nKey: 'nav.settings',     to: '/settings',      icon: 'settings' },
@@ -84,6 +85,12 @@ function NavIcon({ name }) {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
         <line x1="9" y1="21" x2="15" y2="21" />
+      </svg>
+    ),
+    clients: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
     crm: (
