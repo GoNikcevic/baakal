@@ -1742,6 +1742,92 @@ const crmCleaningReports = {
   },
 };
 
+// =============================================
+// Teams & Members
+// =============================================
+
+const teams = {
+  async create(data) {
+    const result = await query(`
+      INSERT INTO teams (name, created_by)
+      VALUES ($1, $2)
+      RETURNING *
+    `, [data.name, data.createdBy]);
+    const team = result.rows[0];
+    await query(`
+      INSERT INTO team_members (team_id, user_id, role)
+      VALUES ($1, $2, 'admin')
+    `, [team.id, data.createdBy]);
+    return team;
+  },
+
+  async get(id) {
+    const result = await query('SELECT * FROM teams WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  },
+
+  async getByInviteCode(code) {
+    const result = await query('SELECT * FROM teams WHERE invite_code = $1', [code]);
+    return result.rows[0] || null;
+  },
+
+  async getByUser(userId) {
+    const result = await query(`
+      SELECT t.*, tm.role FROM teams t
+      INNER JOIN team_members tm ON tm.team_id = t.id
+      WHERE tm.user_id = $1
+      LIMIT 1
+    `, [userId]);
+    return result.rows[0] || null;
+  },
+
+  async getMembers(teamId) {
+    const result = await query(`
+      SELECT tm.id, tm.role, tm.joined_at, u.id as user_id, u.name, u.email, u.company
+      FROM team_members tm
+      INNER JOIN users u ON u.id = tm.user_id
+      WHERE tm.team_id = $1
+      ORDER BY tm.joined_at
+    `, [teamId]);
+    return result.rows;
+  },
+
+  async addMember(teamId, userId, role = 'viewer') {
+    const team = await query('SELECT max_members FROM teams WHERE id = $1', [teamId]);
+    const members = await query('SELECT COUNT(*) as count FROM team_members WHERE team_id = $1', [teamId]);
+    if (parseInt(members.rows[0]?.count || 0, 10) >= (team.rows[0]?.max_members || 5)) {
+      throw new Error('Nombre maximum de membres atteint (5)');
+    }
+    const result = await query(`
+      INSERT INTO team_members (team_id, user_id, role)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (team_id, user_id) DO UPDATE SET role = $3
+      RETURNING *
+    `, [teamId, userId, role]);
+    return result.rows[0];
+  },
+
+  async updateMemberRole(teamId, userId, role) {
+    const result = await query(
+      `UPDATE team_members SET role = $1 WHERE team_id = $2 AND user_id = $3 RETURNING *`,
+      [role, teamId, userId]
+    );
+    return result.rows[0] || null;
+  },
+
+  async removeMember(teamId, userId) {
+    await query('DELETE FROM team_members WHERE team_id = $1 AND user_id = $2', [teamId, userId]);
+  },
+
+  async migrateUserData(teamId, userId) {
+    await query('UPDATE campaigns SET team_id = $1 WHERE user_id = $2 AND team_id IS NULL', [teamId, userId]);
+    await query('UPDATE opportunities SET team_id = $1 WHERE user_id = $2 AND team_id IS NULL', [teamId, userId]);
+    await query('UPDATE nurture_triggers SET team_id = $1 WHERE user_id = $2 AND team_id IS NULL', [teamId, userId]);
+    await query('UPDATE email_accounts SET team_id = $1 WHERE user_id = $2 AND team_id IS NULL', [teamId, userId]);
+    await query('UPDATE user_integrations SET team_id = $1 WHERE user_id = $2 AND team_id IS NULL', [teamId, userId]);
+  },
+};
+
 module.exports = {
   query: rawQuery,
   closeDb,
@@ -1772,4 +1858,5 @@ module.exports = {
   notifications,
   prospectActivities,
   crmCleaningReports,
+  teams,
 };

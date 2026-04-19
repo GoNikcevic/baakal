@@ -99,6 +99,13 @@ app.get('/api/health', async (_req, res) => {
 // Auth routes (public)
 app.use('/api/auth', authRouter);
 
+// Team context — inject req.team + req.teamRole on every authenticated request
+const { teamContext } = require('./middleware/team-context');
+app.use('/api', requireAuth, teamContext);
+
+// Team routes
+app.use('/api/teams', requireAuth, require('./routes/teams'));
+
 // Protected routes (require JWT) with specific rate limiters
 app.use('/api/campaigns', requireAuth, campaignsRouter);
 app.use('/api/dashboard', requireAuth, dashboardRouter);

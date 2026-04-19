@@ -22,6 +22,7 @@ const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'))
 const CRMAnalyticsPage = lazy(() => import('./pages/CRMAnalyticsPage'))
 const ClientsPage = lazy(() => import('./pages/ClientsPage'))
 const NurturePage = lazy(() => import('./pages/NurturePage'))
+const JoinTeamPage = lazy(() => import('./pages/JoinTeamPage'))
 const LegalPage = lazy(() => import('./pages/LegalPage'))
 
 // Public routes accessible without authentication
@@ -160,6 +161,7 @@ export default function App() {
             <Route path="/crm-analytics" element={<CRMAnalyticsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/nurture" element={<NurturePage />} />
+            <Route path="/join/:code" element={<JoinTeamPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Route>

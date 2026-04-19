@@ -12,6 +12,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useSocket } from '../context/SocketContext';
 import { useI18n } from '../i18n';
 import EmailAccountSettings from '../components/EmailAccountSettings';
+import TeamSettings from '../components/TeamSettings';
 
 /* ─── Unified tool list organized by category ─── */
 
@@ -702,6 +703,9 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Team */}
+      <TeamSettings />
 
       {/* Email sortant */}
       <EmailAccountSettings />
