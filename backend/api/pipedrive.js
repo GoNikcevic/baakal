@@ -203,6 +203,7 @@ async function getDeals(apiToken, limit = 100) {
     value: d.value,
     personId: d.person_id?.value || d.person_id,
     createdAt: d.add_time,
+    updatedAt: d.update_time || d.add_time,
   }));
 }
 

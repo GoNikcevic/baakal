@@ -116,7 +116,7 @@ async function sendPersonalEmail(userId, { to, toName, subject, body, replyTo })
   const transport = getTransport(decrypted);
 
   const mailOptions = {
-    from: `${toName ? '' : ''}${account.email_address}`,
+    from: account.email_address,
     to: toName ? `${toName} <${to}>` : to,
     subject,
     text: body,

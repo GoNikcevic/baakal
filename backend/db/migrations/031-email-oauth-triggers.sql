@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS nurture_emails (
   to_name TEXT,
   subject TEXT NOT NULL,
   body TEXT NOT NULL,
-  status TEXT DEFAULT 'pending', -- pending, approved, sent, failed, cancelled
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, sent, failed, cancelled
   sent_at TIMESTAMPTZ,
   crm_activity_id TEXT, -- ID of the activity created in Pipedrive
   error TEXT,

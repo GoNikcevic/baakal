@@ -70,7 +70,7 @@ async function evaluateTriggers(userId) {
         const days = conditions.days || 30;
         const openDeals = deals.filter(d => d.status === 'open');
         for (const deal of openDeals) {
-          const lastUpdate = new Date(deal.createdAt).getTime(); // TODO: use update_time
+          const lastUpdate = new Date(deal.updatedAt || deal.createdAt).getTime();
           if ((Date.now() - lastUpdate) / DAY_MS >= days) {
             const contact = contacts.find(c => c.id === deal.personId);
             if (contact) matched.push(normalizeContact(contact, deal));
