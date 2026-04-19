@@ -16,6 +16,7 @@ const PROVIDER_MAP = {
   pipedriveKey: 'pipedrive',
   salesforceKey: 'salesforce',
   folkKey: 'folk',
+  odooKey: 'odoo',
   // ── Enrichment ──
   dropcontactKey: 'dropcontact',
   apolloKey: 'apollo',
@@ -269,6 +270,19 @@ async function testKey(field, key) {
       if (resp.ok) return { status: 'connected' };
       if (resp.status === 401) return { status: 'invalid', message: 'Invalid API key' };
       return { status: 'error', message: `HTTP ${resp.status}` };
+    }
+    if (field === 'odooKey') {
+      // key is JSON: { url, db, username, password }
+      try {
+        const creds = JSON.parse(key);
+        if (!creds.url || !creds.db || !creds.username || !creds.password) {
+          return { status: 'invalid', message: 'JSON incomplet — url, db, username, password requis' };
+        }
+        const odoo = require('../api/odoo');
+        return await odoo.testConnection(creds);
+      } catch (err) {
+        return { status: 'error', message: err.message };
+      }
     }
     if (field === 'phantombusterKey') {
       const resp = await fetch('https://api.phantombuster.com/api/v2/agents/fetch-all', { headers: { 'X-Phantombuster-Key': key } });

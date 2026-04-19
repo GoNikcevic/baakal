@@ -55,6 +55,35 @@ function getAdapter(provider) {
         },
       };
 
+    case 'odoo': {
+      const odoo = require('../api/odoo');
+      return {
+        async listPersons(token) {
+          const creds = JSON.parse(token);
+          return odoo.listAllContacts(creds);
+        },
+        normalizePerson(raw) {
+          return {
+            id: raw.id,
+            name: raw.name || '',
+            email: raw.email ? raw.email.toLowerCase().trim() : null,
+            phone: raw.phone || null,
+            title: raw.function || '',
+            company: raw.company_name || (raw.parent_id ? raw.parent_id[1] : '') || '',
+            updatedAt: raw.write_date || raw.create_date || null,
+            raw,
+          };
+        },
+        async updatePerson(token, id, data) {
+          const creds = JSON.parse(token);
+          return odoo.updateContact(creds, id, data);
+        },
+        async deletePerson() {
+          throw new Error('Odoo does not support contact deletion via API — archive instead');
+        },
+      };
+    }
+
     default:
       return {
         async listPersons() {

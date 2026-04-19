@@ -26,7 +26,8 @@ const MAIN_TOOLS = [
   { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre clé API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach' },
   { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM complet + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM' },
   { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise + reporting avancé', placeholder: 'Votre clé API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM' },
-  { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orienté vente', placeholder: 'Votre clé API Pipedrive', color: '#017737', icon: 'P', category: 'CRM' },
+  { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orient\u00E9 vente', placeholder: 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM' },
+  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: '{"url":"https://monsite.odoo.com","db":"mydb","username":"...","password":"..."}', color: '#714B67', icon: 'Od', category: 'CRM' },
 ];
 
 /* Extended tools in dropdown */

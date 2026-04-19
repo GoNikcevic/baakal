@@ -13,6 +13,7 @@ const hubspot = require('../api/hubspot');
 const salesforce = require('../api/salesforce');
 const pipedrive = require('../api/pipedrive');
 const folk = require('../api/folk');
+const odoo = require('../api/odoo');
 const notionCrm = require('../api/notion-crm');
 const airtableCrm = require('../api/airtable-crm');
 const { decrypt } = require('../config/crypto');
@@ -363,6 +364,22 @@ router.post('/sync-to/:provider', async (req, res, next) => {
       const { recordId } = await airtableCrm.pushProspectToAirtable(token, baseId, tableName, prospect);
       result = { opportunityId: opportunity.id, provider: 'airtable', recordId };
       await db.opportunities.update(opportunity.id, { crm_provider: 'airtable', crm_contact_id: recordId });
+    } else if (provider === 'odoo') {
+      // token is JSON string: { url, db, username, password }
+      let creds;
+      try { creds = JSON.parse(token); } catch { return res.status(400).json({ error: 'Odoo credentials are invalid JSON' }); }
+      const { id, action } = await odoo.upsertContact(creds, {
+        name: opportunity.name,
+        email: opportunity.email,
+        title: opportunity.title,
+        company: opportunity.company,
+      });
+      const deal = await odoo.createDeal(creds, {
+        name: `${opportunity.name} — ${opportunity.company || 'Baakalai'}`,
+        contactId: id,
+      });
+      result = { opportunityId: opportunity.id, provider: 'odoo', contactId: id, dealId: deal.id, action };
+      await db.opportunities.update(opportunity.id, { crm_provider: 'odoo', crm_contact_id: String(id), crm_deal_id: String(deal.id) });
     } else {
       return res.status(400).json({ error: `Unsupported CRM provider: ${provider}` });
     }
@@ -544,6 +561,31 @@ router.post('/import/:provider', async (req, res, next) => {
           errors.push({ name: raw.name, error: err.message });
         }
       }
+    } else if (provider === 'odoo') {
+      let creds;
+      try { creds = JSON.parse(token); } catch { return res.status(400).json({ error: 'Odoo credentials invalid' }); }
+
+      const contacts = await odoo.listAllContacts(creds);
+      for (const raw of contacts) {
+        try {
+          if (!raw.email) { skipped++; continue; }
+          const existing = await db.opportunities.findByEmail(req.user.id, raw.email);
+          if (existing) { skipped++; continue; }
+          await db.opportunities.create({
+            userId: req.user.id,
+            name: raw.name || 'Unknown',
+            email: raw.email,
+            title: raw.function || null,
+            company: raw.company_name || (raw.parent_id ? raw.parent_id[1] : null),
+            status: 'imported',
+            crmProvider: 'odoo',
+            crmContactId: String(raw.id),
+          });
+          imported++;
+        } catch (err) {
+          errors.push({ name: raw.name, error: err.message });
+        }
+      }
     } else {
       return res.status(400).json({ error: `Import not yet supported for ${provider}` });
     }
@@ -578,6 +620,51 @@ router.get('/pipedrive/stages/:pipelineId', async (req, res, next) => {
   }
 });
 
+// ── Odoo-specific routes ──
+
+// GET /api/crm/odoo/stages — List CRM stages
+router.get('/odoo/stages', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'odoo');
+    if (!token) return res.status(400).json({ error: 'Odoo not connected' });
+    let creds;
+    try { creds = JSON.parse(token); } catch { return res.status(400).json({ error: 'Odoo credentials invalid' }); }
+    const stages = await odoo.getStages(creds);
+    res.json({ stages });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/crm/odoo/invoices — List invoices (optionally for a contact)
+router.get('/odoo/invoices', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'odoo');
+    if (!token) return res.status(400).json({ error: 'Odoo not connected' });
+    let creds;
+    try { creds = JSON.parse(token); } catch { return res.status(400).json({ error: 'Odoo credentials invalid' }); }
+    const contactId = req.query.contactId ? parseInt(req.query.contactId, 10) : null;
+    const invoices = await odoo.getInvoices(creds, { contactId });
+    res.json({ invoices });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/crm/odoo/deals — List CRM deals/opportunities
+router.get('/odoo/deals', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'odoo');
+    if (!token) return res.status(400).json({ error: 'Odoo not connected' });
+    let creds;
+    try { creds = JSON.parse(token); } catch { return res.status(400).json({ error: 'Odoo credentials invalid' }); }
+    const deals = await odoo.getDeals(creds);
+    res.json({ deals });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/crm/client/:id — Get full client detail (opportunity + nurture emails + CRM activities)
 router.get('/client/:id', async (req, res, next) => {
   try {
@@ -593,13 +680,21 @@ router.get('/client/:id', async (req, res, next) => {
       [opp.id, opp.email]
     );
 
-    // Get Pipedrive activities if connected
+    // Get CRM activities based on provider
     let crmActivities = [];
-    if (opp.crm_provider === 'pipedrive' && opp.crm_contact_id) {
+    let invoices = [];
+    if (opp.crm_contact_id) {
       try {
-        const token = await getUserCrmToken(req.user.id, 'pipedrive');
-        if (token) {
+        const token = await getUserCrmToken(req.user.id, opp.crm_provider);
+        if (token && opp.crm_provider === 'pipedrive') {
           crmActivities = await pipedrive.getActivities(token, parseInt(opp.crm_contact_id, 10));
+        } else if (token && opp.crm_provider === 'odoo') {
+          let creds;
+          try { creds = JSON.parse(token); } catch { creds = null; }
+          if (creds) {
+            crmActivities = await odoo.getActivities(creds, parseInt(opp.crm_contact_id, 10));
+            invoices = await odoo.getInvoices(creds, { contactId: parseInt(opp.crm_contact_id, 10) });
+          }
         }
       } catch { /* ignore */ }
     }
@@ -608,6 +703,7 @@ router.get('/client/:id', async (req, res, next) => {
       client: opp,
       emails: emails.rows,
       crmActivities,
+      invoices,
     });
   } catch (err) {
     next(err);
