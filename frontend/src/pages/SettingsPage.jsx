@@ -11,6 +11,7 @@ import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM, syncOutreach, saveLa
 import { useNotifications } from '../context/NotificationContext';
 import { useSocket } from '../context/SocketContext';
 import { useI18n } from '../i18n';
+import EmailAccountSettings from '../components/EmailAccountSettings';
 
 /* ─── Unified tool list organized by category ─── */
 
@@ -701,6 +702,9 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Email sortant */}
+      <EmailAccountSettings />
 
       {/* Preferences */}
       <div className="card" style={{ marginBottom: 16 }}>
