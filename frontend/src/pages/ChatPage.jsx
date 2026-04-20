@@ -59,18 +59,18 @@ const ONBOARDING_SUGGESTIONS = [
 ];
 
 const RETURNING_SUGGESTIONS = [
-  'Résumé de mes campagnes',
-  'Quelle campagne optimiser en priorité ?',
-  'Créer une campagne similaire',
+  'R\u00E9sum\u00E9 de mes campagnes',
+  'Quelle campagne affiner en priorit\u00E9 ?',
+  'Cr\u00E9er une campagne similaire',
 ];
 
 const ACTION_PROMPTS = {
-  create: 'Je veux créer une nouvelle campagne de prospection. Guide-moi étape par étape.',
-  optimize: 'Je veux optimiser une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je améliorer ?',
+  create: 'Je veux cr\u00E9er une nouvelle campagne de prospection. Guide-moi \u00E9tape par \u00E9tape.',
+  refine: 'Je veux affiner une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je am\u00E9liorer ?',
   analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
-  setup_profile: 'Je viens de m\'inscrire. Aide-moi à configurer mon profil entreprise pour personnaliser mes campagnes.',
-  explore: 'Explique-moi les fonctionnalités de Baakalai et comment tirer le meilleur parti de la plateforme.',
-  create_from_insights: 'Tu as analysé mes campagnes précédentes et identifié des patterns qui fonctionnent. Crée-moi une nouvelle campagne optimisée en t\'appuyant sur ces insights et la mémoire cross-campagne. Propose-moi le meilleur angle, ton et séquence basés sur ce qui a marché.',
+  setup_profile: 'Je viens de m\'inscrire. Aide-moi \u00E0 configurer mon profil entreprise pour personnaliser mes campagnes.',
+  explore: 'Explique-moi les fonctionnalit\u00E9s de Baakalai et comment tirer le meilleur parti de la plateforme.',
+  create_from_insights: 'Tu as analys\u00E9 mes campagnes pr\u00E9c\u00E9dentes et identifi\u00E9 des patterns qui fonctionnent. Cr\u00E9e-moi une nouvelle campagne affin\u00E9e en t\'appuyant sur ces insights et la m\u00E9moire cross-campagne. Propose-moi le meilleur angle, ton et s\u00E9quence bas\u00E9s sur ce qui a march\u00E9.',
 };
 
 /* ─── Sub-components ─── */
@@ -1348,10 +1348,10 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
 
   // Contextual greeting based on user state
   let title = 'Assistant Baakalai';
-  let subtitle = 'Je peux vous aider à créer des campagnes, optimiser vos séquences et analyser vos performances.';
+  let subtitle = 'Je peux vous aider \u00E0 cr\u00E9er des campagnes, affiner vos s\u00E9quences et analyser vos performances.';
   let actions = [
-    { key: 'create', label: 'Créer une campagne' },
-    { key: 'optimize', label: 'Optimiser' },
+    { key: 'create', label: 'Cr\u00E9er une campagne' },
+    { key: 'refine', label: 'Affiner' },
     { key: 'analyze', label: 'Analyser' },
   ];
 
@@ -1381,7 +1381,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
     const topInfo = topCampaign ? ` "${topCampaign.name}" a un taux d'ouverture de ${topCampaign.openRate || '—'}%.` : '';
     subtitle = `${activeCampaigns} campagne${activeCampaigns > 1 ? 's' : ''} active${activeCampaigns > 1 ? 's' : ''}.${topInfo} Que puis-je faire pour vous ?`;
     actions = [
-      { key: 'optimize', label: 'Optimiser mes campagnes' },
+      { key: 'refine', label: 'Affiner mes campagnes' },
       { key: 'analyze', label: 'Analyser les performances' },
       { key: 'create', label: 'Nouvelle campagne' },
     ];
@@ -1393,9 +1393,9 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
   return (
     <div className="chat-welcome" id="chatWelcome" style={{ display: 'flex' }}>
       <div className="chat-welcome-inner">
-        <div className="chat-welcome-icon">b</div>
-        <h2 className="chat-welcome-title" style={{ marginBottom: 12 }}>{title}</h2>
-        <p className="chat-welcome-text" style={{ marginBottom: 16 }}>{subtitle}</p>
+        <span className="mark" style={{ width: 36, height: 36, borderRadius: 10, marginBottom: 16 }}></span>
+        <h2 className="chat-welcome-title" style={{ marginBottom: 8 }}>{title}</h2>
+        <p className="chat-welcome-text" style={{ marginBottom: 24 }}>{subtitle}</p>
 
         {/* Memory insights — shown when patterns exist */}
         {topInsights.length > 0 && (
@@ -1424,14 +1424,14 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
           </div>
         )}
 
-        <div className="chat-welcome-suggestions" id="chatWelcomeSuggestions">
+        <div className="chat-welcome-suggestions" id="chatWelcomeSuggestions" style={{ marginBottom: 20 }}>
           {suggestions.map((s) => (
             <button key={s} className="chat-suggestion" onClick={() => onSuggestionClick(s)}>
               {s}
             </button>
           ))}
         </div>
-        <div className="chat-welcome-actions" style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="chat-welcome-actions" style={{ display: 'flex', gap: '8px', marginTop: '0', flexWrap: 'wrap', justifyContent: 'center' }}>
           {actions.map((a) => (
             <button key={a.key} className="btn btn-ghost" style={{ fontSize: '12px' }} onClick={() => onAction(a.key)}>
               {a.label}
