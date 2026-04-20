@@ -27,7 +27,7 @@ const MAIN_TOOLS = [
   { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM complet + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM' },
   { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise + reporting avancé', placeholder: 'Votre clé API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM' },
   { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orient\u00E9 vente', placeholder: 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM' },
-  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: '{"url":"https://monsite.odoo.com","db":"mydb","username":"...","password":"..."}', color: '#714B67', icon: 'Od', category: 'CRM' },
+  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: 'Cliquez pour configurer', color: '#714B67', icon: 'Od', category: 'CRM', multiField: true },
 ];
 
 /* Extended tools in dropdown */
@@ -254,8 +254,8 @@ export default function SettingsPage() {
     });
   }
 
-  async function saveField(field) {
-    const value = (drafts[field] || '').trim();
+  async function saveField(field, overrideValue) {
+    const value = (overrideValue || drafts[field] || '').trim();
     if (!value) return;
 
     setSaving(true);
@@ -534,7 +534,17 @@ export default function SettingsPage() {
                   )}
 
                   {/* Inline edit */}
-                  {isEditing && (
+                  {isEditing && tool.multiField && (
+                    <OdooConfigForm
+                      draft={drafts[tool.field] || ''}
+                      onSave={(json) => { setDrafts(prev => ({ ...prev, [tool.field]: json })); saveField(tool.field, json); }}
+                      onCancel={() => cancelEdit(tool.field)}
+                      saving={saving}
+                      isConnected={isConnected}
+                      onRemove={() => removeField(tool.field)}
+                    />
+                  )}
+                  {isEditing && !tool.multiField && (
                     <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
                       <input
                         className="form-input"
@@ -554,7 +564,7 @@ export default function SettingsPage() {
                           onClick={() => saveField(tool.field)}
                           disabled={saving || !(drafts[tool.field] || '').trim()}>Sauver</button>
                         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px' }}
-                          onClick={() => cancelEdit(tool.field)}>✕</button>
+                          onClick={() => cancelEdit(tool.field)}>{'\u2715'}</button>
                       </div>
                       {isConnected && (
                         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '2px 8px', marginTop: 4, color: 'var(--danger)', width: '100%' }}
@@ -868,6 +878,58 @@ export default function SettingsPage() {
       </div>
       </div>
       </div>
+    </div>
+  );
+}
+
+/* ═══ Odoo Config Form ═══ */
+
+function OdooConfigForm({ onSave, onCancel, saving, isConnected, onRemove }) {
+  const [url, setUrl] = useState('');
+  const [dbName, setDbName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSave = () => {
+    if (!url || !dbName || !username || !password) return;
+    const json = JSON.stringify({ url: url.replace(/\/$/, ''), db: dbName, username, password });
+    onSave(json);
+  };
+
+  const isValid = url && dbName && username && password;
+
+  return (
+    <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
+      <div style={{
+        fontSize: 11, color: 'var(--text-muted)', marginBottom: 8,
+        background: 'var(--bg-elevated)', borderRadius: 6, padding: '8px 10px', lineHeight: 1.6,
+      }}>
+        Trouvez ces infos dans Odoo : <b>Param{'\u00E8'}tres &gt; Technique &gt; Base de donn{'\u00E9'}es</b>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <input className="form-input" type="text" placeholder="URL Odoo (ex: https://monsite.odoo.com)"
+          value={url} onChange={e => setUrl(e.target.value)} autoFocus
+          style={{ fontSize: 11, padding: '5px 8px' }} />
+        <input className="form-input" type="text" placeholder="Nom de la base (ex: mycompany)"
+          value={dbName} onChange={e => setDbName(e.target.value)}
+          style={{ fontSize: 11, padding: '5px 8px' }} />
+        <input className="form-input" type="text" placeholder="Email / identifiant"
+          value={username} onChange={e => setUsername(e.target.value)}
+          style={{ fontSize: 11, padding: '5px 8px' }} />
+        <input className="form-input" type="password" placeholder="Mot de passe ou cl{'\u00E9'} API"
+          value={password} onChange={e => setPassword(e.target.value)}
+          style={{ fontSize: 11, padding: '5px 8px' }} />
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+        <button className="btn btn-primary" style={{ fontSize: 10, padding: '3px 8px', flex: 1 }}
+          onClick={handleSave} disabled={saving || !isValid}>Connecter</button>
+        <button className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px' }}
+          onClick={onCancel}>{'\u2715'}</button>
+      </div>
+      {isConnected && (
+        <button className="btn btn-ghost" style={{ fontSize: 10, padding: '2px 8px', marginTop: 4, color: 'var(--danger)', width: '100%' }}
+          onClick={onRemove} disabled={saving}>Supprimer</button>
+      )}
     </div>
   );
 }
