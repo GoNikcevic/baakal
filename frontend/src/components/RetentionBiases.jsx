@@ -18,7 +18,7 @@ function computeSetupProgress(campaigns, hasProfile) {
     { id: 'campaign', label: 'Première campagne', done: campaignList.length > 0 },
     { id: 'sequence', label: 'Séquences générées', done: campaignList.some(c => c.sequence?.length > 0) },
     { id: 'active', label: 'Campagne active', done: campaignList.some(c => c.status === 'active') },
-    { id: 'optimized', label: 'Première optimisation IA', done: campaignList.some(c => c.iteration > 0) },
+    { id: 'optimized', label: 'Premier affinage IA', done: campaignList.some(c => c.iteration > 0) },
   ];
 
   const completed = steps.filter(s => s.done).length;
@@ -114,7 +114,7 @@ export function CumulativeValueBanner() {
       <div className="cumulative-divider" />
       <div className="cumulative-item">
         <span className="cumulative-value">{metrics.totalOptimizations}</span>
-        <span className="cumulative-label">optimisations IA</span>
+        <span className="cumulative-label">affinages IA</span>
       </div>
       <div className="cumulative-divider" />
       <div className="cumulative-item">

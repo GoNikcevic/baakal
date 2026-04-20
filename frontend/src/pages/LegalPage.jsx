@@ -100,7 +100,7 @@ function TermsFR() {
       <li>Créer et gérer des campagnes de prospection multi-canal (email + LinkedIn)</li>
       <li>Générer du contenu de prospection personnalisé via l'IA</li>
       <li>Rechercher et enrichir des prospects via des bases de données tierces</li>
-      <li>Analyser les performances et optimiser les campagnes automatiquement</li>
+      <li>Analyser les performances et affiner les campagnes automatiquement</li>
       <li>Synchroniser les données avec des CRM (HubSpot, Salesforce, Pipedrive, Notion, Airtable)</li>
     </ul>
 

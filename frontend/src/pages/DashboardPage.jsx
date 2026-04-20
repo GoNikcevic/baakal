@@ -514,9 +514,9 @@ function WelcomeBanner({ onCreateCampaign }) {
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">4</div>
-          <div className="onboarding-step-title">Lancez et optimisez</div>
+          <div className="onboarding-step-title">Lancez et affinez</div>
           <div className="onboarding-step-desc">
-            Baakalai analyse les performances et optimise automatiquement vos
+            Baakalai analyse les performances et affine automatiquement vos
             messages.
           </div>
         </div>
@@ -608,7 +608,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
         <div className="card-body">
           <div className="empty-icon">{'\u{1F916}'}</div>
           <div className="empty-text">
-            Baakalai analysera vos campagnes et proposera des optimisations dès
+            Baakalai analysera vos campagnes et proposera des affinages d\u00E8s
             qu'il aura suffisamment de données (&gt;50 prospects, &gt;7 jours).
           </div>
         </div>

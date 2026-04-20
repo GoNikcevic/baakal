@@ -466,7 +466,7 @@ export default function RecosPage() {
           <div className="reco-page-subtitle" style={analysisRunning ? { color: 'var(--text-secondary)' } : undefined}>
             {analysisRunning
               ? 'Baakalai analyse vos campagnes... Veuillez patienter.'
-              : "Baakalai analyse vos campagnes et propose des optimisations · Mis à jour il y a 2h"
+              : "Baakalai analyse vos campagnes et propose des affinages \u00B7 Mis \u00E0 jour il y a 2h"
             }
           </div>
         </div>
