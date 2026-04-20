@@ -311,7 +311,7 @@ body {
 
 /* ═══════════ MAIN ═══════════ */
 .mobile-nav { display: none; }
-.main { margin-left: 240px; padding: 32px 40px; height: 100vh; box-sizing: border-box; overflow-y: auto; transition: margin-left 0.2s ease; }
+.main { margin-left: 220px; padding: 32px 40px; min-height: 100vh; box-sizing: border-box; overflow-y: auto; transition: margin-left 0.2s ease; }
 
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -419,24 +419,35 @@ body {
 
 /* ═══════════ CAMPAIGNS TABLE ═══════════ */
 .campaign-table { width: 100%; border-collapse: collapse; }
+/* v6 Campaign table */
 .campaign-table th {
-  text-align: left; font-size: 11px; font-weight: 500;
-  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;
-  padding: 0 16px 12px;
+  text-align: left;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 9px 16px;
 }
-.campaign-table td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 13px; }
-.campaign-table tr:hover td { background: var(--accent-glow); }
+.campaign-table td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 13.5px; letter-spacing: -0.008em; }
+.campaign-table tr:hover td { background: var(--primary-softer); }
 
+/* v6 Pill / Badge */
 .status-badge {
-  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 8px;
+  background: var(--paper-2); border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--grey-700); letter-spacing: -0.005em;
 }
-.status-active { background: var(--success-bg); color: var(--success); }
-.status-prep { background: var(--warning-bg); color: var(--warning); }
-.status-done { background: var(--blue-bg); color: var(--blue); }
+.status-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.status-active { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+.status-active .dot { background: var(--success); }
+.status-prep { background: var(--warning-soft); color: var(--warning); border-color: var(--warning); }
+.status-prep .dot { background: var(--warning); }
+.status-done { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.status-done .dot { background: var(--primary); }
 
 .perf-bar {
-  width: 60px; height: 4px; background: var(--bg-elevated);
+  width: 60px; height: 4px; background: var(--paper-3);
   border-radius: 2px; overflow: hidden;
 }
 .perf-fill { height: 100%; border-radius: 2px; }
@@ -1798,9 +1809,8 @@ body {
 
 /* ── Thread sidebar ── */
 .chat-threads {
-  width: 240px; min-width: 240px; background: var(--bg-secondary);
+  width: 220px; min-width: 220px; background: var(--paper);
   border-right: 1px solid var(--border); display: flex; flex-direction: column;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 .chat-threads-header {
   padding: 16px 16px 12px; display: flex; justify-content: space-between; align-items: center;
@@ -1997,15 +2007,15 @@ body {
   width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
 }
-.chat-msg.assistant .chat-msg-avatar { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
-.chat-msg.user .chat-msg-avatar { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
+.chat-msg.assistant .chat-msg-avatar { background: var(--primary-soft); color: var(--primary); border: 1px solid var(--lavender); }
+.chat-msg.user .chat-msg-avatar { background: var(--paper-2); color: var(--grey-700); border: 1px solid var(--border); }
 .chat-msg-body { max-width: 85%; min-width: 0; }
 .chat-msg-content {
   padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.65;
   color: var(--text-primary); word-wrap: break-word; overflow: hidden;
 }
-.chat-msg.assistant .chat-msg-content { background: var(--bg-card); border: 1px solid var(--border); border-top-left-radius: 4px; }
-.chat-msg.user .chat-msg-content { background: var(--accent-glow); border: 1px solid var(--border); border-top-right-radius: 4px; }
+.chat-msg.assistant .chat-msg-content { background: var(--paper); border: 1px solid var(--border); border-top-left-radius: 4px; }
+.chat-msg.user .chat-msg-content { background: var(--paper-2); border: 1px solid var(--border); border-top-right-radius: 4px; }
 .chat-msg-content p { margin: 0 0 8px; }
 .chat-msg-content p:last-child { margin-bottom: 0; }
 .chat-msg-content strong { color: var(--text-primary); font-weight: 600; }
@@ -2020,9 +2030,9 @@ body {
 
 /* ── Action card (campaign ready) ── */
 .chat-action-card {
-  margin-top: 10px; padding: 14px 16px; border-radius: 10px;
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  border-left: 2px solid var(--text-muted);
+  margin-top: 10px; padding: 14px 16px; border-radius: var(--r-lg);
+  background: var(--paper-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--lavender);
 }
 .chat-action-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
 .chat-action-params {
@@ -2079,18 +2089,18 @@ body {
   max-width: 680px; width: 100%; display: flex; gap: 8px; align-items: flex-end;
 }
 .chat-input {
-  flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-primary); font-size: 14px;
-  font-family: inherit; resize: none; outline: none; min-height: 44px; max-height: 160px;
-  line-height: 1.5; transition: border-color var(--transition);
+  flex: 1; padding: 12px 16px; border-radius: var(--r-lg); border: 1px solid var(--border-strong);
+  background: var(--paper); color: var(--ink); font-size: 14px;
+  font-family: var(--font-sans); resize: none; outline: none; min-height: 44px; max-height: 160px;
+  line-height: 1.5; transition: all 0.15s ease; letter-spacing: -0.005em;
 }
-.chat-input:focus { border-color: var(--text-muted); }
-.chat-input::placeholder { color: var(--text-muted); }
+.chat-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.chat-input::placeholder { color: var(--grey-400); }
 .chat-send-btn {
-  width: 44px; height: 44px; border-radius: 10px; border: none;
-  background: var(--text-primary); color: var(--bg-primary); cursor: pointer; font-size: 16px;
+  width: 44px; height: 44px; border-radius: var(--r-lg); border: none;
+  background: var(--ink); color: var(--paper); cursor: pointer; font-size: 16px;
   display: flex; align-items: center; justify-content: center;
-  transition: all var(--transition); flex-shrink: 0;
+  transition: all 0.2s ease; flex-shrink: 0;
 }
 .chat-send-btn:hover { opacity: 0.85; }
 .chat-send-btn:disabled { opacity: 0.2; cursor: not-allowed; }
@@ -2724,11 +2734,16 @@ body {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
 
-/* ═══════════ ANIMATIONS ═══════════ */
+/* ═══════════ ANIMATIONS (v6) ═══════════ */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise-in 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) backwards; }
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -2745,13 +2760,14 @@ body {
 }
 
 /* Page content fade in */
+/* v6 Page entrance */
 .dashboard-page, .chat-page, .page-content, #campaigns-list-view {
-  animation: fadeInUp 0.3s ease-out;
+  animation: rise-in 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) backwards;
 }
 
 /* Cards stagger animation */
 .card {
-  animation: fadeInUp 0.35s ease-out both;
+  animation: rise-in 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) both;
 }
 
 .section-grid > .card:nth-child(1) { animation-delay: 0.05s; }
