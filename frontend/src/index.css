@@ -230,7 +230,7 @@ body {
 }
 .nav-item:hover { background: var(--paper-2); color: var(--ink); }
 .nav-item.active {
-  background: var(--ink); color: var(--paper);
+  background: var(--paper-3); color: var(--ink); font-weight: 500;
 }
 .nav-item .icon { font-size: 15px; width: 20px; text-align: center; opacity: 0.7; }
 .nav-item.active .icon { opacity: 1; }
