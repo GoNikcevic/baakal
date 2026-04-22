@@ -18,16 +18,26 @@ import TeamSettings from '../components/TeamSettings';
 
 /* Main tools: Outreach + CRM in one block */
 const MAIN_TOOLS = [
-  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn, séquences multi-canal', placeholder: 'Votre clé API Lemlist', color: '#6C5CE7', icon: 'L', category: 'Outreach' },
-  { field: 'apolloKey', label: 'Apollo', desc: 'Base B2B + séquences email automatisées', placeholder: 'Votre clé API Apollo', color: '#6C5CE7', icon: 'A', category: 'Outreach' },
-  { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email à grande échelle', placeholder: 'Votre clé API Instantly', color: '#0984E3', icon: 'In', category: 'Outreach' },
-  { field: 'lgmKey', label: 'La Growth Machine', desc: 'Séquences multi-canal automatisées', placeholder: 'Votre clé API LGM', color: '#6C5CE7', icon: 'LG', category: 'Outreach' },
-  { field: 'smartleadKey', label: 'Smartlead', desc: 'Cold email avec inbox rotation', placeholder: 'Votre clé API Smartlead', color: '#4F46E5', icon: 'Sm', category: 'Outreach' },
-  { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre clé API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach' },
-  { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM complet + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM' },
-  { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise + reporting avancé', placeholder: 'Votre clé API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM' },
-  { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orient\u00E9 vente', placeholder: 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM' },
-  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: 'Cliquez pour configurer', color: '#714B67', icon: 'Od', category: 'CRM', multiField: true },
+  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn', placeholder: 'Votre cl\u00E9 API Lemlist', color: '#6C5CE7', icon: 'L', category: 'Outreach',
+    guide: ['Allez dans app.lemlist.com', 'Settings \u2192 Integrations \u2192 API', 'Copiez la cl\u00E9'], link: 'https://app.lemlist.com/settings/integrations' },
+  { field: 'apolloKey', label: 'Apollo', desc: 'Base B2B + s\u00E9quences email', placeholder: 'Votre cl\u00E9 API Apollo', color: '#6C5CE7', icon: 'A', category: 'Outreach',
+    guide: ['Allez dans app.apollo.io', 'Avatar \u2192 Settings \u2192 API Keys', 'Cr\u00E9ez ou copiez une cl\u00E9'], link: 'https://app.apollo.io/#/settings/integrations/api-keys' },
+  { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email \u00E0 grande \u00E9chelle', placeholder: 'Votre cl\u00E9 API Instantly', color: '#0984E3', icon: 'In', category: 'Outreach',
+    guide: ['Allez dans app.instantly.ai', 'Settings \u2192 Integrations \u2192 API Key'], link: 'https://app.instantly.ai/settings/integrations' },
+  { field: 'lgmKey', label: 'La Growth Machine', desc: 'S\u00E9quences multi-canal', placeholder: 'Votre cl\u00E9 API LGM', color: '#6C5CE7', icon: 'LG', category: 'Outreach',
+    guide: ['Allez dans app.lagrowthmachine.com', 'Settings \u2192 API'], link: 'https://app.lagrowthmachine.com/settings' },
+  { field: 'smartleadKey', label: 'Smartlead', desc: 'Cold email avec inbox rotation', placeholder: 'Votre cl\u00E9 API Smartlead', color: '#4F46E5', icon: 'Sm', category: 'Outreach',
+    guide: ['Allez dans app.smartlead.ai', 'Settings \u2192 API \u2192 Copiez la cl\u00E9'], link: 'https://app.smartlead.ai/settings' },
+  { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre cl\u00E9 API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach',
+    guide: ['Allez dans app.waalaxy.com', 'Settings \u2192 Integrations'], link: 'https://app.waalaxy.com/settings' },
+  { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM',
+    guide: ['Allez dans app.hubspot.com', 'Settings \u2192 Integrations \u2192 Private Apps', 'Cr\u00E9ez une app ou copiez le token (pat-)'], link: 'https://app.hubspot.com/settings/integrations' },
+  { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise', placeholder: 'Votre cl\u00E9 API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM',
+    guide: ['Connectez-vous sur votre instance', 'Setup \u2192 Apps \u2192 Connected Apps', 'Copiez le consumer key'] },
+  { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orient\u00E9 vente', placeholder: 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM',
+    guide: ['Allez dans app.pipedrive.com', 'Settings \u2192 Personal preferences \u2192 API', 'Copiez le token personnel'], link: 'https://app.pipedrive.com/settings/api' },
+  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: 'Cliquez pour configurer', color: '#714B67', icon: 'Od', category: 'CRM', multiField: true,
+    guide: ['URL + nom de base + login + mot de passe'] },
 ];
 
 /* Extended tools in dropdown */
@@ -546,6 +556,22 @@ export default function SettingsPage() {
                   )}
                   {isEditing && !tool.multiField && (
                     <div style={{ marginTop: 4 }} onClick={e => e.stopPropagation()}>
+                      {tool.guide && (
+                        <div style={{
+                          fontSize: 11, background: 'var(--paper-2)', borderRadius: 6,
+                          padding: '8px 10px', marginBottom: 6, lineHeight: 1.6, color: 'var(--grey-700)',
+                        }}>
+                          <ol style={{ margin: 0, paddingLeft: 14 }}>
+                            {tool.guide.map((s, i) => <li key={i}>{s}</li>)}
+                          </ol>
+                          {tool.link && (
+                            <a href={tool.link} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 10, color: 'var(--primary)', display: 'inline-block', marginTop: 4 }}>
+                              Ouvrir {tool.label} {'\u2192'}
+                            </a>
+                          )}
+                        </div>
+                      )}
                       <input
                         className="form-input"
                         type="password"
