@@ -18,7 +18,6 @@ const NAV_ITEMS = [
   { i18nKey: 'nav.assistant',    to: '/chat',          icon: 'chat' },
   { i18nKey: 'nav.dashboard',    to: '/dashboard',     icon: 'dashboard',  end: true },
   { i18nKey: 'nav.campaigns',    to: '/campaigns',     icon: 'campaigns' },
-  { i18nKey: 'nav.performance',  to: '/performance',   icon: 'reports' },
   { i18nKey: 'nav.memory',       to: '/memory',        icon: 'memory' },
   { i18nKey: 'nav.clients',      to: '/clients',       icon: 'clients' },
   { i18nKey: 'nav.nurture',      to: '/nurture',       icon: 'nurture' },
