@@ -38,6 +38,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     sync: { imported: 0, updated: 0 },
     cleaning: { issues: 0, score: null },
     nurture: { evaluated: 0, sent: 0, queued: 0 },
+    responses: { analyzed: 0, positive: 0, negative: 0 },
     alerts: [],
     errors: [],
   };
@@ -62,7 +63,16 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     // ── Step 3: Nurture Evaluation ──
     await stepNurture(userId, token, report);
 
-    // ── Step 4: AI Analysis (if significant changes) ──
+    // ── Step 4: Response Analysis ──
+    try {
+      const { analyzeResponses } = require('./response-analysis-agent');
+      const responseReport = await analyzeResponses(userId);
+      report.responses = responseReport;
+    } catch (err) {
+      report.errors.push(`Responses: ${err.message}`);
+    }
+
+    // ── Step 5: AI Analysis (if significant changes) ──
     if (report.sync.imported > 0 || report.alerts.length > 0 || trigger === 'manual') {
       await stepAnalysis(userId, report);
     }
