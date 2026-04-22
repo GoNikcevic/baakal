@@ -73,6 +73,34 @@ const ACTION_PROMPTS = {
   create_from_insights: 'Tu as analys\u00E9 mes campagnes pr\u00E9c\u00E9dentes et identifi\u00E9 des patterns qui fonctionnent. Cr\u00E9e-moi une nouvelle campagne affin\u00E9e en t\'appuyant sur ces insights et la m\u00E9moire cross-campagne. Propose-moi le meilleur angle, ton et s\u00E9quence bas\u00E9s sur ce qui a march\u00E9.',
 };
 
+const CAMPAIGN_TEMPLATES = [
+  {
+    label: 'Prospection SaaS B2B',
+    desc: 'S\u00E9quence email + LinkedIn pour d\u00E9cideurs tech',
+    prompt: 'Cr\u00E9e une campagne de prospection B2B pour vendre un logiciel SaaS. Cible : CTO et VP Engineering de startups/scale-ups 50-500 employ\u00E9s en France. Canal : multi (email + LinkedIn). Ton : professionnel mais d\u00E9contract\u00E9. Angle : ROI et gain de temps. G\u00E9n\u00E8re la s\u00E9quence compl\u00E8te.',
+  },
+  {
+    label: 'Prise de RDV',
+    desc: 'S\u00E9quence courte orient\u00E9e rendez-vous',
+    prompt: 'Cr\u00E9e une campagne email courte (3 touchpoints) dont l\'objectif est d\'obtenir un rendez-vous de 15 minutes. Ton direct et concis. Chaque email doit faire moins de 5 lignes. Le CTA est toujours une proposition de cr\u00E9neau. Utilise les infos de mon profil pour personnaliser.',
+  },
+  {
+    label: 'Relance clients existants',
+    desc: 'R\u00E9activer des clients inactifs',
+    prompt: 'Cr\u00E9e une s\u00E9quence email de r\u00E9activation pour des clients existants qui n\'ont pas \u00E9t\u00E9 contact\u00E9s depuis 3+ mois. Ton chaleureux, pas commercial. Objectif : reprendre contact et proposer un point. 3 touchpoints espac\u00E9s de 7 jours.',
+  },
+  {
+    label: 'Recrutement',
+    desc: 'Approche candidats via LinkedIn + email',
+    prompt: 'Cr\u00E9e une s\u00E9quence multi-canal (LinkedIn + email) pour recruter des profils tech. Commence par une invitation LinkedIn personnalis\u00E9e (max 300 caract\u00E8res), puis un message LinkedIn, puis un email. Ton : informel, valorisant. Pas de ton RH corporate.',
+  },
+  {
+    label: 'Partenariat / Co-marketing',
+    desc: 'Proposer une collaboration \u00E0 des pairs',
+    prompt: 'Cr\u00E9e une s\u00E9quence email pour proposer un partenariat ou une collaboration \u00E0 des entreprises compl\u00E9mentaires. Ton : entre pairs, pas vendeur. Objectif : un call exploratoire. 3 emails espac\u00E9s de 5 jours. Mets en avant le b\u00E9n\u00E9fice mutuel.',
+  },
+];
+
 /* ─── Sub-components ─── */
 
 function AiStatusBadge({ online }) {
@@ -1363,12 +1391,10 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
       { key: 'create', label: 'Créer ma première campagne' },
     ];
   } else if (hasProfile && campaignCount === 0) {
-    title = userName ? `Prêt à prospecter, ${userName} ?` : 'Prêt à prospecter ?';
-    subtitle = 'Votre profil est configuré. Créez votre première campagne et je génère vos séquences personnalisées.';
-    actions = [
-      { key: 'create', label: 'Créer ma première campagne' },
-      { key: 'explore', label: 'Explorer les fonctionnalités' },
-    ];
+    title = userName ? `Pr\u00EAt \u00E0 prospecter, ${userName} ?` : 'Pr\u00EAt \u00E0 prospecter ?';
+    subtitle = 'Choisissez un mod\u00E8le ou d\u00E9crivez votre campagne.';
+    actions = [];
+    suggestions = []; // templates will be shown instead
   } else if (campaignCount > 0 && activeCampaigns === 0) {
     title = userName ? `Bon retour, ${userName} !` : 'Bon retour !';
     subtitle = `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en préparation. Lancez-en une ou créez-en une nouvelle.`;
@@ -1421,6 +1447,32 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
             >
               Créer une campagne basée sur ces insights
             </button>
+          </div>
+        )}
+
+        {/* Campaign templates — shown when user has profile but no/few campaigns */}
+        {(hasProfile && campaignCount === 0) && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 10, marginBottom: 20, maxWidth: 640, width: '100%',
+          }}>
+            {CAMPAIGN_TEMPLATES.map(tpl => (
+              <button
+                key={tpl.label}
+                onClick={() => onSuggestionClick(tpl.prompt)}
+                style={{
+                  background: 'var(--paper)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-lg)', padding: '14px 16px',
+                  textAlign: 'left', cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-softer)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--paper)'; }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{tpl.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--grey-500)', lineHeight: 1.4 }}>{tpl.desc}</div>
+              </button>
+            ))}
           </div>
         )}
 
