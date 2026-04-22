@@ -36,13 +36,95 @@ const STEP_META = [
 /* ─── Outreach options ─── */
 
 const OUTREACH_OPTIONS = [
-  { value: 'lemlist', label: 'Lemlist', field: 'lemlistKey', placeholder: 'Votre clé API Lemlist' },
-  { value: 'apollo', label: 'Apollo', field: 'apolloKey', placeholder: 'Votre clé API Apollo' },
-  { value: 'instantly', label: 'Instantly', field: 'instantlyKey', placeholder: 'Votre clé API Instantly' },
-  { value: 'smartlead', label: 'Smartlead', field: 'smartleadKey', placeholder: 'Votre clé API Smartlead' },
-  { value: 'lgm', label: 'La Growth Machine', field: 'lgmKey', placeholder: 'Votre clé API LGM' },
-  { value: 'waalaxy', label: 'Waalaxy', field: 'waalaxyKey', placeholder: 'Votre clé API Waalaxy' },
+  {
+    value: 'lemlist', label: 'Lemlist', field: 'lemlistKey', placeholder: 'Votre cl\u00E9 API Lemlist',
+    guide: [
+      'Connectez-vous sur app.lemlist.com',
+      'Allez dans Settings \u2192 Integrations \u2192 API',
+      'Copiez la cl\u00E9 affich\u00E9e et collez-la ci-dessous',
+    ],
+    link: 'https://app.lemlist.com/settings/integrations',
+  },
+  {
+    value: 'apollo', label: 'Apollo', field: 'apolloKey', placeholder: 'Votre cl\u00E9 API Apollo',
+    guide: [
+      'Connectez-vous sur app.apollo.io',
+      'Cliquez sur votre avatar \u2192 Settings \u2192 Integrations \u2192 API Keys',
+      'Cr\u00E9ez une cl\u00E9 ou copiez une cl\u00E9 existante',
+    ],
+    link: 'https://app.apollo.io/#/settings/integrations/api-keys',
+  },
+  {
+    value: 'instantly', label: 'Instantly', field: 'instantlyKey', placeholder: 'Votre cl\u00E9 API Instantly',
+    guide: [
+      'Connectez-vous sur app.instantly.ai',
+      'Allez dans Settings \u2192 Integrations \u2192 API Key',
+      'Copiez la cl\u00E9 et collez-la ci-dessous',
+    ],
+    link: 'https://app.instantly.ai/settings/integrations',
+  },
+  {
+    value: 'smartlead', label: 'Smartlead', field: 'smartleadKey', placeholder: 'Votre cl\u00E9 API Smartlead',
+    guide: [
+      'Connectez-vous sur app.smartlead.ai',
+      'Allez dans Settings \u2192 API \u2192 Copiez la cl\u00E9',
+    ],
+    link: 'https://app.smartlead.ai/settings',
+  },
+  {
+    value: 'lgm', label: 'La Growth Machine', field: 'lgmKey', placeholder: 'Votre cl\u00E9 API LGM',
+    guide: [
+      'Connectez-vous sur app.lagrowthmachine.com',
+      'Allez dans Settings \u2192 API',
+      'Copiez votre cl\u00E9 API',
+    ],
+    link: 'https://app.lagrowthmachine.com/settings',
+  },
+  {
+    value: 'waalaxy', label: 'Waalaxy', field: 'waalaxyKey', placeholder: 'Votre cl\u00E9 API Waalaxy',
+    guide: [
+      'Connectez-vous sur app.waalaxy.com',
+      'Allez dans Settings \u2192 Integrations',
+      'Copiez votre cl\u00E9 API',
+    ],
+    link: 'https://app.waalaxy.com/settings',
+  },
 ];
+
+const CRM_GUIDES = {
+  hubspot: {
+    guide: [
+      'Connectez-vous sur app.hubspot.com',
+      'Allez dans Settings \u2192 Integrations \u2192 Private Apps',
+      'Cr\u00E9ez une app ou copiez le token (commence par pat-)',
+    ],
+    link: 'https://app.hubspot.com/settings/integrations',
+  },
+  pipedrive: {
+    guide: [
+      'Connectez-vous sur app.pipedrive.com',
+      'Allez dans Settings \u2192 Personal preferences \u2192 API',
+      'Copiez le token personnel affich\u00E9',
+    ],
+    link: 'https://app.pipedrive.com/settings/api',
+  },
+  salesforce: {
+    guide: [
+      'Connectez-vous sur votre instance Salesforce',
+      'Allez dans Setup \u2192 Apps \u2192 Connected Apps',
+      'Cr\u00E9ez une connected app et copiez le consumer key',
+    ],
+    link: null,
+  },
+  odoo: {
+    guide: [
+      'Connectez-vous sur votre instance Odoo',
+      'Allez dans Param\u00E8tres \u2192 Technique \u2192 Base de donn\u00E9es',
+      'Notez l\'URL, le nom de base, votre login et mot de passe',
+    ],
+    link: null,
+  },
+};
 
 export default function OnboardingWizard({ onComplete }) {
   const [step, setStep] = useState(0);
@@ -283,20 +365,34 @@ export default function OnboardingWizard({ onComplete }) {
                     <option value="">-- Sélectionner votre outil --</option>
                     {OUTREACH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
-                  {outreachProvider && (
-                    <>
-                      <input
-                        className="form-input"
-                        type="password"
-                        placeholder={OUTREACH_OPTIONS.find(o => o.value === outreachProvider)?.placeholder}
-                        value={outreachKey}
-                        onChange={e => setOutreachKey(e.target.value)}
-                      />
-                      <div className="wizard-key-hint">
-                        Trouvable dans {outreachProvider === 'lemlist' ? 'Lemlist \u2192 Settings \u2192 Integrations' : `${selectedOutreach?.label || outreachProvider} \u2192 Settings \u2192 API`}
-                      </div>
-                    </>
-                  )}
+                  {outreachProvider && (() => {
+                    const opt = OUTREACH_OPTIONS.find(o => o.value === outreachProvider);
+                    return (
+                      <>
+                        <div style={{
+                          fontSize: 12, background: 'var(--paper-2)', borderRadius: 8,
+                          padding: '10px 12px', marginBottom: 8, lineHeight: 1.6,
+                        }}>
+                          <ol style={{ margin: 0, paddingLeft: 16, color: 'var(--grey-700)' }}>
+                            {(opt?.guide || []).map((s, i) => <li key={i}>{s}</li>)}
+                          </ol>
+                          {opt?.link && (
+                            <a href={opt.link} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: 'var(--primary)', display: 'inline-block', marginTop: 6 }}>
+                              Ouvrir {opt.label} {'\u2192'}
+                            </a>
+                          )}
+                        </div>
+                        <input
+                          className="form-input"
+                          type="password"
+                          placeholder={opt?.placeholder}
+                          value={outreachKey}
+                          onChange={e => setOutreachKey(e.target.value)}
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="wizard-key-row">
@@ -320,23 +416,36 @@ export default function OnboardingWizard({ onComplete }) {
                     <option value="hubspot">HubSpot</option>
                     <option value="pipedrive">Pipedrive</option>
                     <option value="salesforce">Salesforce</option>
+                    <option value="odoo">Odoo</option>
                   </select>
-                  {crmProvider && (
-                    <>
-                      <input
-                        className="form-input"
-                        type="password"
-                        placeholder={crmProvider === 'hubspot' ? 'pat-...' : 'Votre clé API'}
-                        value={crmKey}
-                        onChange={e => setCrmKey(e.target.value)}
-                      />
-                      <div className="wizard-key-hint">
-                        {crmProvider === 'hubspot' && 'Trouvable dans HubSpot \u2192 Settings \u2192 Integrations \u2192 Private Apps'}
-                        {crmProvider === 'pipedrive' && 'Trouvable dans Pipedrive \u2192 Settings \u2192 Personal preferences \u2192 API'}
-                        {crmProvider === 'salesforce' && 'Trouvable dans Salesforce \u2192 Setup \u2192 Apps \u2192 Connected Apps'}
-                      </div>
-                    </>
-                  )}
+                  {crmProvider && (() => {
+                    const crmGuide = CRM_GUIDES[crmProvider];
+                    return (
+                      <>
+                        <div style={{
+                          fontSize: 12, background: 'var(--paper-2)', borderRadius: 8,
+                          padding: '10px 12px', marginBottom: 8, lineHeight: 1.6,
+                        }}>
+                          <ol style={{ margin: 0, paddingLeft: 16, color: 'var(--grey-700)' }}>
+                            {(crmGuide?.guide || []).map((s, i) => <li key={i}>{s}</li>)}
+                          </ol>
+                          {crmGuide?.link && (
+                            <a href={crmGuide.link} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: 'var(--primary)', display: 'inline-block', marginTop: 6 }}>
+                              Ouvrir {crmProvider.charAt(0).toUpperCase() + crmProvider.slice(1)} {'\u2192'}
+                            </a>
+                          )}
+                        </div>
+                        <input
+                          className="form-input"
+                          type="password"
+                          placeholder={crmProvider === 'hubspot' ? 'pat-...' : 'Votre cl\u00E9 API'}
+                          value={crmKey}
+                          onChange={e => setCrmKey(e.target.value)}
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               {keySaveStatus === 'error' && (
