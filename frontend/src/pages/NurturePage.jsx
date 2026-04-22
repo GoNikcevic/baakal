@@ -24,6 +24,9 @@ export default function NurturePage() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [previews, setPreviews] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [executing, setExecuting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -74,17 +77,19 @@ export default function NurturePage() {
           <button
             className="btn btn-ghost"
             style={{ fontSize: 12, padding: '6px 14px' }}
+            disabled={previewing}
             onClick={async () => {
+              setPreviewing(true);
               try {
-                const result = await request('/nurture/run', { method: 'POST' });
-                alert(`${result.triggered} triggers \u00E9valu\u00E9s, ${result.sent} envoy\u00E9s, ${result.queued} en attente`);
-                loadData();
+                const data = await request('/nurture/preview', { method: 'POST' });
+                setPreviews(data.previews || []);
               } catch (err) {
                 alert('Erreur: ' + err.message);
               }
+              setPreviewing(false);
             }}
           >
-            {'\u25B6'} Ex\u00E9cuter maintenant
+            {previewing ? '\u23F3 Analyse...' : '\uD83D\uDD0D Pr\u00E9visualiser'}
           </button>
           <button
             className="btn btn-primary"
@@ -113,6 +118,97 @@ export default function NurturePage() {
           </button>
         ))}
       </div>
+
+      {/* Preview panel */}
+      {previews && (
+        <div style={{
+          background: 'var(--primary-softer)', border: '1px solid var(--primary)',
+          borderRadius: 'var(--r-xl)', padding: 24, marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>
+                {previews.length > 0 ? `${previews.reduce((s, p) => s + p.contactsCount, 0)} contact(s) \u00E0 contacter` : 'Aucun contact \u00E0 contacter'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>
+                {previews.length} trigger{previews.length > 1 ? 's' : ''} actif{previews.length > 1 ? 's' : ''}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {previews.length > 0 && (
+                <button
+                  className="btn btn-primary"
+                  style={{ fontSize: 12, padding: '6px 16px' }}
+                  disabled={executing}
+                  onClick={async () => {
+                    setExecuting(true);
+                    try {
+                      const result = await request('/nurture/run', { method: 'POST' });
+                      setPreviews(null);
+                      loadData();
+                    } catch (err) {
+                      alert('Erreur: ' + err.message);
+                    }
+                    setExecuting(false);
+                  }}
+                >
+                  {executing ? '\u23F3 Envoi...' : `Envoyer ${previews.reduce((s, p) => s + p.contactsCount, 0)} email(s)`}
+                </button>
+              )}
+              <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setPreviews(null)}>
+                Fermer
+              </button>
+            </div>
+          </div>
+
+          {previews.map(p => (
+            <div key={p.triggerId} style={{
+              background: 'var(--paper)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+              padding: 16, marginBottom: 10,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{p.triggerName}</div>
+                <span style={{ fontSize: 11, color: 'var(--grey-500)' }}>
+                  {p.contactsCount} contact{p.contactsCount > 1 ? 's' : ''} {'\u00B7'} mode {p.mode === 'auto' ? 'auto' : 'approbation'}
+                </span>
+              </div>
+
+              {/* Contacts preview */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {p.contacts.map(c => (
+                  <span key={c.id} style={{
+                    fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-full)',
+                    background: 'var(--paper-2)', border: '1px solid var(--border)',
+                  }}>
+                    {c.name}{c.company ? ` @ ${c.company}` : ''}
+                  </span>
+                ))}
+                {p.contactsCount > 5 && (
+                  <span style={{ fontSize: 11, color: 'var(--grey-500)', padding: '3px 6px' }}>
+                    +{p.contactsCount - 5} autres
+                  </span>
+                )}
+              </div>
+
+              {/* Sample email preview */}
+              {p.sampleEmail && (
+                <div style={{
+                  background: 'var(--paper-2)', borderRadius: 8, padding: '10px 14px',
+                  borderLeft: '3px solid var(--lavender)',
+                }}>
+                  <div style={{ fontSize: 11, color: 'var(--grey-500)', marginBottom: 4 }}>
+                    Exemple d'email pour {p.contacts[0]?.name || 'un contact'} :
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{p.sampleEmail.subject}</div>
+                  <div style={{ fontSize: 12, color: 'var(--grey-700)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {p.sampleEmail.body}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Chargement...</div>}
 

@@ -275,6 +275,92 @@ router.post('/run', async (req, res, next) => {
   }
 });
 
+// POST /api/nurture/preview — Preview what would happen without sending
+router.post('/preview', async (req, res, next) => {
+  try {
+    const { getUserKey } = require('../config');
+    const pipedrive = require('../api/pipedrive');
+    const claude = require('../api/claude');
+
+    const token = await getUserKey(req.user.id, 'pipedrive');
+    if (!token) return res.status(400).json({ error: 'CRM non connect\u00E9' });
+
+    // Get triggers
+    const triggers = await db.query(
+      'SELECT * FROM nurture_triggers WHERE user_id = $1 AND enabled = true',
+      [req.user.id]
+    );
+    if (triggers.rows.length === 0) return res.json({ previews: [], message: 'Aucun trigger actif' });
+
+    const opps = await db.opportunities.listByUser(req.user.id, 10000, 0);
+    const now = Date.now();
+    const DAY = 86400000;
+
+    // Get recently emailed to exclude
+    const recent = await db.query(
+      'SELECT DISTINCT to_email FROM nurture_emails WHERE user_id = $1 AND created_at > now() - interval \'7 days\'',
+      [req.user.id]
+    );
+    const recentSet = new Set(recent.rows.map(r => r.to_email?.toLowerCase()));
+
+    const previews = [];
+
+    for (const trigger of triggers.rows) {
+      const conditions = trigger.conditions || {};
+      const days = conditions.days || 30;
+      let matched = [];
+
+      switch (trigger.trigger_type) {
+        case 'deal_won': matched = opps.filter(o => o.status === 'won'); break;
+        case 'deal_lost': matched = opps.filter(o => o.status === 'lost' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY < days + 7); break;
+        case 'deal_stagnant': matched = opps.filter(o => o.status !== 'won' && o.status !== 'lost' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days); break;
+        case 'inactive_contact': matched = opps.filter(o => o.status !== 'lost' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days); break;
+        case 'onboarding_check': matched = opps.filter(o => o.status === 'won' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY < days + 3); break;
+        case 'renewal_reminder': case 'upsell_opportunity': matched = opps.filter(o => o.status === 'won' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days); break;
+        case 'feedback_request': matched = opps.filter(o => o.status === 'won' && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY >= days && (now - new Date(o.updated_at || o.created_at).getTime()) / DAY < days + 7); break;
+      }
+
+      matched = matched.filter(o => o.email && !recentSet.has(o.email.toLowerCase()));
+
+      if (matched.length === 0) continue;
+
+      // Generate ONE sample email for preview
+      const sample = matched[0];
+      const template = trigger.email_template || {};
+      let sampleEmail = null;
+      try {
+        const prompt = `G\u00E9n\u00E8re un email personnel pour :
+- ${sample.name} (${sample.title || ''}) chez ${sample.company || ''}
+- Trigger : ${trigger.trigger_type} \u2014 ${trigger.name}
+- Ton : ${template.tone || 'professionnel mais chaleureux'}
+- Max 6 lignes, texte simple
+Retourne un JSON : { "subject": "...", "body": "..." }`;
+
+        const result = await claude.callClaude('Retourne uniquement du JSON valide.', prompt, 500);
+        if (result.parsed) sampleEmail = result.parsed;
+        else {
+          const m = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*"body"[\s\S]*\}/);
+          if (m) sampleEmail = JSON.parse(m[0]);
+        }
+      } catch { /* skip preview generation */ }
+
+      previews.push({
+        triggerId: trigger.id,
+        triggerName: trigger.name,
+        triggerType: trigger.trigger_type,
+        mode: trigger.mode,
+        contactsCount: matched.length,
+        contacts: matched.slice(0, 5).map(o => ({ id: o.id, name: o.name, email: o.email, company: o.company })),
+        sampleEmail,
+      });
+    }
+
+    res.json({ previews });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/nurture/send — Send a one-off personal email (from chat or UI)
 router.post('/send', async (req, res, next) => {
   try {
