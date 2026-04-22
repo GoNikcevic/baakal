@@ -12,7 +12,7 @@
 import { useState, useCallback } from 'react';
 import { saveKeys } from '../services/api-client';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 
 const SECTOR_SUGGESTIONS = [
   'SaaS / Logiciel', 'Tech / IT', 'E-commerce / Retail', 'Finance / Comptabilité',
@@ -26,11 +26,9 @@ const SECTOR_SUGGESTIONS = [
 /* ─── Step config ─── */
 
 const STEP_META = [
-  { title: 'Bienvenue sur Baakalai', desc: 'Quelques informations pour personnaliser votre expérience.' },
+  { title: 'Votre entreprise & cible', desc: 'Parlez-nous de vous et de qui vous cherchez \u00E0 atteindre.' },
   { title: 'Connexion aux outils', desc: 'Connectez vos outils principaux. Vous pourrez en ajouter d\'autres plus tard.' },
-  { title: 'Votre cible', desc: 'Aidez Baakalai à comprendre qui vous cherchez à atteindre.' },
-  { title: 'Style de communication', desc: 'Définissez le ton de vos campagnes.' },
-  { title: 'Tout est prêt !', desc: '' },
+  { title: 'Tout est pr\u00EAt !', desc: '' },
 ];
 
 /* ─── Outreach options ─── */
@@ -342,6 +340,18 @@ export default function OnboardingWizard({ onComplete }) {
                   <option value="100+">100+</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label className="form-label">Secteurs cibles</label>
+                <input className="form-input" placeholder="Ex: Finance, RH, SaaS" value={targetSectors} onChange={e => setTargetSectors(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Taille d'entreprise cible</label>
+                <input className="form-input" placeholder="Ex: 11-50 salari\u00E9s" value={targetSize} onChange={e => setTargetSize(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Zone g\u00E9ographique</label>
+                <input className="form-input" placeholder="Ex: France, \u00CEle-de-France" value={targetZones} onChange={e => setTargetZones(e.target.value)} />
+              </div>
             </div>
           </>
         );
@@ -460,75 +470,6 @@ export default function OnboardingWizard({ onComplete }) {
       case 2:
         return (
           <>
-            <div className="wizard-step-title">{STEP_META[2].title}</div>
-            <div className="wizard-step-desc">{STEP_META[2].desc}</div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Secteurs cibles</label>
-                <input className="form-input" placeholder="Ex: Finance, RH, Formation" value={targetSectors} onChange={e => setTargetSectors(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Taille d'entreprise cible</label>
-                <input className="form-input" placeholder="Ex: 11-50 salariés" value={targetSize} onChange={e => setTargetSize(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Zones géographiques</label>
-                <input className="form-input" placeholder="Ex: Île-de-France, Lyon" value={targetZones} onChange={e => setTargetZones(e.target.value)} />
-              </div>
-            </div>
-            <div className="form-group" style={{ marginTop: 16 }}>
-              <label className="form-label">Persona principal</label>
-              <textarea
-                className="form-input"
-                rows={3}
-                placeholder="Décrivez votre interlocuteur idéal : poste, responsabilités, défis..."
-                value={personaPrimary}
-                onChange={e => setPersonaPrimary(e.target.value)}
-              />
-            </div>
-          </>
-        );
-
-      case 3:
-        return (
-          <>
-            <div className="wizard-step-title">{STEP_META[3].title}</div>
-            <div className="wizard-step-desc">{STEP_META[3].desc}</div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Ton par défaut</label>
-                <select className="form-input" value={tone} onChange={e => setTone(e.target.value)}>
-                  <option value="Pro décontracté">Pro décontracté</option>
-                  <option value="Formel">Formel</option>
-                  <option value="Amical">Amical</option>
-                  <option value="Direct">Direct</option>
-                  <option value="Expert">Expert</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Formalité</label>
-                <select className="form-input" value={formality} onChange={e => setFormality(e.target.value)}>
-                  <option value="Vous">Vous</option>
-                  <option value="Tu">Tu</option>
-                </select>
-              </div>
-            </div>
-            <div className="form-group" style={{ marginTop: 16 }}>
-              <label className="form-label">Proposition de valeur</label>
-              <textarea
-                className="form-input"
-                rows={3}
-                placeholder="Quel problème résolvez-vous et quelle est votre promesse client ?"
-                value={valueProp}
-                onChange={e => setValueProp(e.target.value)}
-              />
-            </div>
-          </>
-        );
-
-      case 4:
-        return (
-          <>
             <div className="wizard-complete-icon">
               <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -607,11 +548,7 @@ export default function OnboardingWizard({ onComplete }) {
       <div className="wizard-modal">
         <div className="wizard-header">
           <div className="wizard-logo">
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 40, height: 40, background: 'var(--text-primary)', color: 'var(--bg-primary)',
-              borderRadius: 10, fontWeight: 700, fontSize: 20,
-            }}>b</span>
+            <span className="mark" style={{ width: 32, height: 32, borderRadius: 8 }}></span>
           </div>
           <div className="wizard-title">{STEP_META[step].title}</div>
           {STEP_META[step].desc && <div className="wizard-subtitle">{STEP_META[step].desc}</div>}
