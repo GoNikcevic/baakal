@@ -406,8 +406,117 @@ async function stepAnalysis(userId, report) {
         message: `${sync.imported} nouveau(x) contact(s) import\u00E9(s) depuis Pipedrive`,
       });
     }
+
+    // ── CRM-driven memory patterns ──
+    // Analyze deal data and create patterns when we have enough signal
+    if (opps.length >= 10) {
+      try {
+        await generateCrmPatterns(userId, opps);
+      } catch (err) {
+        logger.warn('crm-agent', `CRM pattern generation failed: ${err.message}`);
+      }
+    }
   } catch (err) {
     report.errors.push(`Analysis: ${err.message}`);
+  }
+}
+
+/**
+ * Generate memory patterns from CRM deal data.
+ * Only creates patterns when there's statistically meaningful signal.
+ */
+async function generateCrmPatterns(userId, opps) {
+  const now = Date.now();
+  const won = opps.filter(o => o.status === 'won');
+  const lost = opps.filter(o => o.status === 'lost');
+  const total = opps.length;
+
+  if (total < 10) return; // not enough data
+
+  // Pattern 1: Win rate
+  if (won.length + lost.length >= 5) {
+    const winRate = Math.round((won.length / (won.length + lost.length)) * 100);
+    const existing = await db.memoryPatterns.list({ category: 'Cible', limit: 50 });
+    const hasWinRate = existing.some(p => p.pattern.includes('taux de conversion CRM'));
+    if (!hasWinRate) {
+      await db.memoryPatterns.create({
+        pattern: `Taux de conversion CRM : ${winRate}% (${won.length} gagn\u00E9s / ${won.length + lost.length} conclus)`,
+        category: 'Cible',
+        data: JSON.stringify({ source: 'crm_analysis', won: won.length, lost: lost.length, total }),
+        confidence: total >= 50 ? 'Haute' : total >= 20 ? 'Moyenne' : 'Faible',
+        sectors: [],
+        targets: [],
+      });
+    }
+  }
+
+  // Pattern 2: Average deal velocity (time to won)
+  if (won.length >= 3) {
+    const velocities = won
+      .filter(o => o.created_at && o.updated_at)
+      .map(o => (new Date(o.updated_at).getTime() - new Date(o.created_at).getTime()) / DAY_MS);
+    if (velocities.length >= 3) {
+      const avgDays = Math.round(velocities.reduce((s, v) => s + v, 0) / velocities.length);
+      const existing = await db.memoryPatterns.list({ category: 'Timing', limit: 50 });
+      const hasVelocity = existing.some(p => p.pattern.includes('cycle de vente moyen'));
+      if (!hasVelocity) {
+        await db.memoryPatterns.create({
+          pattern: `Cycle de vente moyen : ${avgDays} jours (sur ${velocities.length} deals gagn\u00E9s)`,
+          category: 'Timing',
+          data: JSON.stringify({ source: 'crm_analysis', avgDays, sampleSize: velocities.length }),
+          confidence: velocities.length >= 10 ? 'Haute' : 'Moyenne',
+          sectors: [],
+          targets: [],
+        });
+      }
+    }
+  }
+
+  // Pattern 3: Stagnation threshold — at what point do deals die?
+  if (lost.length >= 3) {
+    const stagnation = lost
+      .filter(o => o.created_at && o.updated_at)
+      .map(o => (new Date(o.updated_at).getTime() - new Date(o.created_at).getTime()) / DAY_MS);
+    if (stagnation.length >= 3) {
+      const avgStagnation = Math.round(stagnation.reduce((s, v) => s + v, 0) / stagnation.length);
+      const existing = await db.memoryPatterns.list({ category: 'Timing', limit: 50 });
+      const hasStagnation = existing.some(p => p.pattern.includes('deals perdus stagnent'));
+      if (!hasStagnation) {
+        await db.memoryPatterns.create({
+          pattern: `Les deals perdus stagnent en moyenne ${avgStagnation} jours avant d'\u00EAtre clos \u2014 relancer avant ce seuil`,
+          category: 'Timing',
+          data: JSON.stringify({ source: 'crm_analysis', avgStagnation, sampleSize: stagnation.length }),
+          confidence: stagnation.length >= 10 ? 'Haute' : 'Moyenne',
+          sectors: [],
+          targets: [],
+        });
+      }
+    }
+  }
+
+  // Pattern 4: Best-performing company sizes (if available)
+  if (won.length >= 5) {
+    const sizeGroups = {};
+    for (const o of won) {
+      const size = o.company_size || 'unknown';
+      if (size === 'unknown') continue;
+      sizeGroups[size] = (sizeGroups[size] || 0) + 1;
+    }
+    const topSize = Object.entries(sizeGroups).sort((a, b) => b[1] - a[1])[0];
+    if (topSize && topSize[1] >= 3) {
+      const existing = await db.memoryPatterns.list({ category: 'Cible', limit: 50 });
+      const hasSizePattern = existing.some(p => p.pattern.includes('taille d\'entreprise qui convertit'));
+      if (!hasSizePattern) {
+        await db.memoryPatterns.create({
+          pattern: `La taille d'entreprise qui convertit le mieux : ${topSize[0]} (${topSize[1]} deals gagn\u00E9s)`,
+          category: 'Cible',
+          data: JSON.stringify({ source: 'crm_analysis', sizeGroups }),
+          confidence: topSize[1] >= 10 ? 'Haute' : 'Moyenne',
+          sectors: [],
+          targets: [],
+        });
+      }
+    }
   }
 }
 
