@@ -7,8 +7,6 @@
 <meta name="description" content="baakalai orchestre votre prospection et votre relation client avec l'IA. Séquences personnalisées, A/B testing automatique, activation CRM, mémoire cross-campagne. $75/user/mois.">
 <meta property="og:title" content="baakalai — La prospection qui s'affine toute seule">
 <meta property="og:description" content="Prospection + activation client. L'IA génère, envoie, analyse et affine. Connecté à Lemlist, Apollo, Pipedrive, HubSpot, Odoo.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://baakal.ai">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
@@ -19,169 +17,252 @@ html { scroll-behavior: smooth; }
 :root {
   --paper: #FAFAF9; --paper-2: #F2F2F0; --paper-3: #E8E8E5;
   --ink: #0A0A0A; --ink-2: #1E1E1D;
-  --grey-500: #7A7A78; --grey-700: #525251;
+  --grey-400: #A1A19F; --grey-500: #7A7A78; --grey-700: #525251;
   --border: #E4E4E0; --border-strong: #D0D0CC;
   --primary: #6E57FA; --primary-deep: #4E3ED1;
   --primary-soft: #EBE6FF; --primary-softer: #F5F2FF;
   --lavender: #C4B5FD; --lavender-soft: #E6DEFF;
   --lavender-deep: #9A84EB;
-  --success: #16A34A; --warning: #D97706; --danger: #DC2626;
+  --success: #16A34A; --danger: #DC2626;
 }
 
 body {
   font-family: 'Geist', system-ui, sans-serif;
   background: var(--paper);
   color: var(--ink);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 15px; line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "ss01", "cv11";
-  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
-.wrap-sm { max-width: 780px; margin: 0 auto; padding: 0 32px; }
 
 /* ─── NAV ─── */
 nav {
   position: sticky; top: 0; z-index: 50;
   background: rgba(250, 250, 249, 0.88);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 .nav-inner {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 32px;
-  max-width: 1200px; margin: 0 auto;
+  padding: 14px 32px; max-width: 1200px; margin: 0 auto;
 }
 .nav-brand {
   display: flex; align-items: center; gap: 8px;
   text-decoration: none; color: var(--ink);
 }
-.nav-brand span {
-  font-weight: 600; font-size: 16px; letter-spacing: -0.025em;
-}
+.nav-brand span { font-weight: 600; font-size: 16px; letter-spacing: -0.025em; }
 .nav-links { display: flex; gap: 28px; align-items: center; }
 .nav-links a {
   font-size: 14px; color: var(--grey-700); text-decoration: none;
-  font-weight: 500; letter-spacing: -0.005em; transition: color 0.15s;
+  font-weight: 500; transition: color 0.15s;
 }
 .nav-links a:hover { color: var(--ink); }
+
+/* ─── BUTTONS ─── */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 9px 20px; border-radius: 999px;
+  padding: 10px 22px; border-radius: 999px;
   font-family: inherit; font-size: 14px; font-weight: 500;
-  letter-spacing: -0.005em; text-decoration: none;
-  border: none; cursor: pointer; transition: all 0.2s ease;
+  text-decoration: none; border: none; cursor: pointer;
+  transition: all 0.2s ease; letter-spacing: -0.005em;
 }
 .btn-primary { background: var(--ink); color: var(--paper); }
 .btn-primary:hover { background: #262625; }
 .btn-accent { background: var(--primary); color: white; }
 .btn-accent:hover { background: var(--primary-deep); }
-.btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--border-strong); }
+.btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--border-strong); }
 .btn-outline:hover { background: var(--paper-2); }
+.btn-lg { padding: 12px 28px; font-size: 15px; }
 .btn .arrow { display: inline-block; transition: transform 0.2s; }
-.btn:hover .arrow { transform: translateX(2px); }
+.btn:hover .arrow { transform: translateX(3px); }
 
 /* ─── HERO ─── */
-.hero {
-  padding: 80px 0 60px;
-  text-align: center;
-}
+.hero { padding: 72px 0 40px; text-align: center; position: relative; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .hero-label {
   font-family: 'Geist Mono', monospace;
   font-size: 12px; color: var(--primary-deep);
   letter-spacing: 0.04em; text-transform: uppercase;
   font-weight: 600; margin-bottom: 20px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
+  position: relative; z-index: 1;
 }
 .hero-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: pulse 2s infinite; }
 .hero h1 {
-  font-weight: 500;
-  font-size: clamp(36px, 5.5vw, 60px);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  margin-bottom: 20px;
-  max-width: 800px;
+  font-weight: 500; font-size: clamp(34px, 5vw, 56px);
+  line-height: 1.06; letter-spacing: -0.04em;
+  margin-bottom: 18px; max-width: 780px;
   margin-left: auto; margin-right: auto;
+  position: relative; z-index: 1;
 }
 .hero h1 em { font-style: normal; color: var(--primary); }
-.hero p {
-  font-size: 17px; color: var(--grey-700);
-  max-width: 600px; margin: 0 auto 32px;
-  line-height: 1.55; letter-spacing: -0.008em;
+.hero-sub {
+  font-size: 16.5px; color: var(--grey-700);
+  max-width: 580px; margin: 0 auto 32px;
+  line-height: 1.55; position: relative; z-index: 1;
 }
-.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.hero-logo {
-  margin-bottom: 24px;
+.hero-cta {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px; position: relative; z-index: 1;
 }
-.hero-logo svg { animation: hero-pulse 3s ease-in-out infinite; }
-@keyframes hero-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+.hero-logo { margin-bottom: 20px; position: relative; z-index: 1; }
+
+/* Hero screenshot placeholder */
+.hero-screenshot {
+  max-width: 900px; margin: 0 auto;
+  border-radius: 12px; border: 1px solid var(--border);
+  overflow: hidden; position: relative; z-index: 1;
+  box-shadow: 0 24px 80px -20px rgba(10,10,10,0.12);
 }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.hero-screenshot img { width: 100%; display: block; }
+.hero-screenshot .placeholder {
+  background: var(--paper-2); padding: 80px 0;
+  text-align: center; color: var(--grey-400); font-size: 14px;
+  font-family: 'Geist Mono', monospace;
+}
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* ─── SECTIONS ─── */
-section { padding: 80px 0; }
-section:nth-child(even) { background: var(--paper-2); }
+section { padding: 80px 0; position: relative; }
 .section-label {
   font-family: 'Geist Mono', monospace;
-  font-size: 11px; color: var(--grey-500);
+  font-size: 11px; color: var(--primary-deep);
   letter-spacing: 0.04em; text-transform: uppercase;
-  margin-bottom: 12px;
+  font-weight: 600; margin-bottom: 10px;
 }
 .section-title {
-  font-size: clamp(28px, 3.5vw, 40px);
+  font-size: clamp(26px, 3vw, 38px);
   font-weight: 500; letter-spacing: -0.035em;
-  line-height: 1.1; margin-bottom: 16px;
+  line-height: 1.1; margin-bottom: 14px;
 }
 .section-desc {
-  font-size: 16px; color: var(--grey-700);
-  max-width: 600px; line-height: 1.55; margin-bottom: 40px;
+  font-size: 15.5px; color: var(--grey-700);
+  max-width: 560px; line-height: 1.55; margin-bottom: 40px;
+}
+.section-center { text-align: center; }
+.section-center .section-desc { margin-left: auto; margin-right: auto; }
+
+/* ─── SYNAPSE BACKGROUND ─── */
+.synapse-bg {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  opacity: 0.25;
+}
+.synapse-bg svg { position: absolute; }
+.synapse-bg .s1 { top: 10%; left: 5%; animation: float 8s ease-in-out infinite; }
+.synapse-bg .s2 { top: 60%; right: 8%; animation: float 10s ease-in-out 2s infinite; }
+.synapse-bg .s3 { bottom: 15%; left: 40%; animation: float 12s ease-in-out 4s infinite; }
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(5deg); }
+}
+
+/* ─── FLOW DIAGRAM ─── */
+.flow-diagram {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin: 40px auto; max-width: 800px; flex-wrap: wrap;
+}
+.flow-step {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; flex: 1; min-width: 140px; padding: 16px;
+}
+.flow-step-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.flow-step-label { font-size: 12px; font-weight: 600; letter-spacing: -0.01em; text-align: center; }
+.flow-step-desc { font-size: 11px; color: var(--grey-500); text-align: center; line-height: 1.4; }
+.flow-arrow {
+  font-size: 18px; color: var(--lavender); flex-shrink: 0;
+  margin: 0 -4px;
 }
 
 /* ─── PROBLEM ─── */
 .problem-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px; margin-top: 32px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
 }
 .problem-card {
   background: var(--paper); border: 1px solid var(--border);
   border-radius: 14px; padding: 24px;
+  transition: border-color 0.2s;
 }
+.problem-card:hover { border-color: var(--danger); }
 .problem-card .num {
   font-family: 'Geist Mono', monospace;
-  font-size: 11px; color: var(--danger);
-  font-weight: 600; margin-bottom: 8px;
+  font-size: 11px; color: var(--danger); font-weight: 600; margin-bottom: 10px;
 }
-.problem-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
+.problem-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
 .problem-card p { font-size: 13.5px; color: var(--grey-700); line-height: 1.5; }
 
 /* ─── FEATURES ─── */
-.features-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .feature-card {
   background: var(--paper); border: 1px solid var(--border);
-  border-radius: 14px; padding: 28px;
-  transition: border-color 0.2s;
+  border-radius: 14px; padding: 24px; transition: all 0.2s;
 }
-.feature-card:hover { border-color: var(--primary); }
+.feature-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 .feature-icon {
-  width: 40px; height: 40px; border-radius: 10px;
+  width: 36px; height: 36px; border-radius: 9px;
   background: var(--primary-soft); color: var(--primary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; margin-bottom: 16px;
+  font-size: 16px; margin-bottom: 14px;
 }
-.feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
-.feature-card p { font-size: 13.5px; color: var(--grey-700); line-height: 1.5; }
+.feature-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.feature-card p { font-size: 13px; color: var(--grey-700); line-height: 1.5; }
+.feature-card .stat {
+  margin-top: 10px; font-family: 'Geist Mono', monospace;
+  font-size: 11px; color: var(--primary-deep); font-weight: 600;
+}
+
+/* ─── SCREENSHOT SECTION ─── */
+.screenshot-section {
+  display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px;
+  align-items: center;
+}
+.screenshot-section.reverse { grid-template-columns: 1.2fr 1fr; }
+.screenshot-section.reverse .screenshot-text { order: 2; }
+.screenshot-section.reverse .screenshot-img { order: 1; }
+.screenshot-img {
+  border-radius: 12px; border: 1px solid var(--border);
+  overflow: hidden; box-shadow: 0 12px 40px -12px rgba(10,10,10,0.08);
+}
+.screenshot-img img { width: 100%; display: block; }
+.screenshot-img .placeholder {
+  background: var(--paper-2); padding: 60px 20px;
+  text-align: center; color: var(--grey-400); font-size: 13px;
+  font-family: 'Geist Mono', monospace;
+}
+
+/* ─── AGENTS ─── */
+.agents-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.agent-card {
+  background: var(--paper); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; text-align: center;
+  transition: all 0.2s;
+}
+.agent-card:hover { border-color: var(--lavender); }
+.agent-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--lavender-soft); color: var(--lavender-deep);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 700;
+  margin: 0 auto 12px;
+}
+.agent-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.agent-card p { font-size: 12px; color: var(--grey-500); line-height: 1.4; }
+.agent-card .time {
+  font-family: 'Geist Mono', monospace; font-size: 10px;
+  color: var(--primary); margin-top: 8px; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
 /* ─── INTEGRATIONS ─── */
 .integrations-row {
-  display: flex; gap: 24px; flex-wrap: wrap;
+  display: flex; gap: 12px; flex-wrap: wrap;
   align-items: center; justify-content: center;
 }
 .integration-pill {
@@ -189,89 +270,83 @@ section:nth-child(even) { background: var(--paper-2); }
   padding: 8px 16px; border-radius: 999px;
   background: var(--paper); border: 1px solid var(--border);
   font-size: 13px; font-weight: 500; color: var(--grey-700);
+  transition: border-color 0.2s;
 }
-.integration-pill .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-}
+.integration-pill:hover { border-color: var(--primary); }
+.integration-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
 
 /* ─── PRICING ─── */
 .pricing-card {
-  max-width: 480px; margin: 0 auto;
+  max-width: 460px; margin: 0 auto;
   background: var(--paper); border: 2px solid var(--primary);
-  border-radius: 16px; padding: 40px;
+  border-radius: 16px; padding: 36px;
   text-align: center;
   box-shadow: 0 24px 60px -24px rgba(110, 87, 250, 0.15);
 }
-.pricing-price {
-  font-size: 48px; font-weight: 500; letter-spacing: -0.04em;
-  margin-bottom: 4px;
-}
+.pricing-price { font-size: 44px; font-weight: 500; letter-spacing: -0.04em; margin-bottom: 2px; }
 .pricing-unit { font-size: 14px; color: var(--grey-500); margin-bottom: 24px; }
-.pricing-features { text-align: left; margin-bottom: 32px; }
+.pricing-features { text-align: left; margin-bottom: 28px; }
 .pricing-features li {
-  list-style: none; font-size: 14px; padding: 8px 0;
+  list-style: none; font-size: 13.5px; padding: 8px 0;
   border-bottom: 1px solid var(--border);
   display: flex; gap: 10px; align-items: center;
 }
 .pricing-features li::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
   background: var(--primary); flex-shrink: 0;
 }
 .pricing-compare {
-  margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr;
-  gap: 12px; text-align: center;
+  margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
 }
 .pricing-compare-item {
-  padding: 16px; border-radius: 10px;
+  padding: 14px; border-radius: 10px;
   background: var(--paper-2); border: 1px solid var(--border);
 }
-.pricing-compare-item .label { font-size: 11px; color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.02em; font-family: 'Geist Mono', monospace; margin-bottom: 4px; }
-.pricing-compare-item .value { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
-.pricing-compare-item .value.strike { text-decoration: line-through; color: var(--grey-500); }
+.pricing-compare-item .label {
+  font-size: 10px; color: var(--grey-500); text-transform: uppercase;
+  letter-spacing: 0.03em; font-family: 'Geist Mono', monospace; margin-bottom: 4px;
+}
+.pricing-compare-item .value { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
+.pricing-compare-item .value.strike { text-decoration: line-through; color: var(--grey-400); font-size: 16px; }
 
 /* ─── CTA FINAL ─── */
-.cta-final {
-  padding: 80px 0;
-  text-align: center;
-}
+.cta-final { padding: 80px 0; text-align: center; }
 .cta-final h2 {
-  font-size: clamp(28px, 3.5vw, 42px);
-  font-weight: 500; letter-spacing: -0.035em;
-  margin-bottom: 16px;
+  font-size: clamp(26px, 3.5vw, 40px);
+  font-weight: 500; letter-spacing: -0.035em; margin-bottom: 14px;
 }
-.cta-final p { font-size: 16px; color: var(--grey-700); margin-bottom: 32px; }
+.cta-final p { font-size: 15px; color: var(--grey-700); margin-bottom: 28px; }
+.cta-final .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
 /* ─── FOOTER ─── */
-footer {
-  padding: 40px 0;
-  border-top: 1px solid var(--border);
-}
-.footer-inner {
-  display: flex; justify-content: space-between; align-items: center;
-}
+footer { padding: 32px 0; border-top: 1px solid var(--border); }
+.footer-inner { display: flex; justify-content: space-between; align-items: center; }
 .footer-brand { display: flex; align-items: center; gap: 8px; }
 .footer-brand span { font-weight: 600; font-size: 14px; letter-spacing: -0.025em; }
-.footer-links { display: flex; gap: 24px; }
+.footer-links { display: flex; gap: 20px; }
 .footer-links a { font-size: 13px; color: var(--grey-500); text-decoration: none; }
 .footer-links a:hover { color: var(--ink); }
 
+/* ─── SCROLL REVEAL ─── */
+.reveal { opacity: 0; transform: translateY(20px); transition: all 0.7s cubic-bezier(0.2, 0.6, 0.2, 1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
 /* ─── ANIMATIONS ─── */
-@keyframes rise-in {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+@keyframes rise-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .rise { animation: rise-in 0.8s cubic-bezier(0.2, 0.6, 0.2, 1) backwards; }
-.rise-d1 { animation-delay: 0.05s; }
-.rise-d2 { animation-delay: 0.15s; }
-.rise-d3 { animation-delay: 0.3s; }
-.rise-d4 { animation-delay: 0.45s; }
+.rise-d1 { animation-delay: 0.05s; } .rise-d2 { animation-delay: 0.15s; }
+.rise-d3 { animation-delay: 0.3s; } .rise-d4 { animation-delay: 0.45s; }
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 768px) {
-  .nav-links { display: none; }
-  .features-grid { grid-template-columns: 1fr; }
-  .problem-grid { grid-template-columns: 1fr; }
-  .hero h1 { font-size: 32px; }
+  .nav-links a:not(.btn) { display: none; }
+  .features-grid, .problem-grid { grid-template-columns: 1fr; }
+  .agents-grid { grid-template-columns: repeat(2, 1fr); }
+  .screenshot-section, .screenshot-section.reverse { grid-template-columns: 1fr; }
+  .screenshot-section.reverse .screenshot-text { order: 1; }
+  .screenshot-section.reverse .screenshot-img { order: 2; }
+  .flow-diagram { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
   .pricing-compare { grid-template-columns: 1fr; }
   .footer-inner { flex-direction: column; gap: 16px; }
 }
@@ -279,168 +354,200 @@ footer {
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ═══ NAV ═══ -->
 <nav>
   <div class="nav-inner">
     <a href="/" class="nav-brand">
-      <svg width="20" height="20" viewBox="0 0 100 100">
-        <line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-        <line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round"/>
-        <line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-        <circle cx="22" cy="26" r="7" fill="#C4B5FD"/>
-        <circle cx="82" cy="30" r="8" fill="#9A84EB"/>
-        <circle cx="30" cy="80" r="7" fill="#C4B5FD"/>
-        <circle cx="50" cy="50" r="13" fill="#6E57FA"/>
-      </svg>
+      <svg width="20" height="20" viewBox="0 0 100 100"><line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/><line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round"/><line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/><circle cx="22" cy="26" r="7" fill="#C4B5FD"/><circle cx="82" cy="30" r="8" fill="#9A84EB"/><circle cx="30" cy="80" r="7" fill="#C4B5FD"/><circle cx="50" cy="50" r="13" fill="#6E57FA"/></svg>
       <span>baakalai</span>
     </a>
     <div class="nav-links">
+      <a href="#how">Comment ca marche</a>
       <a href="#features">Fonctionnalites</a>
       <a href="#pricing">Tarifs</a>
-      <a href="#integrations">Integrations</a>
-      <a href="https://baakal.ai" class="btn btn-primary">Essayer <span class="arrow">&rarr;</span></a>
+      <a href="https://baakal.ai" class="btn btn-primary">Demander un acces <span class="arrow">&rarr;</span></a>
     </div>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ═══ HERO ═══ -->
 <div class="hero wrap">
-  <div class="hero-logo rise">
-    <svg width="56" height="56" viewBox="0 0 100 100">
-      <line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
-      <line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
-      <line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
-      <circle cx="22" cy="26" r="7" fill="#C4B5FD"/>
-      <circle cx="82" cy="30" r="8" fill="#9A84EB"/>
-      <circle cx="30" cy="80" r="7" fill="#C4B5FD"/>
-      <circle cx="50" cy="50" r="13" fill="#6E57FA"/>
-    </svg>
+  <!-- Floating synapse nodes background -->
+  <div class="synapse-bg hero-bg">
+    <svg class="s1" width="80" height="80" viewBox="0 0 100 100"><line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="4" stroke-linecap="round"/><circle cx="22" cy="26" r="6" fill="#C4B5FD"/><circle cx="82" cy="30" r="6" fill="#9A84EB"/><circle cx="50" cy="50" r="10" fill="#6E57FA"/></svg>
+    <svg class="s2" width="60" height="60" viewBox="0 0 100 100"><line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round"/><line x1="50" y1="50" x2="78" y2="72" stroke="#9A84EB" stroke-width="4" stroke-linecap="round"/><circle cx="30" cy="80" r="6" fill="#C4B5FD"/><circle cx="78" cy="72" r="6" fill="#9A84EB"/><circle cx="50" cy="50" r="10" fill="#6E57FA"/></svg>
+    <svg class="s3" width="50" height="50" viewBox="0 0 100 100"><line x1="50" y1="50" x2="20" y2="30" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round"/><circle cx="20" cy="30" r="6" fill="#C4B5FD"/><circle cx="50" cy="50" r="8" fill="#6E57FA"/></svg>
   </div>
-  <div class="hero-label rise rise-d1"><span class="dot"></span> Disponible maintenant</div>
-  <h1 class="rise rise-d2">La prospection B2B qui <em>s'affine toute seule</em> — et qui gere vos clients aussi</h1>
-  <p class="rise rise-d3">baakalai orchestre vos campagnes outbound, genere des sequences personnalisees avec l'IA, et active vos clients existants via votre CRM. Tout se connecte, tout s'ameliore.</p>
+
+  <div class="hero-logo rise">
+    <svg width="48" height="48" viewBox="0 0 100 100"><line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.6"/><line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round" opacity="0.6"/><line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.6"/><circle cx="22" cy="26" r="7" fill="#C4B5FD"/><circle cx="82" cy="30" r="8" fill="#9A84EB"/><circle cx="30" cy="80" r="7" fill="#C4B5FD"/><circle cx="50" cy="50" r="13" fill="#6E57FA"/></svg>
+  </div>
+  <div class="hero-label rise rise-d1"><span class="dot"></span> Beta ouverte — places limitees</div>
+  <h1 class="rise rise-d2">Vos campagnes B2B qui <em>s'affinent a chaque envoi</em></h1>
+  <p class="hero-sub rise rise-d3">baakalai genere vos sequences de prospection, les deploie sur Lemlist ou Apollo, analyse les resultats, et affine la campagne suivante. Il gere aussi vos clients existants via votre CRM.</p>
   <div class="hero-cta rise rise-d4">
-    <a href="https://baakal.ai" class="btn btn-accent">Essayer gratuitement <span class="arrow">&rarr;</span></a>
-    <a href="#features" class="btn btn-outline">Comment ca marche</a>
+    <a href="https://baakal.ai" class="btn btn-accent btn-lg">Demander un acces <span class="arrow">&rarr;</span></a>
+    <a href="#how" class="btn btn-outline">Voir comment ca marche</a>
+  </div>
+
+  <!-- Screenshot placeholder — REPLACE with actual screenshot -->
+  <div class="hero-screenshot rise rise-d4">
+    <div class="placeholder">[ Screenshot du Dashboard baakalai ]</div>
   </div>
 </div>
 
-<!-- PROBLEM -->
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="how" style="background: var(--paper-2);">
+  <div class="wrap section-center">
+    <div class="section-label">Comment ca marche</div>
+    <div class="section-title">Du chat a l'email envoye en 4 etapes</div>
+    <div class="section-desc">Pas de configuration complexe. Vous decrivez votre cible, baakalai fait le reste.</div>
+
+    <!-- Flow diagram -->
+    <div class="flow-diagram reveal">
+      <div class="flow-step">
+        <div class="flow-step-icon" style="background: var(--primary-soft); color: var(--primary);">&#128172;</div>
+        <div class="flow-step-label">1. Decrivez votre cible</div>
+        <div class="flow-step-desc">Dans le chat, dites a l'IA qui vous cherchez. Secteur, poste, taille, zone.</div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-step-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">&#9998;</div>
+        <div class="flow-step-label">2. L'IA genere la sequence</div>
+        <div class="flow-step-desc">3 a 5 emails + LinkedIn, personnalises, avec branches conditionnelles.</div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-step-icon" style="background: var(--primary-soft); color: var(--primary);">&#9889;</div>
+        <div class="flow-step-label">3. Deploiement automatique</div>
+        <div class="flow-step-desc">Un clic et c'est deploye sur Lemlist, Apollo ou Smartlead avec vos prospects.</div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">
+        <div class="flow-step-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">&#128200;</div>
+        <div class="flow-step-label">4. Affinage continu</div>
+        <div class="flow-step-desc">L'IA analyse les resultats, identifie ce qui marche, et affine la prochaine campagne.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PROBLEM ═══ -->
 <section>
   <div class="wrap">
     <div class="section-label">Le probleme</div>
-    <div class="section-title">5 outils, 0 connexion entre eux</div>
-    <div class="section-desc">Votre equipe passe plus de temps a jongler entre les outils qu'a vendre. Et quand un deal se conclut, la relation client repart de zero.</div>
-    <div class="problem-grid">
+    <div class="section-title">Vos outils ne se parlent pas. Vos donnees ne servent a rien.</div>
+    <div class="section-desc">L'equipe commerciale passe plus de temps a jongler entre les outils qu'a vendre. Et les insights d'une campagne ne beneficient jamais a la suivante.</div>
+    <div class="problem-grid reveal">
       <div class="problem-card">
         <div class="num">01</div>
-        <h3>Outils deconnectes</h3>
-        <p>Un outil pour trouver des prospects, un autre pour envoyer, un autre pour le CRM, un autre pour les relances. Rien ne se parle.</p>
+        <h3>5+ outils deconnectes</h3>
+        <p>Un pour chercher des prospects, un pour envoyer, un pour le CRM, un pour analyser. Rien ne communique, chaque outil est une ile.</p>
       </div>
       <div class="problem-card">
         <div class="num">02</div>
-        <h3>Pas d'apprentissage</h3>
-        <p>Chaque campagne repart de zero. Ce qui a marche la derniere fois n'est pas reinjecte dans la suivante.</p>
+        <h3>Zero memoire entre les campagnes</h3>
+        <p>Ce qui a fonctionne la derniere fois n'alimente pas la suivante. Chaque campagne repart d'une page blanche, sans apprentissage.</p>
       </div>
       <div class="problem-card">
         <div class="num">03</div>
-        <h3>Prospection sans activation</h3>
-        <p>Vous trouvez des clients mais personne ne s'occupe de les garder. Pas de relance automatique, pas de suivi post-deal.</p>
+        <h3>Prospection sans retention</h3>
+        <p>Vous trouvez des clients mais personne ne s'occupe de les garder. Pas de relance automatique post-deal, pas de detection de churn.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES : PROSPECTION -->
-<section id="features">
+<!-- ═══ PROSPECTION — with screenshot ═══ -->
+<section id="features" style="background: var(--paper-2);">
   <div class="wrap">
-    <div class="section-label">Prospection</div>
-    <div class="section-title">Trouvez des clients, sans y passer vos journees</div>
-    <div class="section-desc">Decrivez votre cible dans le chat, baakalai genere la sequence complete et la deploie.</div>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">&#9993;</div>
-        <h3>Sequences multi-canal</h3>
-        <p>Email + LinkedIn avec branches conditionnelles. Si ouvert &rarr; relance douce. Si pas ouvert &rarr; nouvel angle. Claude genere chaque message.</p>
+    <div class="screenshot-section reveal">
+      <div class="screenshot-text">
+        <div class="section-label">Prospection</div>
+        <div class="section-title">Trouvez des clients sans y passer vos journees</div>
+        <p style="font-size: 14.5px; color: var(--grey-700); line-height: 1.55; margin-bottom: 20px;">Decrivez votre cible dans le chat. L'IA genere une sequence multi-canal complete — email + LinkedIn — avec des branches conditionnelles (si ouvert, si pas repondu). Deployez sur Lemlist ou Apollo en un clic.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">200</span> prospects par recherche</div>
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">A/B</span> testing automatique entre variantes</div>
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">5</span> templates de campagne pre-construits</div>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#9879;</div>
-        <h3>A/B testing automatique</h3>
-        <p>baakalai teste les variantes, identifie les gagnantes, et affine la sequence suivante. Vous n'avez rien a faire.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128269;</div>
-        <h3>200 prospects par recherche</h3>
-        <p>Connecte a Lemlist, Apollo ou votre outil prefere. Recherche par titre, secteur, taille, localisation.</p>
+      <div class="screenshot-img">
+        <!-- REPLACE with actual screenshot of Chat page -->
+        <div class="placeholder">[ Screenshot : creation de campagne dans le chat ]</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURES : ACTIVATION -->
+<!-- ═══ ACTIVATION — with screenshot ═══ -->
 <section>
   <div class="wrap">
-    <div class="section-label">Activation</div>
-    <div class="section-title">Gardez vos clients, developpez la relation</div>
-    <div class="section-desc">Importez vos contacts CRM, detectez les deals stagnants, envoyez le bon email au bon moment.</div>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">&#9889;</div>
-        <h3>8 triggers automatiques</h3>
-        <p>Deal gagne, deal stagnant, contact inactif, win-back, onboarding, renouvellement, upsell, feedback. Chacun genere un email personnalise.</p>
+    <div class="screenshot-section reverse reveal">
+      <div class="screenshot-text">
+        <div class="section-label">Activation</div>
+        <div class="section-title">Gardez vos clients, detectez les risques</div>
+        <p style="font-size: 14.5px; color: var(--grey-700); line-height: 1.55; margin-bottom: 20px;">Importez vos contacts depuis Pipedrive, HubSpot ou Odoo. baakalai detecte les deals stagnants, les contacts inactifs, et envoie des emails de relance personnalises depuis votre propre boite mail — indistinguables d'un email tape a la main.</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">8</span> triggers automatiques (deal gagne, stagnant, win-back...)</div>
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">IA</span> analyse les reponses et met a jour le CRM</div>
+          <div style="display: flex; gap: 8px; align-items: center; font-size: 13px;"><span style="color: var(--primary); font-weight: 600;">SMTP</span> envoi depuis votre Gmail/Outlook, pas un outil tiers</div>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128172;</div>
-        <h3>Emails personnels</h3>
-        <p>Pas de template marketing. De vrais emails texte, envoyes depuis votre propre boite mail. Indistinguables d'un email tape a la main.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128200;</div>
-        <h3>Analyse des reponses</h3>
-        <p>L'IA lit les reponses, detecte le sentiment (interesse, pas dispo, demande de RDV), et met a jour le statut du contact automatiquement.</p>
+      <div class="screenshot-img">
+        <!-- REPLACE with actual screenshot of Activation page -->
+        <div class="placeholder">[ Screenshot : page Activation avec triggers et preview ]</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- INTELLIGENCE -->
-<section>
-  <div class="wrap">
+<!-- ═══ INTELLIGENCE ═══ -->
+<section style="background: var(--paper-2); position: relative;">
+  <div class="synapse-bg">
+    <svg class="s1" width="70" height="70" viewBox="0 0 100 100"><line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="4" stroke-linecap="round"/><circle cx="22" cy="26" r="6" fill="#C4B5FD"/><circle cx="50" cy="50" r="10" fill="#6E57FA"/></svg>
+    <svg class="s2" width="55" height="55" viewBox="0 0 100 100"><line x1="50" y1="50" x2="78" y2="72" stroke="#9A84EB" stroke-width="4" stroke-linecap="round"/><circle cx="78" cy="72" r="6" fill="#9A84EB"/><circle cx="50" cy="50" r="8" fill="#6E57FA"/></svg>
+  </div>
+  <div class="wrap section-center" style="position: relative; z-index: 1;">
     <div class="section-label">Intelligence</div>
     <div class="section-title">4 agents IA qui travaillent pendant que vous dormez</div>
-    <div class="section-desc">Chaque agent tourne quotidiennement, apprend de vos donnees, et affine ses decisions.</div>
-    <div class="features-grid" style="grid-template-columns: repeat(2, 1fr);">
-      <div class="feature-card">
-        <div class="feature-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">P</div>
-        <h3>Agent Prospection</h3>
-        <p>Collecte les stats, evalue les A/B tests, verifie la delivrabilite. Quotidien a 8h.</p>
+    <div class="section-desc">Chaque agent tourne automatiquement, apprend de vos donnees, et prend des decisions de plus en plus pertinentes au fil du temps.</div>
+    <div class="agents-grid reveal">
+      <div class="agent-card">
+        <div class="agent-icon">P</div>
+        <h3>Prospection</h3>
+        <p>Stats, A/B tests, delivrabilite</p>
+        <div class="time">Chaque jour, 8h</div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">C</div>
-        <h3>Agent CRM</h3>
-        <p>Sync les contacts, nettoie les donnees, evalue les triggers, analyse les reponses. Quotidien a 9h.</p>
+      <div class="agent-card">
+        <div class="agent-icon">C</div>
+        <h3>CRM</h3>
+        <p>Sync, nettoyage, triggers, analyse reponses</p>
+        <div class="time">Chaque jour, 9h</div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">M</div>
-        <h3>Agent Memoire</h3>
-        <p>Consolide les patterns cross-campagne, genere des templates, prune les donnees obsoletes. Hebdomadaire.</p>
+      <div class="agent-card">
+        <div class="agent-icon">M</div>
+        <h3>Memoire</h3>
+        <p>Patterns cross-campagne, templates</p>
+        <div class="time">Chaque dimanche</div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background: var(--lavender-soft); color: var(--lavender-deep);">R</div>
-        <h3>Agent Reporting</h3>
-        <p>Detecte les anomalies, genere le rapport hebdomadaire, envoie des alertes contextuelles. Chaque lundi.</p>
+      <div class="agent-card">
+        <div class="agent-icon">R</div>
+        <h3>Reporting</h3>
+        <p>Anomalies, rapport hebdo, alertes</p>
+        <div class="time">Chaque lundi</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- INTEGRATIONS -->
+<!-- ═══ INTEGRATIONS ═══ -->
 <section id="integrations">
-  <div class="wrap" style="text-align: center;">
-    <div class="section-label" style="text-align: center;">Integrations</div>
-    <div class="section-title" style="text-align: center;">Connecte a vos outils existants</div>
-    <div class="section-desc" style="margin: 0 auto 40px; text-align: center;">Pas besoin de changer votre stack. baakalai s'integre a ce que vous utilisez deja.</div>
-    <div class="integrations-row">
+  <div class="wrap section-center">
+    <div class="section-label">Integrations</div>
+    <div class="section-title">Connecte a vos outils existants</div>
+    <div class="section-desc">Pas besoin de changer votre stack. baakalai orchestre ce que vous utilisez deja.</div>
+    <div class="integrations-row reveal">
       <div class="integration-pill"><span class="dot" style="background: #6C5CE7;"></span> Lemlist</div>
       <div class="integration-pill"><span class="dot" style="background: #6C5CE7;"></span> Apollo</div>
       <div class="integration-pill"><span class="dot" style="background: #4F46E5;"></span> Smartlead</div>
@@ -453,29 +560,29 @@ footer {
   </div>
 </section>
 
-<!-- PRICING -->
-<section id="pricing">
-  <div class="wrap">
-    <div class="section-label" style="text-align: center;">Tarifs</div>
-    <div class="section-title" style="text-align: center;">Simple, transparent, sans engagement</div>
-    <div class="section-desc" style="margin: 0 auto 40px; text-align: center;">Pas de frais de setup, pas de commission, pas de surprise. Annulable a tout moment.</div>
-    <div class="pricing-card">
+<!-- ═══ PRICING ═══ -->
+<section id="pricing" style="background: var(--paper-2);">
+  <div class="wrap section-center">
+    <div class="section-label">Tarifs</div>
+    <div class="section-title">Simple, transparent, sans engagement</div>
+    <div class="section-desc">Pas de frais de setup. Pas de commission sur vos deals. Annulable a tout moment. Vos donnees restent a vous apres annulation.</div>
+    <div class="pricing-card reveal">
       <div class="pricing-price">$75</div>
       <div class="pricing-unit">par utilisateur / mois</div>
       <ul class="pricing-features">
         <li>Prospection illimitee (email + LinkedIn)</li>
-        <li>Activation CRM (triggers, emails personnels)</li>
+        <li>Activation CRM avec 8 triggers automatiques</li>
         <li>4 agents IA autonomes</li>
-        <li>Memoire cross-campagne</li>
-        <li>Equipe jusqu'a 5 membres</li>
+        <li>Memoire cross-campagne qui s'ameliore</li>
+        <li>Equipe jusqu'a 5 membres avec roles</li>
         <li>Toutes les integrations incluses</li>
-        <li>Donnees 100% conservees apres annulation</li>
+        <li>100% de vos donnees conservees apres annulation</li>
       </ul>
-      <a href="https://baakal.ai" class="btn btn-accent" style="width: 100%; justify-content: center;">Commencer <span class="arrow">&rarr;</span></a>
+      <a href="https://baakal.ai" class="btn btn-accent" style="width: 100%; justify-content: center;">Demander un acces <span class="arrow">&rarr;</span></a>
       <div class="pricing-compare">
         <div class="pricing-compare-item">
           <div class="label">Agence outbound</div>
-          <div class="value strike">&euro;30-140k</div>
+          <div class="value strike">&euro;30k &ndash; 140k</div>
         </div>
         <div class="pricing-compare-item">
           <div class="label">baakalai (equipe de 3)</div>
@@ -486,37 +593,45 @@ footer {
   </div>
 </section>
 
-<!-- CTA FINAL -->
+<!-- ═══ CTA FINAL ═══ -->
 <div class="cta-final wrap">
   <h2>Pret a laisser l'IA affiner votre prospection ?</h2>
-  <p>Creez votre premiere campagne en moins de 30 minutes. Pas de carte bancaire requise.</p>
-  <a href="https://baakal.ai" class="btn btn-accent btn-lg">Essayer baakalai <span class="arrow">&rarr;</span></a>
+  <p>Creez votre premiere campagne en moins de 30 minutes. Acces sur invitation.</p>
+  <div class="cta-buttons">
+    <a href="https://baakal.ai" class="btn btn-accent btn-lg">Demander un acces <span class="arrow">&rarr;</span></a>
+    <a href="https://baakal.ai/join" class="btn btn-outline btn-lg">Rejoindre une equipe</a>
+  </div>
 </div>
 
-<!-- FOOTER -->
+<!-- ═══ FOOTER ═══ -->
 <footer>
   <div class="wrap">
     <div class="footer-inner">
       <div class="footer-brand">
-        <svg width="16" height="16" viewBox="0 0 100 100">
-          <line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-          <line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round"/>
-          <line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
-          <circle cx="22" cy="26" r="7" fill="#C4B5FD"/>
-          <circle cx="82" cy="30" r="8" fill="#9A84EB"/>
-          <circle cx="30" cy="80" r="7" fill="#C4B5FD"/>
-          <circle cx="50" cy="50" r="13" fill="#6E57FA"/>
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 100 100"><line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/><line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round"/><line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/><circle cx="22" cy="26" r="7" fill="#C4B5FD"/><circle cx="82" cy="30" r="8" fill="#9A84EB"/><circle cx="30" cy="80" r="7" fill="#C4B5FD"/><circle cx="50" cy="50" r="13" fill="#6E57FA"/></svg>
         <span>baakalai</span>
       </div>
       <div class="footer-links">
         <a href="https://baakal.ai/legal">CGU</a>
         <a href="https://baakal.ai/legal#privacy">Confidentialite</a>
-        <a href="mailto:contact@baakal.ai">Contact</a>
+        <a href="mailto:contact@baakal.ai">contact@baakal.ai</a>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- ═══ SCROLL REVEAL ═══ -->
+<script>
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+reveals.forEach(el => observer.observe(el));
+</script>
 
 </body>
 </html>
