@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api, { request, fetchDashboard } from '../services/api-client';
+import api, { request, fetchDashboard, fetchAllCampaigns } from '../services/api-client';
 import { useApp } from '../context/useApp';
 import { useT } from '../i18n';
 
@@ -9,7 +9,7 @@ export default function DeliverabilityCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const { setGlobalKpis } = useApp();
+  const { setGlobalKpis, setCampaigns } = useApp();
 
   const load = async () => {
     setLoading(true);
@@ -28,16 +28,19 @@ export default function DeliverabilityCard() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const syncResult = await request('/dashboard/refresh-stats', { method: 'POST' });
-      console.log('[refresh-stats] Result:', JSON.stringify(syncResult));
-      const fresh = await fetchDashboard();
+      await request('/dashboard/refresh-stats', { method: 'POST' });
+      const [fresh, campaigns] = await Promise.all([
+        fetchDashboard(),
+        fetchAllCampaigns(),
+      ]);
       setGlobalKpis(fresh);
+      setCampaigns(campaigns);
       await load();
     } catch (err) {
       console.error('Stats refresh failed:', err);
     }
     setRefreshing(false);
-  }, [setGlobalKpis]);
+  }, [setGlobalKpis, setCampaigns]);
 
   if (loading) return null;
   if (error) return null;
