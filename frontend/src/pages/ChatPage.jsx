@@ -11,7 +11,7 @@ import { useSocket } from '../context/SocketContext';
 import api, { request } from '../services/api-client';
 import { sanitizeHtml } from '../services/sanitize';
 import Confetti from '../components/Confetti';
-import { useT } from '../i18n';
+import { useT, useI18n } from '../i18n';
 
 /* ─── Helpers ─── */
 
@@ -52,54 +52,46 @@ const DEFAULT_SUGGESTIONS = [
   'Quel angle pour le secteur tech ?',
 ];
 
-const ONBOARDING_SUGGESTIONS = [
-  'Comment fonctionne Baakalai ?',
-  'Quel secteur cibler en premier ?',
-  'Aide-moi à définir mon ICP',
-];
+function getOnboardingSuggestions(lang) {
+  return lang === 'en'
+    ? ['How does baakalai work?', 'Which sector to target first?', 'Help me define my ICP']
+    : ['Comment fonctionne baakalai ?', 'Quel secteur cibler en premier ?', 'Aide-moi \u00E0 d\u00E9finir mon ICP'];
+}
 
-const RETURNING_SUGGESTIONS = [
-  'R\u00E9sum\u00E9 de mes campagnes',
-  'Quelle campagne affiner en priorit\u00E9 ?',
-  'Cr\u00E9er une campagne similaire',
-];
+function getReturningSuggestions(lang) {
+  return lang === 'en'
+    ? ['Summary of my campaigns', 'Which campaign to refine first?', 'Create a similar campaign']
+    : ['R\u00E9sum\u00E9 de mes campagnes', 'Quelle campagne affiner en priorit\u00E9 ?', 'Cr\u00E9er une campagne similaire'];
+}
 
-const ACTION_PROMPTS = {
-  create: 'Je veux cr\u00E9er une nouvelle campagne de prospection. Guide-moi \u00E9tape par \u00E9tape.',
-  refine: 'Je veux affiner une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je am\u00E9liorer ?',
-  analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
-  setup_profile: 'Je viens de m\'inscrire. Aide-moi \u00E0 configurer mon profil entreprise pour personnaliser mes campagnes.',
-  explore: 'Explique-moi les fonctionnalit\u00E9s de Baakalai et comment tirer le meilleur parti de la plateforme.',
-  create_from_insights: 'Tu as analys\u00E9 mes campagnes pr\u00E9c\u00E9dentes et identifi\u00E9 des patterns qui fonctionnent. Cr\u00E9e-moi une nouvelle campagne affin\u00E9e en t\'appuyant sur ces insights et la m\u00E9moire cross-campagne. Propose-moi le meilleur angle, ton et s\u00E9quence bas\u00E9s sur ce qui a march\u00E9.',
-};
+function getActionPrompts(lang) {
+  if (lang === 'en') return {
+    create: 'I want to create a new prospecting campaign. Guide me step by step.',
+    refine: 'I want to refine one of my underperforming campaigns. Which ones can I improve?',
+    analyze: 'Can you analyze the performance of my active campaigns and give me a diagnostic?',
+    setup_profile: 'I just signed up. Help me set up my company profile to personalize my campaigns.',
+    explore: 'Explain baakalai\'s features and how to get the most out of the platform.',
+    create_from_insights: 'You\'ve analyzed my previous campaigns and identified patterns that work. Create a new refined campaign based on these insights and cross-campaign memory. Suggest the best angle, tone and sequence based on what worked.',
+  };
+  return {
+    create: 'Je veux cr\u00E9er une nouvelle campagne de prospection. Guide-moi \u00E9tape par \u00E9tape.',
+    refine: 'Je veux affiner une de mes campagnes existantes qui sous-performe. Quelles campagnes puis-je am\u00E9liorer ?',
+    analyze: 'Peux-tu analyser les performances de mes campagnes actives et me donner un diagnostic ?',
+    setup_profile: 'Je viens de m\'inscrire. Aide-moi \u00E0 configurer mon profil entreprise pour personnaliser mes campagnes.',
+    explore: 'Explique-moi les fonctionnalit\u00E9s de baakalai et comment tirer le meilleur parti de la plateforme.',
+    create_from_insights: 'Tu as analys\u00E9 mes campagnes pr\u00E9c\u00E9dentes et identifi\u00E9 des patterns qui fonctionnent. Cr\u00E9e-moi une nouvelle campagne affin\u00E9e en t\'appuyant sur ces insights et la m\u00E9moire cross-campagne.',
+  };
+}
 
-const CAMPAIGN_TEMPLATES = [
-  {
-    label: 'Prospection SaaS B2B',
-    desc: 'S\u00E9quence email + LinkedIn pour d\u00E9cideurs tech',
-    prompt: 'Cr\u00E9e une campagne de prospection B2B pour vendre un logiciel SaaS. Cible : CTO et VP Engineering de startups/scale-ups 50-500 employ\u00E9s en France. Canal : multi (email + LinkedIn). Ton : professionnel mais d\u00E9contract\u00E9. Angle : ROI et gain de temps. G\u00E9n\u00E8re la s\u00E9quence compl\u00E8te.',
-  },
-  {
-    label: 'Prise de RDV',
-    desc: 'S\u00E9quence courte orient\u00E9e rendez-vous',
-    prompt: 'Cr\u00E9e une campagne email courte (3 touchpoints) dont l\'objectif est d\'obtenir un rendez-vous de 15 minutes. Ton direct et concis. Chaque email doit faire moins de 5 lignes. Le CTA est toujours une proposition de cr\u00E9neau. Utilise les infos de mon profil pour personnaliser.',
-  },
-  {
-    label: 'Relance clients existants',
-    desc: 'R\u00E9activer des clients inactifs',
-    prompt: 'Cr\u00E9e une s\u00E9quence email de r\u00E9activation pour des clients existants qui n\'ont pas \u00E9t\u00E9 contact\u00E9s depuis 3+ mois. Ton chaleureux, pas commercial. Objectif : reprendre contact et proposer un point. 3 touchpoints espac\u00E9s de 7 jours.',
-  },
-  {
-    label: 'Recrutement',
-    desc: 'Approche candidats via LinkedIn + email',
-    prompt: 'Cr\u00E9e une s\u00E9quence multi-canal (LinkedIn + email) pour recruter des profils tech. Commence par une invitation LinkedIn personnalis\u00E9e (max 300 caract\u00E8res), puis un message LinkedIn, puis un email. Ton : informel, valorisant. Pas de ton RH corporate.',
-  },
-  {
-    label: 'Partenariat / Co-marketing',
-    desc: 'Proposer une collaboration \u00E0 des pairs',
-    prompt: 'Cr\u00E9e une s\u00E9quence email pour proposer un partenariat ou une collaboration \u00E0 des entreprises compl\u00E9mentaires. Ton : entre pairs, pas vendeur. Objectif : un call exploratoire. 3 emails espac\u00E9s de 5 jours. Mets en avant le b\u00E9n\u00E9fice mutuel.',
-  },
-];
+function getCampaignTemplates(t) {
+  return [
+    { label: t('chat.templateSaas'), desc: t('chat.templateSaasDesc'), prompt: 'Create a B2B SaaS prospecting campaign. Target: CTO and VP Engineering at startups/scale-ups 50-500 employees. Channel: multi (email + LinkedIn). Tone: professional but casual. Angle: ROI and time saved. Generate the full sequence.' },
+    { label: t('chat.templateMeeting'), desc: t('chat.templateMeetingDesc'), prompt: 'Create a short email campaign (3 touchpoints) to book a 15-minute meeting. Direct and concise tone. Each email under 5 lines. CTA is always a time slot proposal. Use my profile info to personalize.' },
+    { label: t('chat.templateReactivation'), desc: t('chat.templateReactivationDesc'), prompt: 'Create an email reactivation sequence for existing clients who haven\'t been contacted in 3+ months. Warm tone, not salesy. Goal: re-establish contact and propose a check-in. 3 touchpoints spaced 7 days apart.' },
+    { label: t('chat.templateRecruiting'), desc: t('chat.templateRecruitingDesc'), prompt: 'Create a multi-channel sequence (LinkedIn + email) to recruit tech profiles. Start with a personalized LinkedIn invite (max 300 chars), then a LinkedIn message, then an email. Tone: informal, appreciative. No corporate HR tone.' },
+    { label: t('chat.templatePartnership'), desc: t('chat.templatePartnershipDesc'), prompt: 'Create an email sequence to propose a partnership or collaboration with complementary companies. Tone: peer-to-peer, not salesy. Goal: an exploratory call. 3 emails spaced 5 days apart. Highlight mutual benefit.' },
+  ];
+}
 
 /* ─── Sub-components ─── */
 
@@ -1373,43 +1365,54 @@ function InlineSuggestions({ suggestions, onSend }) {
 
 function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) {
   const { userName, campaignCount, hasProfile, activeCampaigns, topCampaign, insights } = userState || {};
+  const t = useT();
+  const { lang } = useI18n();
 
-  // Contextual greeting based on user state
-  let title = 'Assistant Baakalai';
-  let subtitle = 'Je peux vous aider \u00E0 cr\u00E9er des campagnes, affiner vos s\u00E9quences et analyser vos performances.';
+  let title = 'baakalai Assistant';
+  let subtitle = t('chat.defaultSubtitle');
   let actions = [
-    { key: 'create', label: 'Cr\u00E9er une campagne' },
-    { key: 'refine', label: 'Affiner' },
-    { key: 'analyze', label: 'Analyser' },
+    { key: 'create', label: t('chat.createFirst') },
+    { key: 'refine', label: t('chat.refineCampaigns') },
+    { key: 'analyze', label: t('chat.analyzePerf') },
   ];
 
   if (!hasProfile && campaignCount === 0) {
-    title = userName ? `Bienvenue ${userName} !` : 'Bienvenue sur Baakalai !';
-    subtitle = 'Commencez par configurer votre profil entreprise, puis créez votre première campagne de prospection. Je vous guide étape par étape.';
+    title = userName ? `${t('chat.welcome')} ${userName}!` : `${t('chat.welcome')}!`;
+    subtitle = lang === 'en'
+      ? 'Start by setting up your company profile, then create your first prospecting campaign. I\'ll guide you step by step.'
+      : 'Commencez par configurer votre profil entreprise, puis cr\u00E9ez votre premi\u00E8re campagne. Je vous guide \u00E9tape par \u00E9tape.';
     actions = [
-      { key: 'setup_profile', label: 'Configurer mon profil' },
-      { key: 'create', label: 'Créer ma première campagne' },
+      { key: 'setup_profile', label: t('chat.setupProfile') },
+      { key: 'create', label: t('chat.createFirst') },
     ];
   } else if (hasProfile && campaignCount === 0) {
-    title = userName ? `Pr\u00EAt \u00E0 prospecter, ${userName} ?` : 'Pr\u00EAt \u00E0 prospecter ?';
-    subtitle = 'Choisissez un mod\u00E8le ou d\u00E9crivez votre campagne.';
+    title = userName ? t('chat.readyToProspect', { name: userName }) : (lang === 'en' ? 'Ready to prospect?' : 'Pr\u00EAt \u00E0 prospecter ?');
+    subtitle = t('chat.chooseTemplate');
     actions = [];
-    suggestions = []; // templates will be shown instead
+    suggestions = [];
   } else if (campaignCount > 0 && activeCampaigns === 0) {
-    title = userName ? `Bon retour, ${userName} !` : 'Bon retour !';
-    subtitle = `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en préparation. Lancez-en une ou créez-en une nouvelle.`;
+    title = userName ? (lang === 'en' ? `Welcome back, ${userName}!` : `Bon retour, ${userName} !`) : (lang === 'en' ? 'Welcome back!' : 'Bon retour !');
+    subtitle = lang === 'en'
+      ? `You have ${campaignCount} campaign${campaignCount > 1 ? 's' : ''} in preparation. Launch one or create a new one.`
+      : `Vous avez ${campaignCount} campagne${campaignCount > 1 ? 's' : ''} en pr\u00E9paration. Lancez-en une ou cr\u00E9ez-en une nouvelle.`;
     actions = [
-      { key: 'create', label: 'Nouvelle campagne' },
-      { key: 'analyze', label: 'Voir mes campagnes' },
+      { key: 'create', label: t('chat.newCampaign') },
+      { key: 'analyze', label: t('chat.seeCampaigns') },
     ];
   } else if (activeCampaigns > 0) {
-    title = userName ? `Bonjour ${userName} !` : 'Bonjour !';
-    const topInfo = topCampaign ? ` "${topCampaign.name}" a un taux d'ouverture de ${topCampaign.openRate || '—'}%.` : '';
-    subtitle = `${activeCampaigns} campagne${activeCampaigns > 1 ? 's' : ''} active${activeCampaigns > 1 ? 's' : ''}.${topInfo} Que puis-je faire pour vous ?`;
+    title = userName ? t('chat.hello', { name: userName }) : (lang === 'en' ? 'Hello!' : 'Bonjour !');
+    const topInfo = topCampaign
+      ? (lang === 'en'
+        ? ` "${topCampaign.name}" has a ${topCampaign.openRate || '\u2014'}% open rate.`
+        : ` "${topCampaign.name}" a un taux d'ouverture de ${topCampaign.openRate || '\u2014'}%.`)
+      : '';
+    subtitle = lang === 'en'
+      ? `${activeCampaigns} active campaign${activeCampaigns > 1 ? 's' : ''}.${topInfo} What can I do for you?`
+      : `${activeCampaigns} campagne${activeCampaigns > 1 ? 's' : ''} active${activeCampaigns > 1 ? 's' : ''}.${topInfo} Que puis-je faire pour vous ?`;
     actions = [
-      { key: 'refine', label: 'Affiner mes campagnes' },
-      { key: 'analyze', label: 'Analyser les performances' },
-      { key: 'create', label: 'Nouvelle campagne' },
+      { key: 'refine', label: t('chat.refineCampaigns') },
+      { key: 'analyze', label: t('chat.analyzePerf') },
+      { key: 'create', label: t('chat.newCampaign') },
     ];
   }
 
@@ -1439,7 +1442,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
             textAlign: 'left', maxWidth: 520, width: '100%',
           }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              🧠 Insights de vos campagnes
+              {t('chat.insightsTitle')}
             </div>
             {topInsights.map((insight, i) => (
               <div key={i} style={{
@@ -1453,7 +1456,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
               style={{ fontSize: 12, marginTop: 10, padding: '6px 14px' }}
               onClick={() => onAction('create_from_insights')}
             >
-              Créer une campagne basée sur ces insights
+              {t('chat.createFromInsights')}
             </button>
           </div>
         )}
@@ -1464,7 +1467,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: 10, marginBottom: 20, maxWidth: 640, width: '100%',
           }}>
-            {CAMPAIGN_TEMPLATES.map(tpl => (
+            {getCampaignTemplates(t).map(tpl => (
               <button
                 key={tpl.label}
                 onClick={() => onSuggestionClick(tpl.prompt)}
@@ -1508,6 +1511,7 @@ function WelcomeScreen({ suggestions, onSuggestionClick, onAction, userState }) 
 export default function ChatPage() {
   const { backendAvailable, setCampaigns, campaigns, user, recommendations } = useApp();
   const { socket } = useSocket();
+  const { lang } = useI18n();
 
   // Local state
   const [threads, setThreads] = useState([]);
@@ -2021,7 +2025,8 @@ export default function ChatPage() {
 
   /* ─── Action button starters ─── */
   const startAction = useCallback((action) => {
-    const text = ACTION_PROMPTS[action];
+    const prompts = getActionPrompts(lang);
+    const text = prompts[action];
     if (text) sendMessage(text);
   }, [sendMessage]);
 
@@ -2204,8 +2209,8 @@ export default function ChatPage() {
         {showWelcome && messages.length === 0 ? (
           <WelcomeScreen
             suggestions={
-              userState.campaignCount === 0 ? ONBOARDING_SUGGESTIONS
-              : userState.activeCampaigns > 0 ? RETURNING_SUGGESTIONS
+              userState.campaignCount === 0 ? getOnboardingSuggestions(lang)
+              : userState.activeCampaigns > 0 ? getReturningSuggestions(lang)
               : DEFAULT_SUGGESTIONS
             }
             onSuggestionClick={(s) => sendMessage(s)}
