@@ -6,11 +6,11 @@
 
 ## 1. What is Baakalai
 
-Baakalai (baakal.ai) is a B2B SaaS platform that orchestrates **prospecting + client activation** with AI. It's not just an outbound tool — it handles the full cycle from cold outreach to client retention.
+baakalai orchestre votre prospection et votre relation client avec l'IA. Il génère des séquences personnalisées, les déploie sur vos outils existants, et gère vos clients dans votre CRM — détection des deals stagnants, relance des contacts inactifs, upsell au bon moment. Chaque email envoyé, chaque réponse analysée, chaque deal conclu nourrit une mémoire collective qui apprend quel angle fonctionne, quel timing convertit, et quelle approche décroche un rendez-vous.
 
-- **Prospection** : Create campaigns, generate AI sequences (email + LinkedIn), deploy to Lemlist/Apollo, A/B test, optimize automatically
+- **Prospection** : Create campaigns via AI chat, generate sequences (email + LinkedIn), deploy to Lemlist/Apollo, A/B test, refine automatically
 - **Activation (CRM)** : Import contacts from Pipedrive/HubSpot/Odoo, detect stagnant deals/churn risk, send personalized follow-up emails via user's own SMTP, analyze responses
-- **Intelligence** : 4 autonomous AI agents (Prospection, CRM, Memory, Reporting) that learn from every campaign
+- **Intelligence** : 4 autonomous AI agents (Prospection, CRM, Memory, Reporting) + 9 pattern sources that learn from every campaign and every CRM interaction
 
 Pricing: $75/user/month. Team plan: up to 5 members with roles (admin, prospection, activation, viewer).
 
