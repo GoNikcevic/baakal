@@ -207,6 +207,7 @@ Claude can propose these structured actions in the chat (JSON blocks):
 - Backend: CommonJS (require/module.exports), Express routes, PostgreSQL via raw queries
 - Frontend: ES Modules (import/export), React functional components, inline styles (no CSS-in-JS lib)
 - i18n: fr.json + en.json with useT() hook
+- **RULE: NEVER hardcode French text in JSX.** Always use t('key') from useT(). When adding ANY user-facing string, add the key to BOTH fr.json AND en.json in the same commit. No exceptions.
 - DB migrations: numbered SQL files in backend/db/migrations/
 - Env vars: ORCHESTRATOR_ENABLED, PGVECTOR_ENABLED for feature flags
 - API keys: encrypted in user_integrations table via config/crypto.js
