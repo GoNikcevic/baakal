@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api, { request } from '../services/api-client';
-import { useT } from '../i18n';
+import { useT, useI18n } from '../i18n';
 
 const STAGE_COLORS = [
   'var(--text-muted)', 'var(--blue)', 'var(--accent)',
@@ -17,10 +17,10 @@ const STATUS_COLORS = {
   new: 'var(--text-muted)', imported: 'var(--blue)', interested: 'var(--accent)',
   meeting: 'var(--warning)', negotiation: 'var(--purple)', won: 'var(--success)', lost: 'var(--danger)',
 };
-const STATUS_LABELS = {
-  new: 'Nouveau', imported: 'Import\u00e9', interested: 'Int\u00e9ress\u00e9',
-  meeting: 'RDV', negotiation: 'N\u00e9go', won: 'Gagn\u00e9', lost: 'Perdu',
-};
+function getStatusLabels(lang) {
+  if (lang === 'en') return { new: 'New', imported: 'Imported', interested: 'Interested', meeting: 'Meeting', negotiation: 'Negotiation', won: 'Won', lost: 'Lost' };
+  return { new: 'Nouveau', imported: 'Import\u00e9', interested: 'Int\u00e9ress\u00e9', meeting: 'RDV', negotiation: 'N\u00e9go', won: 'Gagn\u00e9', lost: 'Perdu' };
+}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -33,6 +33,8 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [connectedCrm, setConnectedCrm] = useState(null);
   const t = useT();
+  const { lang } = useI18n();
+  const STATUS_LABELS = getStatusLabels(lang);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -98,11 +100,11 @@ export default function ClientsPage() {
   for (const c of clients) statusCounts[c.status || 'unknown'] = (statusCounts[c.status || 'unknown'] || 0) + 1;
 
   const statusTabs = [
-    { key: 'all', label: 'Tous', count: clients.length },
-    { key: 'imported', label: 'Import\u00e9s', count: statusCounts.imported || 0 },
-    { key: 'new', label: 'Nouveaux', count: statusCounts.new || 0 },
-    { key: 'interested', label: 'Int\u00e9ress\u00e9s', count: statusCounts.interested || 0 },
-    { key: 'meeting', label: 'RDV', count: statusCounts.meeting || 0 },
+    { key: 'all', label: t('clients.all'), count: clients.length },
+    { key: 'imported', label: STATUS_LABELS.imported, count: statusCounts.imported || 0 },
+    { key: 'new', label: STATUS_LABELS.new, count: statusCounts.new || 0 },
+    { key: 'interested', label: STATUS_LABELS.interested, count: statusCounts.interested || 0 },
+    { key: 'meeting', label: STATUS_LABELS.meeting, count: statusCounts.meeting || 0 },
     { key: 'won', label: 'Gagn\u00e9s', count: statusCounts.won || 0 },
   ].filter(t => t.key === 'all' || t.count > 0);
 

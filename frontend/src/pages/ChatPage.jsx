@@ -46,11 +46,11 @@ function formatMarkdown(text) {
   return '<p>' + html + '</p>';
 }
 
-const DEFAULT_SUGGESTIONS = [
-  'Cibler des DAF en Ile-de-France',
-  'Optimiser ma campagne',
-  'Quel angle pour le secteur tech ?',
-];
+function getDefaultSuggestions(lang) {
+  return lang === 'en'
+    ? ['Target CFOs in my region', 'Refine my campaign', 'Best angle for tech sector?']
+    : ['Cibler des DAF en \u00CEle-de-France', 'Affiner ma campagne', 'Quel angle pour le secteur tech ?'];
+}
 
 function getOnboardingSuggestions(lang) {
   return lang === 'en'
@@ -1657,7 +1657,7 @@ export default function ChatPage() {
     try {
       const thread = await api.request('/chat/threads', {
         method: 'POST',
-        body: JSON.stringify({ title: 'Nouvelle conversation' }),
+        body: JSON.stringify({ title: lang === 'en' ? 'New conversation' : 'Nouvelle conversation' }),
       });
       setCurrentThreadId(thread.id);
       await loadThreads();
@@ -1725,22 +1725,23 @@ export default function ChatPage() {
       return metadata.quick_replies.map(qr => typeof qr === 'string' ? qr : (qr.value || qr.label || qr));
     }
     // Fallback to action-based suggestions
+    const en = lang === 'en';
     if (!metadata || !metadata.action) {
-      return ['Créer une campagne', 'Voir mes stats', 'Optimiser mes séquences'];
+      return en ? ['Create a campaign', 'View my stats', 'Refine my sequences'] : ['Cr\u00E9er une campagne', 'Voir mes stats', 'Affiner mes s\u00E9quences'];
     }
     if (metadata.action === 'create_campaign') {
-      return ['Modifier les paramètres', 'Ajouter un touchpoint LinkedIn', 'Changer le ton'];
+      return en ? ['Edit settings', 'Add a LinkedIn touchpoint', 'Change the tone'] : ['Modifier les param\u00E8tres', 'Ajouter un touchpoint LinkedIn', 'Changer le ton'];
     }
     if (metadata.action === 'update_campaign') {
-      return ['Voir la campagne', 'Lancer une analyse', 'Autre modification'];
+      return en ? ['View campaign', 'Run analysis', 'Other changes'] : ['Voir la campagne', 'Lancer une analyse', 'Autre modification'];
     }
     if (metadata.action === 'analyze_campaign' || metadata.action === 'show_diagnostic') {
-      return ['Régénérer les touchpoints faibles', 'Comparer avec les autres campagnes', 'Proposer des optimisations'];
+      return en ? ['Regenerate weak touchpoints', 'Compare with other campaigns', 'Suggest refinements'] : ['R\u00E9g\u00E9n\u00E9rer les touchpoints faibles', 'Comparer avec les autres campagnes', 'Proposer des affinages'];
     }
     if (metadata.action === 'regenerate_touchpoints') {
-      return ['Voir les nouvelles versions', 'Déployer les modifications', 'Modifier l\'approche'];
+      return en ? ['View new versions', 'Deploy changes', 'Change approach'] : ['Voir les nouvelles versions', 'D\u00E9ployer les modifications', 'Modifier l\'approche'];
     }
-    return ['Créer une campagne', 'Voir mes stats', 'Optimiser mes séquences'];
+    return en ? ['Create a campaign', 'View my stats', 'Refine my sequences'] : ['Cr\u00E9er une campagne', 'Voir mes stats', 'Affiner mes s\u00E9quences'];
   }, []);
 
   /* ─── Create campaign from chat ─── */
@@ -2211,7 +2212,7 @@ export default function ChatPage() {
             suggestions={
               userState.campaignCount === 0 ? getOnboardingSuggestions(lang)
               : userState.activeCampaigns > 0 ? getReturningSuggestions(lang)
-              : DEFAULT_SUGGESTIONS
+              : getDefaultSuggestions(lang)
             }
             onSuggestionClick={(s) => sendMessage(s)}
             onAction={startAction}
@@ -2367,7 +2368,7 @@ export default function ChatPage() {
             disabled={sending || uploadingFiles}
             onClick={() => sendMessage()}
           >
-            {uploadingFiles ? 'Upload...' : 'Envoyer'}
+            {uploadingFiles ? 'Upload...' : (lang === 'en' ? 'Send' : 'Envoyer')}
           </button>
         </div>
       </div>
