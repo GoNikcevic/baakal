@@ -76,7 +76,7 @@ const DEFAULT_PREFERENCES = {
 function StatusBadge({ status }) {
   if (!status) return null;
   const map = {
-    connected:      { text: 'Connecté',       cls: 'settings-status-ok' },
+    connected:      { text: null,       cls: 'settings-status-ok', i18nKey: 'settings.connected' },
     saved:          { text: 'Sauvegardé',      cls: 'settings-status-ok' },
     not_configured: { text: 'Non configuré',   cls: 'settings-status-none' },
     invalid:        { text: 'Clé invalide',    cls: 'settings-status-err' },
@@ -433,7 +433,7 @@ export default function SettingsPage() {
                 style={{ flex: 1, fontSize: 13, padding: '8px 12px' }}
               />
               <button className="btn btn-primary btn-sm" onClick={() => saveField(keyDef.field)}
-                disabled={saving || !(drafts[keyDef.field] || '').trim()}>Sauver</button>
+                disabled={saving || !(drafts[keyDef.field] || '').trim()}>{t('settings.save')}</button>
               <button className="btn btn-ghost btn-sm" onClick={() => cancelEdit(keyDef.field)}>Annuler</button>
             </div>
           )}
@@ -443,11 +443,11 @@ export default function SettingsPage() {
         {!isEditing && (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button className="btn btn-ghost btn-sm" onClick={() => startEdit(keyDef.field)}>
-              {info.configured ? 'Modifier' : 'Configurer'}
+              {info.configured ? t('settings.edit') : t('settings.configure')}
             </button>
             {info.configured && (
               <button className="btn btn-ghost btn-sm settings-btn-danger"
-                onClick={() => removeField(keyDef.field)} disabled={saving}>Supprimer</button>
+                onClick={() => removeField(keyDef.field)} disabled={saving}>{t('settings.delete')}</button>
             )}
           </div>
         )}
@@ -461,9 +461,9 @@ export default function SettingsPage() {
     <div id="page-settings" className="page-content">
       <div className="page-header">
         <div>
-          <div className="page-title">Paramètres</div>
+          <div className="page-title">{t('settings.title')}</div>
           <div className="page-subtitle">
-            Configuration des intégrations et préférences — {configuredCount}/{totalCount} configurée{configuredCount !== 1 ? 's' : ''}
+            {t('settings.subtitle')} — {configuredCount}/{totalCount} {t('settings.configured')}
           </div>
         </div>
         <div className="header-actions">
@@ -472,13 +472,13 @@ export default function SettingsPage() {
             onClick={handleTestAll}
             disabled={testing}
           >
-            {testing ? 'Test en cours...' : 'Tester tout'}
+            {testing ? '...' : t('settings.testAll')}
           </button>
           <button
             className="btn btn-primary"
             onClick={handleSaveAll}
           >
-            Enregistrer
+            {t('settings.save')}
           </button>
         </div>
       </div>
@@ -490,9 +490,9 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
           <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            Intégrations
+            {t('settings.integrations')}
             <Link to="/integrations" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              En savoir plus →
+              {t('settings.learnMore')} &rarr;
             </Link>
           </div>
         </div>
@@ -530,16 +530,16 @@ export default function SettingsPage() {
                   {/* Status / Actions */}
                   {isConnected && !isEditing && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>✓ Connecté</span>
+                      <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>{`✓ ${t('settings.connected')}`}</span>
                       <button className="btn btn-ghost" style={{ fontSize: 10, padding: '2px 8px' }}
-                        onClick={(e) => { e.stopPropagation(); startEdit(tool.field); }}>Modifier</button>
+                        onClick={(e) => { e.stopPropagation(); startEdit(tool.field); }}>{t('settings.edit')}</button>
                     </div>
                   )}
 
                   {!isConnected && !isEditing && (
                     <button className="btn btn-ghost" style={{ fontSize: 11, padding: '4px 10px', width: '100%' }}
                       onClick={(e) => { e.stopPropagation(); startEdit(tool.field); }}>
-                      Configurer
+                      {t('settings.configure')}
                     </button>
                   )}
 
@@ -588,13 +588,13 @@ export default function SettingsPage() {
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="btn btn-primary" style={{ fontSize: 10, padding: '3px 8px', flex: 1 }}
                           onClick={() => saveField(tool.field)}
-                          disabled={saving || !(drafts[tool.field] || '').trim()}>Sauver</button>
+                          disabled={saving || !(drafts[tool.field] || '').trim()}>{t('settings.save')}</button>
                         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px' }}
                           onClick={() => cancelEdit(tool.field)}>{'\u2715'}</button>
                       </div>
                       {isConnected && (
                         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '2px 8px', marginTop: 4, color: 'var(--danger)', width: '100%' }}
-                          onClick={() => removeField(tool.field)} disabled={saving}>Supprimer</button>
+                          onClick={() => removeField(tool.field)} disabled={saving}>{t('settings.delete')}</button>
                       )}
                     </div>
                   )}
@@ -657,7 +657,7 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div className="card-title">Analyse Outreach</div>
+            <div className="card-title">{t('settings.outreachSync')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               Synchronise vos campagnes et analyse les patterns de performance avec Baakal
             </div>
@@ -700,7 +700,7 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div className="card-title">Analyse CRM</div>
+            <div className="card-title">{t('settings.crmSync')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
               {connectedCrm
                 ? `Synchronise vos deals ${connectedCrm.replace('Key', '')} et analyse les patterns de conversion avec Baakal`
@@ -750,12 +750,12 @@ export default function SettingsPage() {
       {/* Preferences */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <div className="card-title">Préférences</div>
+          <div className="card-title">{t('settings.preferences')}</div>
         </div>
         <div className="card-body">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="settings-pref-row">
-              <label className="settings-pref-label">Limite quotidienne Lemlist</label>
+              <label className="settings-pref-label">{t('settings.dailyLimit')}</label>
               <select
                 className="form-input"
                 value={preferences.lemlistDailyLimit}
@@ -768,7 +768,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="settings-pref-row">
-              <label className="settings-pref-label">Fenêtre d'envoi</label>
+              <label className="settings-pref-label">{t('settings.sendingWindow')}</label>
               <select
                 className="form-input"
                 value={preferences.sendingWindow}
@@ -780,7 +780,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="settings-pref-row">
-              <label className="settings-pref-label">Jours d'envoi</label>
+              <label className="settings-pref-label">{t('settings.sendingDays')}</label>
               <select
                 className="form-input"
                 value={preferences.sendingDays}
@@ -792,7 +792,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="settings-pref-row">
-              <label className="settings-pref-label">Modèle Claude</label>
+              <label className="settings-pref-label">{t('settings.claudeModel')}</label>
               <select
                 className="form-input"
                 value={preferences.claudeModel}
@@ -899,7 +899,7 @@ export default function SettingsPage() {
       {/* Reset */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <button className="btn btn-ghost" onClick={resetPreferences}>
-          Réinitialiser les préférences
+          {t('settings.resetPrefs')}
         </button>
       </div>
       </div>
@@ -954,7 +954,7 @@ function OdooConfigForm({ onSave, onCancel, saving, isConnected, onRemove }) {
       </div>
       {isConnected && (
         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '2px 8px', marginTop: 4, color: 'var(--danger)', width: '100%' }}
-          onClick={onRemove} disabled={saving}>Supprimer</button>
+          onClick={onRemove} disabled={saving}>{t('settings.delete')}</button>
       )}
     </div>
   );
