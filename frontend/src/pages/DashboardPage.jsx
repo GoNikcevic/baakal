@@ -7,6 +7,7 @@
 import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
+import { useT } from '../i18n';
 import { useSocket } from '../context/SocketContext';
 import { DEMO_DATA } from '../data/demo-data';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
@@ -29,6 +30,7 @@ const KPI_LABELS = {
 };
 
 export default function DashboardPage() {
+  const t = useT();
   const { campaigns, globalKpis, opportunities, recommendations, chartData, setOpportunities } = useApp();
   const { setShowCreatorModal, demoMode } = useOutletContext() || {};
   const navigate = useNavigate();
@@ -62,7 +64,7 @@ export default function DashboardPage() {
 
   /* ── Subtitle ── */
   const subtitle = isEmpty
-    ? 'Bienvenue \u2014 Configurez votre première campagne'
+    ? t('dashboard.welcomeSubtitle')
     : (() => {
         const today = new Date();
         const weekStr =
@@ -145,6 +147,7 @@ export default function DashboardPage() {
    ═══════════════════════════════════════════════════ */
 
 function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recommendations, chartData, onCreateCampaign, setOpportunities }) {
+  const t = useT();
   const [scoring, setScoring] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [ratedRecos, setRatedRecos] = useState({});
@@ -228,13 +231,13 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         {/* Campaigns table */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">Campagnes actives</div>
+            <div className="card-title">{t('dashboard.activeCampaigns')}</div>
             <Link
               to="/campaigns"
               className="btn btn-ghost"
               style={{ padding: '6px 12px', fontSize: '12px' }}
             >
-              Voir tout &rarr;
+              {t('dashboard.viewAll')} &rarr;
             </Link>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
@@ -245,7 +248,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
         {/* Performance chart — recharts */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">Performance 4 semaines</div>
+            <div className="card-title">{t('dashboard.performance4w')}</div>
           </div>
           <div className="card-body">
             <PerformanceChart data={chartData} />
@@ -298,7 +301,7 @@ function OverviewSection({ isEmpty, globalKpis, campaigns, opportunities, recomm
               className="btn btn-ghost"
               style={{ padding: '6px 12px', fontSize: '12px' }}
             >
-              Voir toutes les recommandations &rarr;
+              {t('dashboard.allRecos')} &rarr;
             </Link>
           </div>
           <div className="card-body">
@@ -485,7 +488,7 @@ function CampaignTableRow({ campaign: c }) {
 function WelcomeBanner({ onCreateCampaign }) {
   return (
     <div className="welcome-banner">
-      <div className="welcome-title">Bienvenue sur Baakalai</div>
+      <div className="welcome-title">{t('dashboard.welcomeTitle')}</div>
       <div className="welcome-subtitle">
         Votre plateforme de prospection intelligente est prête. Suivez ces étapes
         pour lancer votre première campagne et commencer à générer des RDV
@@ -523,10 +526,9 @@ function WelcomeBanner({ onCreateCampaign }) {
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">4</div>
-          <div className="onboarding-step-title">Lancez et affinez</div>
+          <div className="onboarding-step-title">{t('dashboard.launchAndRefine')}</div>
           <div className="onboarding-step-desc">
-            Baakalai analyse les performances et affine automatiquement vos
-            messages.
+            {t('dashboard.launchAndRefineDesc')}
           </div>
         </div>
       </div>
@@ -617,8 +619,7 @@ function EmptyOverviewGrid({ onCreateCampaign }) {
         <div className="card-body">
           <div className="empty-icon">{'\u{1F916}'}</div>
           <div className="empty-text">
-            Baakalai analysera vos campagnes et proposera des affinages d\u00E8s
-            qu'il aura suffisamment de données (&gt;50 prospects, &gt;7 jours).
+            {t('dashboard.emptyRecoText') || 'baakalai will analyze your campaigns and suggest refinements once it has enough data (>50 prospects, >7 days).'}
           </div>
         </div>
       </div>

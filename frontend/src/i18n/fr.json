@@ -524,7 +524,17 @@
   "dashboard": {
     "weeklyReport": "Rapport hebdo & tendances",
     "refreshing": "Sync...",
-    "refresh": "Rafra\u00EEchir"
+    "refresh": "Rafra\u00EEchir",
+    "activeCampaigns": "Campagnes actives",
+    "viewAll": "Voir tout",
+    "performance4w": "Performance 4 semaines",
+    "allRecos": "Voir toutes les recommandations",
+    "welcomeTitle": "Bienvenue sur baakalai",
+    "welcomeSubtitle": "Bienvenue \u2014 Configurez votre premi\u00E8re campagne",
+    "launchAndRefine": "Lancez et affinez",
+    "launchAndRefineDesc": "baakalai analyse les performances et affine automatiquement vos messages.",
+    "createCampaign": "Cr\u00E9er une campagne",
+    "chartsPlaceholder": "Les graphiques appara\u00EEtront avec les donn\u00E9es de campagne."
   },
   "settings": {
     "title": "Param\u00E8tres",
