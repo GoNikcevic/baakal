@@ -11,6 +11,7 @@
 
 import { useState, useCallback } from 'react';
 import { saveKeys } from '../services/api-client';
+import { useT } from '../i18n';
 
 const TOTAL_STEPS = 3;
 
@@ -25,11 +26,13 @@ const SECTOR_SUGGESTIONS = [
 
 /* ─── Step config ─── */
 
-const STEP_META = [
-  { title: 'Votre entreprise & cible', desc: 'Parlez-nous de vous et de qui vous cherchez \u00E0 atteindre.' },
-  { title: 'Connexion aux outils', desc: 'Connectez vos outils principaux. Vous pourrez en ajouter d\'autres plus tard.' },
-  { title: 'Tout est pr\u00EAt !', desc: '' },
-];
+function getStepMeta(t) {
+  return [
+    { title: t('wizard.step1Title'), desc: t('wizard.step1Desc') },
+    { title: t('wizard.step2Title'), desc: t('wizard.step2Desc') },
+    { title: t('wizard.step3Title'), desc: '' },
+  ];
+}
 
 /* ─── Outreach options ─── */
 
@@ -125,6 +128,8 @@ const CRM_GUIDES = {
 };
 
 export default function OnboardingWizard({ onComplete }) {
+  const t = useT();
+  const STEP_META = getStepMeta(t);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -284,7 +289,7 @@ export default function OnboardingWizard({ onComplete }) {
             <div className="wizard-step-desc">{STEP_META[0].desc}</div>
             <div className="form-grid">
               <div className="form-group">
-                <label className="form-label">Nom de l'entreprise</label>
+                <label className="form-label">{t('wizard.companyName')}</label>
                 <input className="form-input" placeholder="Ex: FormaPro Consulting" value={company} onChange={e => setCompany(e.target.value)} />
               </div>
               <div className="form-group" style={{ position: 'relative' }}>
@@ -325,13 +330,13 @@ export default function OnboardingWizard({ onComplete }) {
                 )}
               </div>
               <div className="form-group">
-                <label className="form-label">Site web</label>
+                <label className="form-label">{t('wizard.website')}</label>
                 <input className="form-input" type="url" placeholder="https://..." value={website} onChange={e => setWebsite(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Taille d'équipe</label>
+                <label className="form-label">{t('wizard.teamSize')}</label>
                 <select className="form-input" value={teamSize} onChange={e => setTeamSize(e.target.value)}>
-                  <option value="">-- Sélectionner --</option>
+                  <option value="">{t('wizard.selectPlaceholder')}</option>
                   <option value="1-5">1-5</option>
                   <option value="6-10">6-10</option>
                   <option value="11-25">11-25</option>
@@ -341,15 +346,15 @@ export default function OnboardingWizard({ onComplete }) {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Secteurs cibles</label>
+                <label className="form-label">{t('wizard.targetSectors')}</label>
                 <input className="form-input" placeholder="Ex: Finance, RH, SaaS" value={targetSectors} onChange={e => setTargetSectors(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Taille d'entreprise cible</label>
+                <label className="form-label">{t('wizard.targetSize')}</label>
                 <input className="form-input" placeholder="Ex: 11-50 salari\u00E9s" value={targetSize} onChange={e => setTargetSize(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Zone g\u00E9ographique</label>
+                <label className="form-label">{t('wizard.targetZone')}</label>
                 <input className="form-input" placeholder="Ex: France, \u00CEle-de-France" value={targetZones} onChange={e => setTargetZones(e.target.value)} />
               </div>
             </div>
@@ -370,9 +375,9 @@ export default function OnboardingWizard({ onComplete }) {
                   </svg>
                 </div>
                 <div className="wizard-key-input">
-                  <div className="wizard-key-label">Outil d'outreach</div>
+                  <div className="wizard-key-label">{t('wizard.outreachTool')}</div>
                   <select className="form-input" value={outreachProvider} onChange={e => { setOutreachProvider(e.target.value); setOutreachKey(''); }} style={{ marginBottom: 8 }}>
-                    <option value="">-- Sélectionner votre outil --</option>
+                    <option value="">{t('wizard.selectOutreach')}</option>
                     {OUTREACH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   {outreachProvider && (() => {
@@ -415,14 +420,14 @@ export default function OnboardingWizard({ onComplete }) {
                   </svg>
                 </div>
                 <div className="wizard-key-input">
-                  <div className="wizard-key-label">CRM (optionnel)</div>
+                  <div className="wizard-key-label">{t('wizard.crmOptional')}</div>
                   <select
                     className="form-input"
                     value={crmProvider}
                     onChange={e => { setCrmProvider(e.target.value); setCrmKey(''); }}
                     style={{ marginBottom: 8 }}
                   >
-                    <option value="">-- Sélectionner votre CRM --</option>
+                    <option value="">{t('wizard.selectCrm')}</option>
                     <option value="hubspot">HubSpot</option>
                     <option value="pipedrive">Pipedrive</option>
                     <option value="salesforce">Salesforce</option>
@@ -476,7 +481,7 @@ export default function OnboardingWizard({ onComplete }) {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <div className="wizard-complete-title">Tout est prêt !</div>
+            <div className="wizard-complete-title">{t('wizard.allReady')}</div>
             <div className="wizard-complete-desc">
               Votre espace Baakalai est configuré. Vous pouvez maintenant créer votre première campagne.
             </div>
@@ -517,7 +522,7 @@ export default function OnboardingWizard({ onComplete }) {
       return (
         <div className="wizard-actions">
           <button className="btn btn-primary" onClick={handleFinish}>
-            Accéder au dashboard
+            {t('wizard.goToDashboard')}
           </button>
         </div>
       );
@@ -526,15 +531,15 @@ export default function OnboardingWizard({ onComplete }) {
     return (
       <div className="wizard-actions">
         {step > 0 && (
-          <button className="btn btn-ghost" onClick={prev}>Retour</button>
+          <button className="btn btn-ghost" onClick={prev}>{t('wizard.back')}</button>
         )}
         {step === 1 ? (
           <button className="btn btn-primary" onClick={handleSaveKeys} disabled={saving}>
-            {saving ? 'Sauvegarde...' : 'Continuer'}
+            {saving ? t('wizard.saving') : t('wizard.continue')}
           </button>
         ) : (
           <button className="btn btn-primary" onClick={next}>
-            Continuer
+            {t('wizard.continue')}
           </button>
         )}
       </div>
@@ -573,7 +578,7 @@ export default function OnboardingWizard({ onComplete }) {
               localStorage.setItem('bakal_onboarding_complete', 'true');
               if (onComplete) onComplete();
             }}>
-              Passer l'onboarding
+              {t('wizard.skipOnboarding')}
             </div>
           )}
         </div>
