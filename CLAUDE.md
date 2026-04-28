@@ -185,17 +185,23 @@ Claude can propose these structured actions in the chat (JSON blocks):
 - Chat actions for CRM operations
 
 ### Known gaps
+- [x] Memory patterns injected into nurture email generation (done April 2026)
+- [x] i18n FR/EN on all main pages (done April 2026)
+- [x] 9 pattern sources (was 4)
 - [ ] Pipedrive webhooks (real-time sync instead of daily cron)
 - [ ] OAuth Gmail/Microsoft (replace SMTP password with 1-click connect)
 - [ ] Renewal trigger needs custom field mapping for renewal dates
-- [ ] Memory patterns not yet injected into nurture email generation
 - [ ] A/B testing only on prospection (Lemlist), not on activation emails
 - [ ] Stripe payment integration
-- [ ] Landing page EN version
+- [ ] Landing page Lightfield-style redesign
+- [ ] Analytics integration: Amplitude, Google Analytics, Mixpanel (behavioral data)
+- [ ] Membership analytics: tenure, LTV by segment, renewal rates, loyalty scoring
+- [ ] Salesforce full integration (currently partial)
 
 ## 11. Business Context
 
-- **ICP**: SMB owners/directors who need leads but lack time/expertise
+- **Vision**: Full customer lifecycle hub — outreach + CRM + analytics (Amplitude/GA) + billing (Stripe/Odoo) all connected, AI analyzes everything and triggers the right action
+- **ICP**: SMB services B2B (10-400 employees) + membership organizations. Sectors: crypto, telecom, cybersecurity, agencies, biotech, health, freelance
 - **Pricing**: $75/user/month (team plan up to 5 members)
 - **Competitors**: SalesCaptain (~EUR30k/4 months agency), GTM Studio (~EUR140k/7 months agency), Lemlist/Apollo (tools only, no AI orchestration)
 - **Key differentiator**: AI that learns from every campaign + prospection AND activation in one tool
