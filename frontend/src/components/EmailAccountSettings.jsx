@@ -4,59 +4,50 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { request } from '../services/api-client';
+import { useT, useI18n } from '../i18n';
 
-const PRESETS = [
-  {
-    label: 'Gmail',
-    host: 'smtp.gmail.com',
-    port: 587,
-    help: 'Mot de passe d\'application requis (pas votre mot de passe Gmail habituel)',
-    steps: [
-      'Allez sur myaccount.google.com/apppasswords',
-      'Connectez-vous avec votre compte Google',
-      'S\u00E9lectionnez "Autre" et nommez-le "Baakalai"',
-      'Copiez le mot de passe g\u00E9n\u00E9r\u00E9 (16 caract\u00E8res) et collez-le ci-dessous',
-    ],
-    note: 'La double authentification doit \u00EAtre activ\u00E9e sur votre compte Google.',
-  },
-  {
-    label: 'Outlook / O365',
-    host: 'smtp.office365.com',
-    port: 587,
-    help: 'Utilisez votre mot de passe Microsoft ou un mot de passe d\'application',
-    steps: [
-      'Utilisez votre email Outlook/Microsoft complet',
-      'Si la double auth est activ\u00E9e : cr\u00E9ez un mot de passe d\'app sur account.microsoft.com',
-      'Sinon : utilisez votre mot de passe habituel',
-    ],
-    note: null,
-  },
-  {
-    label: 'OVH',
-    host: 'ssl0.ovh.net',
-    port: 587,
-    help: 'Mot de passe de votre boite email OVH',
-    steps: [
-      'Utilisez l\'adresse email compl\u00E8te (ex: contact@votredomaine.com)',
-      'Le mot de passe est celui de votre boite email OVH',
-    ],
-    note: null,
-  },
-  {
-    label: 'Autre SMTP',
-    host: '',
-    port: 587,
-    help: 'Param\u00E8tres fournis par votre h\u00E9bergeur email',
-    steps: [
-      'Renseignez le serveur SMTP (ex: mail.votredomaine.com)',
-      'Le port est g\u00E9n\u00E9ralement 587 (TLS) ou 465 (SSL)',
-      'Utilisez vos identifiants de connexion email',
-    ],
-    note: null,
-  },
-];
+function getPresets(lang) {
+  const en = lang === 'en';
+  return [
+    {
+      label: 'Gmail', host: 'smtp.gmail.com', port: 587,
+      help: en ? 'App password required (not your regular Gmail password)' : 'Mot de passe d\'application requis (pas votre mot de passe Gmail habituel)',
+      steps: en
+        ? ['Go to myaccount.google.com/apppasswords', 'Sign in with your Google account', 'Select "Other" and name it "baakalai"', 'Copy the 16-character password and paste it below']
+        : ['Allez sur myaccount.google.com/apppasswords', 'Connectez-vous avec votre compte Google', 'S\u00E9lectionnez "Autre" et nommez-le "baakalai"', 'Copiez le mot de passe g\u00E9n\u00E9r\u00E9 et collez-le ci-dessous'],
+      note: en ? '2-factor authentication must be enabled on your Google account.' : 'La double authentification doit \u00EAtre activ\u00E9e sur votre compte Google.',
+    },
+    {
+      label: 'Outlook / O365', host: 'smtp.office365.com', port: 587,
+      help: en ? 'Use your Microsoft password or an app password' : 'Utilisez votre mot de passe Microsoft ou un mot de passe d\'application',
+      steps: en
+        ? ['Use your full Outlook/Microsoft email', 'If 2FA enabled: create an app password at account.microsoft.com', 'Otherwise: use your regular password']
+        : ['Utilisez votre email Outlook/Microsoft complet', 'Si la double auth est activ\u00E9e : cr\u00E9ez un mot de passe d\'app sur account.microsoft.com', 'Sinon : utilisez votre mot de passe habituel'],
+      note: null,
+    },
+    {
+      label: 'OVH', host: 'ssl0.ovh.net', port: 587,
+      help: en ? 'Password for your OVH mailbox' : 'Mot de passe de votre boite email OVH',
+      steps: en
+        ? ['Use your full email address (e.g. contact@yourdomain.com)', 'The password is your OVH mailbox password']
+        : ['Utilisez l\'adresse email compl\u00E8te (ex: contact@votredomaine.com)', 'Le mot de passe est celui de votre boite email OVH'],
+      note: null,
+    },
+    {
+      label: en ? 'Other SMTP' : 'Autre SMTP', host: '', port: 587,
+      help: en ? 'Settings provided by your email host' : 'Param\u00E8tres fournis par votre h\u00E9bergeur email',
+      steps: en
+        ? ['Enter SMTP server (e.g. mail.yourdomain.com)', 'Port is usually 587 (TLS) or 465 (SSL)', 'Use your email login credentials']
+        : ['Renseignez le serveur SMTP (ex: mail.votredomaine.com)', 'Le port est g\u00E9n\u00E9ralement 587 (TLS) ou 465 (SSL)', 'Utilisez vos identifiants de connexion email'],
+      note: null,
+    },
+  ];
+}
 
 export default function EmailAccountSettings() {
+  const t = useT();
+  const { lang } = useI18n();
+  const PRESETS = getPresets(lang);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -129,7 +120,7 @@ export default function EmailAccountSettings() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer ce compte email ?')) return;
+    if (!window.confirm(t('emailAccount.delete') + '?')) return;
     try {
       await request(`/nurture/email-accounts/${id}`, { method: 'DELETE' });
       await loadAccounts();
@@ -140,9 +131,9 @@ export default function EmailAccountSettings() {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div className="card-title">Email sortant</div>
+          <div className="card-title">{t('emailAccount.title')}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            Connectez votre email pour envoyer des emails d'activation personnalis{'\u00E9'}s
+            {t('emailAccount.subtitle')}
           </div>
         </div>
         {!showForm && (
@@ -150,7 +141,7 @@ export default function EmailAccountSettings() {
             className="btn btn-primary btn-sm"
             onClick={() => setShowForm(true)}
           >
-            + Ajouter
+            {t('emailAccount.add')}
           </button>
         )}
       </div>
@@ -169,7 +160,7 @@ export default function EmailAccountSettings() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{acc.email_address}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {acc.smtp_host}:{acc.smtp_port} {'\u00B7'} {acc.status === 'active' ? '\u2705 Actif' : '\u26A0\uFE0F Expir\u00E9'}
+                    {acc.smtp_host}:{acc.smtp_port} {'\u00B7'} {acc.status === 'active' ? `\u2705 ${t('emailAccount.active')}` : `\u26A0\uFE0F ${t('emailAccount.expired')}`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -179,14 +170,14 @@ export default function EmailAccountSettings() {
                     onClick={() => handleTest(acc.id)}
                     disabled={testing}
                   >
-                    {testing ? '...' : 'Tester'}
+                    {testing ? '...' : t('emailAccount.test')}
                   </button>
                   <button
                     className="btn btn-ghost"
                     style={{ fontSize: 10, padding: '4px 10px', color: 'var(--danger)' }}
                     onClick={() => handleDelete(acc.id)}
                   >
-                    Supprimer
+                    {t('emailAccount.delete')}
                   </button>
                 </div>
               </div>
@@ -291,7 +282,7 @@ export default function EmailAccountSettings() {
                   style={{ fontSize: 12, padding: '6px 14px' }}
                   onClick={() => { setShowForm(false); setTestResult(null); }}
                 >
-                  Annuler
+                  {t('common.cancel')}
                 </button>
                 <button
                   className="btn btn-primary"
@@ -299,7 +290,7 @@ export default function EmailAccountSettings() {
                   onClick={handleSave}
                   disabled={saving || !form.emailAddress || !form.smtpPass}
                 >
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? t('emailAccount.saving') : t('emailAccount.save')}
                 </button>
               </div>
             </div>
@@ -309,7 +300,7 @@ export default function EmailAccountSettings() {
         {/* Empty state */}
         {!loading && accounts.length === 0 && !showForm && (
           <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>
-            Aucun email configur{'\u00E9'}. Ajoutez votre compte pour envoyer des emails d'activation.
+            {t('emailAccount.noAccount')}
           </div>
         )}
       </div>

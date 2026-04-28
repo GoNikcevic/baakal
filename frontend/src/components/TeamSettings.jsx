@@ -4,15 +4,22 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { request } from '../services/api-client';
+import { useT, useI18n } from '../i18n';
 
-const ROLE_CONFIG = {
-  admin: { label: 'Admin', color: 'var(--purple)', desc: 'Tout acc\u00E8s + gestion \u00E9quipe' },
-  prospection: { label: 'Prospection', color: 'var(--blue)', desc: 'Campagnes, prospects, recherche' },
-  activation: { label: 'Activation', color: 'var(--success)', desc: 'Clients, triggers, CRM, emails' },
-  viewer: { label: 'Viewer', color: 'var(--text-muted)', desc: 'Lecture seule' },
-};
+function getRoleConfig(lang) {
+  const en = lang === 'en';
+  return {
+    admin: { label: en ? 'Admin' : 'Admin', color: 'var(--purple)', desc: en ? 'Full access + team management' : 'Tout acc\u00E8s + gestion \u00E9quipe' },
+    prospection: { label: 'Prospection', color: 'var(--blue)', desc: en ? 'Campaigns, prospects, search' : 'Campagnes, prospects, recherche' },
+    activation: { label: 'Activation', color: 'var(--success)', desc: en ? 'Clients, triggers, CRM, emails' : 'Clients, triggers, CRM, emails' },
+    viewer: { label: 'Viewer', color: 'var(--text-muted)', desc: en ? 'Read-only' : 'Lecture seule' },
+  };
+}
 
 export default function TeamSettings() {
+  const t = useT();
+  const { lang } = useI18n();
+  const ROLE_CONFIG = getRoleConfig(lang);
   const [team, setTeam] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -93,11 +100,11 @@ export default function TeamSettings() {
     return (
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <div className="card-title">{'\uD83D\uDC65'} {'\u00C9'}quipe</div>
+          <div className="card-title">{'\uD83D\uDC65'} {t('team.title')}</div>
         </div>
         <div className="card-body">
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-            Cr{'\u00E9'}ez une {'\u00E9'}quipe pour partager vos campagnes, contacts et cl{'\u00E9'}s API avec vos coll{'\u00E8'}gues.
+            {t('team.createDesc')}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -129,9 +136,9 @@ export default function TeamSettings() {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div className="card-title">{'\uD83D\uDC65'} {'\u00C9'}quipe : {team.name}</div>
+          <div className="card-title">{'\uD83D\uDC65'} {t('team.title')}: {team.name}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            {members.length}/{team.max_members || 5} membres
+            {members.length}/{team.max_members || 5} {t('team.members')}
           </div>
         </div>
       </div>
@@ -143,7 +150,7 @@ export default function TeamSettings() {
           padding: '10px 14px', borderRadius: 8, background: 'var(--bg-elevated)', marginBottom: 16,
         }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Lien d'invitation</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('team.inviteLink')}</div>
             <div style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
               {window.location.origin}/join/{team.invite_code}
             </div>
@@ -153,7 +160,7 @@ export default function TeamSettings() {
             style={{ fontSize: 11, padding: '4px 12px' }}
             onClick={handleCopyInvite}
           >
-            {copied ? '\u2705 Copi\u00E9' : 'Copier'}
+            {copied ? `\u2705 ${t('team.copied')}` : t('team.copy')}
           </button>
           <button
             className="btn btn-ghost"
