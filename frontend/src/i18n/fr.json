@@ -408,6 +408,7 @@
     "sendEmails": "Envoyer {count} email(s)",
     "sending": "Envoi...",
     "contactsToContact": "{count} contact(s) \u00E0 contacter",
+    "noContactsToEmail": "Aucun contact \u00E0 contacter",
     "triggersActive": "{count} trigger(s) actif(s)",
     "noTriggers": "Aucun trigger configur\u00E9. Cr\u00E9ez votre premier trigger pour automatiser vos emails d'activation.",
     "noCampaigns": "Aucune campagne d'activation envoy\u00E9e. Configurez un trigger ou envoyez un email depuis le chat.",

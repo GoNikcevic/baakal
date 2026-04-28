@@ -201,7 +201,7 @@ export default function ClientsPage() {
         {/* Client list */}
         <div style={{ flex: selectedClient ? '0 0 55%' : '1 1 100%', transition: 'flex 0.2s' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Chargement...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>{t('common.loading')}</div>
           ) : filtered.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: 50, background: 'var(--bg-card)',
@@ -209,7 +209,7 @@ export default function ClientsPage() {
             }}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>{'\uD83D\uDC65'}</div>
               <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-                {clients.length === 0 ? 'Aucun contact. Importez depuis Pipedrive.' : 'Aucun r\u00e9sultat.'}
+                {clients.length === 0 ? t('clients.noClients') : t('clients.noResults')}
               </div>
             </div>
           ) : (
@@ -262,6 +262,9 @@ export default function ClientsPage() {
 /* ═══ Client Detail Panel ═══ */
 
 function ClientDetailPanel({ client, onClose }) {
+  const t = useT();
+  const { lang } = useI18n();
+  const STATUS_LABELS = getStatusLabels(lang);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -352,7 +355,7 @@ function ClientDetailPanel({ client, onClose }) {
           onClick={handleQuickEmail}
           disabled={sending || !client.email}
         >
-          {sending ? '\u23F3...' : '\u2709\uFE0F Envoyer un email'}
+          {sending ? '\u23F3...' : `\u2709\uFE0F ${t('clients.sendEmail')}`}
         </button>
         {client.linkedin_url && (
           <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer"
@@ -363,7 +366,7 @@ function ClientDetailPanel({ client, onClose }) {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>Chargement...</div>
+        <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>{t('common.loading')}</div>
       ) : (
         <>
           {/* Timeline */}
@@ -401,7 +404,7 @@ function ClientDetailPanel({ client, onClose }) {
 
             {emails.length === 0 && activities.length === 0 && (
               <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>
-                Aucune activit\u00e9 pour ce contact
+                {t('clients.noActivity')}
               </div>
             )}
           </div>

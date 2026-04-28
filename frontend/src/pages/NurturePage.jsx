@@ -130,7 +130,7 @@ export default function NurturePage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 15, fontWeight: 600 }}>
-                {previews.length > 0 ? `${previews.reduce((s, p) => s + p.contactsCount, 0)} contact(s) \u00E0 contacter` : 'Aucun contact \u00E0 contacter'}
+                {previews.length > 0 ? t('activation.contactsToContact', { count: previews.reduce((s, p) => s + p.contactsCount, 0) }) : t('activation.noContactsToEmail')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>
                 {previews.length} trigger{previews.length > 1 ? 's' : ''} actif{previews.length > 1 ? 's' : ''}
@@ -154,11 +154,11 @@ export default function NurturePage() {
                     setExecuting(false);
                   }}
                 >
-                  {executing ? '\u23F3 Envoi...' : `Envoyer ${previews.reduce((s, p) => s + p.contactsCount, 0)} email(s)`}
+                  {executing ? `\u23F3 ${t('activation.sending')}` : t('activation.sendEmails', { count: previews.reduce((s, p) => s + p.contactsCount, 0) })}
                 </button>
               )}
               <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setPreviews(null)}>
-                Fermer
+                {t('activation.close')}
               </button>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function NurturePage() {
         </div>
       )}
 
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Chargement...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>{t('common.loading')}</div>}
 
       {!loading && activeTab === 'dashboard' && <ActivationDashboard metrics={metrics} />}
       {!loading && activeTab === 'campaigns' && <CampaignsSection campaigns={campaignsByTrigger} />}
@@ -232,6 +232,7 @@ export default function NurturePage() {
 /* ═══ Triggers Section ═══ */
 
 function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: '',
     triggerType: 'deal_stagnant',
@@ -275,7 +276,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer ce trigger ?')) return;
+    if (!window.confirm(t('activation.delete') + '?')) return;
     try {
       await request(`/nurture/triggers/${id}`, { method: 'DELETE' });
       onRefresh();
@@ -288,7 +289,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
       {showCreate && (
         <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent)' }}>
           <div className="card-body" style={{ padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Nouveau trigger</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t('activation.newTriggerTitle')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 type="text"
@@ -356,7 +357,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
         }}>
           <div style={{ fontSize: 28, marginBottom: 12 }}>{'\u26A1'}</div>
           <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-            Aucun trigger configur{'\u00E9'}. Cr{'\u00E9'}ez votre premier trigger pour automatiser vos emails d'activation.
+            {t('activation.noTriggers')}
           </div>
         </div>
       ) : (
@@ -386,7 +387,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                       style={{ fontSize: 10, padding: '4px 10px', color: trigger.enabled ? 'var(--warning)' : 'var(--success)' }}
                       onClick={() => handleToggle(trigger.id, trigger.enabled)}
                     >
-                      {trigger.enabled ? 'Désactiver' : 'Activer'}
+                      {trigger.enabled ? t('activation.disable') : t('activation.enable')}
                     </button>
                     <button
                       className="btn btn-ghost"
@@ -409,6 +410,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
 /* ═══ Emails Section ═══ */
 
 function EmailsSection({ emails, type, onRefresh }) {
+  const t = useT();
   const handleApprove = async (id) => {
     try {
       await request(`/nurture/emails/${id}/approve`, { method: 'POST' });
@@ -435,7 +437,7 @@ function EmailsSection({ emails, type, onRefresh }) {
           {type === 'pending' ? '\uD83D\uDCEC' : '\u2705'}
         </div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-          {type === 'pending' ? 'Aucun email en attente d\'approbation' : 'Aucun email envoy\u00E9'}
+          {type === 'pending' ? t('activation.noPending') : t('activation.noSent')}
         </div>
       </div>
     );
@@ -513,10 +515,11 @@ const SEGMENT_CONFIG = [
 ];
 
 function ActivationDashboard({ metrics }) {
+  const t = useT();
   if (!metrics) {
     return (
       <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)', fontSize: 13 }}>
-        Connectez Pipedrive et importez vos contacts pour voir les m{'\u00E9'}triques d'activation.
+        {t('activation.connectCrm')}
       </div>
     );
   }
@@ -543,7 +546,7 @@ function ActivationDashboard({ metrics }) {
           <div className="card-header"><div className="card-title">{'\u23F0'} Deals stagnants</div></div>
           <div className="card-body">
             {(topStagnant || []).length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>Aucun deal stagnant</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>{t('activation.noStagnant')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {topStagnant.map(c => (
@@ -564,7 +567,7 @@ function ActivationDashboard({ metrics }) {
           <div className="card-header"><div className="card-title">{'\u26A0\uFE0F'} Risque de churn</div></div>
           <div className="card-body">
             {(topChurnRisk || []).length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>Aucun risque</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>{t('activation.noRisk')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {topChurnRisk.map(c => (
@@ -618,6 +621,7 @@ function ActivationDashboard({ metrics }) {
 /* ═══ Campaigns Section ═══ */
 
 function CampaignsSection({ campaigns }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(null);
   const keys = Object.keys(campaigns);
 
@@ -629,7 +633,7 @@ function CampaignsSection({ campaigns }) {
       }}>
         <div style={{ fontSize: 28, marginBottom: 12 }}>{'\u2709\uFE0F'}</div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-          Aucune campagne d'activation envoy{'\u00E9'}e. Configurez un trigger ou envoyez un email depuis le chat.
+          {t('activation.noCampaigns')}
         </div>
       </div>
     );
