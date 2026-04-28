@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>baakalai — orchestre ta prospection et tes clients avec l'IA</title>
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+  <!-- ──────── NAV ──────── -->
+  <nav class="nav">
+    <a href="#top" class="brand">
+      <img src="assets/favicon.svg" width="22" height="22" alt="">
+      <span>baakalai</span>
+    </a>
+    <div class="links">
+      <a href="#how" data-i18n="nav.how">Comment ça marche</a>
+      <a href="#prospection" data-i18n="nav.features">Fonctionnalités</a>
+      <a href="#pricing" data-i18n="nav.pricing">Tarifs</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <a href="#blog" data-i18n="nav.blog">Blog</a>
+    </div>
+    <div class="lang-toggle">
+      <button data-lang="fr" class="active">FR</button>
+      <button data-lang="en">EN</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <a href="https://baakal.ai" class="btn btn-ghost" style="padding:8px 14px;font-size:13px;" data-i18n="nav.signin">Se connecter</a>
+      <a href="#book" class="btn btn-primary" style="padding:9px 16px;font-size:13px;" data-i18n="nav.book">Réserver une démo</a>
+    </div>
+  </nav>
+
+  <!-- ──────── HERO ──────── -->
+  <section class="hero" id="top">
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <span class="eyebrow" data-i18n="hero.eyebrow">PROSPECTION + ACTIVATION CLIENT — UNE SEULE PLATEFORME</span>
+        <h1 class="h-display" style="margin-top:24px;">
+          <span data-i18n="hero.title_a">Orchestre ta prospection </span><em class="accent" data-i18n="hero.title_em">et</em><span data-i18n="hero.title_b"> tes clients avec l'IA.</span>
+        </h1>
+        <p class="body large" style="margin-top:28px; max-width:560px;" data-i18n="hero.sub">
+          baakalai gère le cycle complet — de la première campagne froide jusqu'au follow-up qui sauve un deal stagnant. Quatre agents apprennent de chaque interaction. Tu valides, ils exécutent.
+        </p>
+        <div style="margin-top:36px; display:flex; gap:12px; flex-wrap:wrap;">
+          <a href="#book" class="btn btn-primary">
+            <span data-i18n="hero.cta">Commencer avec baakalai</span>
+            <svg class="btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#how" class="btn btn-ghost" data-i18n="hero.cta_2">Voir comment ça marche</a>
+        </div>
+        <div style="margin-top:40px; display:flex; gap:24px; flex-wrap:wrap; font-family:var(--font-mono); font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--grey-500);">
+          <span data-i18n="hero.tag_1">75 $/utilisateur/mois</span>
+          <span style="color:var(--border-strong)">·</span>
+          <span data-i18n="hero.tag_2">Setup en 12 minutes</span>
+          <span style="color:var(--border-strong)">·</span>
+          <span data-i18n="hero.tag_3">Pipedrive · HubSpot · Odoo</span>
+        </div>
+      </div>
+
+      <!-- Animated Synapse stage -->
+      <div class="hero-stage">
+        <div class="ring-bg"></div>
+        <div class="orbit"></div>
+        <div class="orbit-2"></div>
+        <div class="mark-wrap">
+          <svg class="synapse-anim" viewBox="0 0 100 100">
+            <line class="signal" x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round"/>
+            <line class="signal" x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="2" stroke-linecap="round" style="animation-delay:-1.3s;"/>
+            <line class="signal" x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" style="animation-delay:-2.6s;"/>
+            <line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+            <line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+            <line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+            <circle class="sat-1" cx="22" cy="26" r="7" fill="#C4B5FD"/>
+            <circle class="sat-2" cx="82" cy="30" r="8" fill="#9A84EB"/>
+            <circle class="sat-3" cx="30" cy="80" r="7" fill="#C4B5FD"/>
+            <circle class="hub" cx="50" cy="50" r="13" fill="#6E57FA"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────── INTEGRATIONS STRIP ──────── -->
+  <div class="integrations-strip">
+    <div class="container">
+      <div class="row">
+        <span class="label" data-i18n="integrations.label">S'intègre avec</span>
+        <span class="name">Pipedrive</span>
+        <span class="name">HubSpot</span>
+        <span class="name">Odoo</span>
+        <span class="name">Lemlist</span>
+        <span class="name">Apollo</span>
+        <span class="name">Slack</span>
+        <span class="name">LinkedIn</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────── HOW IT WORKS ──────── -->
+  <section class="section dark" id="how">
+    <div class="container">
+      <div style="max-width:760px;">
+        <span class="eyebrow" data-i18n="how.eyebrow">COMMENT ÇA MARCHE</span>
+        <h2 class="h-section" style="margin-top:18px;">
+          <span data-i18n="how.title_a">Quatre étapes. </span><em class="accent" data-i18n="how.title_em">Aucune complexité.</em>
+        </h2>
+        <p class="body large" style="margin-top:24px;" data-i18n="how.sub">
+          Tu importes tes contacts, tu décris ton intention en langage naturel, baakalai refine, déploie, et apprend à chaque envoi.
+        </p>
+      </div>
+
+      <div class="flow" id="flow">
+        <!-- populated by JS so i18n works cleanly -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────── PROSPECTION FEATURE ──────── -->
+  <section class="section" id="prospection">
+    <div class="container feature-block">
+      <div class="feature-text">
+        <span class="eyebrow" data-i18n="prosp.eyebrow">PROSPECTION</span>
+        <h2 class="h-section" style="margin-top:18px;">
+          <span data-i18n="prosp.title_a">L'outbound qui </span><em class="accent" data-i18n="prosp.title_em">refine tout seul</em><span data-i18n="prosp.title_b">.</span>
+        </h2>
+        <p class="body large" data-i18n="prosp.sub">Crée une campagne en discutant avec Claude. baakalai génère 3 variantes, les A/B teste, et garde celle qui marche — sans que tu aies à toucher au copywriting.</p>
+        <ul class="feature-list" id="prosp-list"></ul>
+      </div>
+
+      <!-- Mockup: chat composer -->
+      <div class="mockup">
+        <div class="chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="url">app.baakal.ai/synapse</div>
+        </div>
+        <div class="body-pad" style="display:flex;flex-direction:column;gap:14px;background:var(--paper-2);">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--lavender);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--ink);">AG</div>
+            <div style="background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.5;color:var(--ink);max-width:80%;">
+              Cible : DAF cabinets compta 50–200 employés en France. Trigger : levée Q4. Objectif : 10 RDV / semaine.
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start;flex-direction:row-reverse;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#FAFAF9"/></svg>
+            </div>
+            <div style="background:var(--primary);color:var(--paper);border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.5;max-width:85%;">
+              Compris. Je génère 3 variantes — un cold email court, un long, une approche LinkedIn-first. Je déploie sur Lemlist dès que tu valides.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+            <span style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-family:var(--font-mono);font-size:11px;color:var(--grey-700);">Variant A · 247 mots</span>
+            <span style="background:var(--paper);border:1px solid var(--primary);border-radius:8px;padding:6px 10px;font-family:var(--font-mono);font-size:11px;color:var(--primary-deep);box-shadow:0 0 0 3px var(--primary-soft);">Variant B · court · 68 mots</span>
+            <span style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-family:var(--font-mono);font-size:11px;color:var(--grey-700);">Variant C · LinkedIn</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────── ACTIVATION FEATURE ──────── -->
+  <section class="section paper-2" id="activation">
+    <div class="container feature-block reverse">
+      <div class="feature-text">
+        <span class="eyebrow" data-i18n="crm.eyebrow">ACTIVATION CLIENT</span>
+        <h2 class="h-section" style="margin-top:18px;">
+          <span data-i18n="crm.title_a">Tes clients </span><em class="accent" data-i18n="crm.title_em">ne devraient pas</em><span data-i18n="crm.title_b"> mourir dans le pipeline.</span>
+        </h2>
+        <p class="body large" data-i18n="crm.sub">baakalai surveille tes deals 24/7, repère ceux qui stagnent ou churnent, et propose le follow-up exact qui les a réveillés la dernière fois.</p>
+        <ul class="feature-list" id="crm-list"></ul>
+      </div>
+
+      <!-- Mockup: deal alert -->
+      <div class="mockup">
+        <div class="chrome">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="url">app.baakal.ai/clients</div>
+        </div>
+        <div class="body-pad" style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);">
+            <div style="font-weight:500;font-size:15px;letter-spacing:-0.012em;">23 deals à risque</div>
+            <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--grey-500);text-transform:uppercase;letter-spacing:0.04em;">SYNCHRONISÉ · 14:32</span>
+          </div>
+          <div style="background:var(--primary-soft);border:1px solid var(--primary);border-radius:12px;padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-weight:500;font-size:14px;color:var(--ink);">Atelier Brun · 24 800 €</div>
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--primary-deep);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">STAGNANT 18 JOURS · CHURN 72%</div>
+              </div>
+              <span style="background:var(--ink);color:var(--paper);padding:4px 8px;border-radius:6px;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">REFINE</span>
+            </div>
+            <div style="font-size:13px;line-height:1.5;color:var(--grey-900);background:var(--paper);border-radius:8px;padding:10px;border:1px dashed var(--primary);">
+              "Salut Marc, je sais que la fin Q2 t'a accaparé — j'ai relu nos échanges, je te repropose un créneau jeudi 16h pour finaliser le devis sur la base qu'on avait validée. — Alex"
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button style="flex:1;background:var(--ink);color:var(--paper);border-radius:8px;padding:10px;font-size:13px;font-weight:500;">Envoyer maintenant</button>
+            <button style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--grey-700);">Refine</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────── SYNAPSE 4 AGENTS ──────── -->
+  <section class="section dark" id="synapse">
+    <div class="dotgrid" style="position:absolute;inset:0;opacity:0.5;"></div>
+    <div class="container" style="position:relative;">
+      <div style="max-width:760px;">
+        <span class="eyebrow" data-i18n="synapse.eyebrow">SYNAPSE — INTELLIGENCE AUTONOME</span>
+        <h2 class="h-section" style="margin-top:18px; color:var(--paper);">
+          <span data-i18n="synapse.title_a">Quatre agents qui </span><em class="accent" data-i18n="synapse.title_em">apprennent</em><span data-i18n="synapse.title_b"> de chacune de tes campagnes.</span>
+        </h2>
+        <p class="body large" style="margin-top:24px;" data-i18n="synapse.sub">
+          Synapse n'est pas un assistant. C'est un système de quatre agents spécialisés qui collaborent en arrière-plan pour transformer chaque interaction en pattern réutilisable.
+        </p>
+      </div>
+      <div class="agents-grid" id="agents-grid"></div>
+    </div>
+  </section>
+
+  <!-- ──────── PRICING ──────── -->
+  <section class="section" id="pricing">
+    <div class="container">
+      <div style="max-width:680px;">
+        <span class="eyebrow" data-i18n="pricing.eyebrow">TARIFS</span>
+        <h2 class="h-section" style="margin-top:18px;">
+          <span data-i18n="pricing.title_a">Un prix. </span><em class="accent" data-i18n="pricing.title_em">Toutes les fonctionnalités</em><span data-i18n="pricing.title_b">.</span>
+        </h2>
+        <p class="body large" style="margin-top:24px;" data-i18n="pricing.sub">
+          Pas de freemium déguisé, pas de "contactez-nous" pour les vraies features. baakalai = 75 $/utilisateur/mois, ce que tu vois est ce que tu obtiens.
+        </p>
+      </div>
+      <div class="pricing-grid" id="pricing-grid"></div>
+    </div>
+  </section>
+
+  <!-- ──────── BOOKING ──────── -->
+  <section class="section dark" id="book">
+    <div class="container booking">
+      <div>
+        <span class="eyebrow" data-i18n="book.eyebrow">RÉSERVE TON CRÉNEAU</span>
+        <h2 class="h-section" style="margin-top:18px; color:var(--paper);">
+          <span data-i18n="book.title_a">Vingt minutes pour voir si </span><em class="accent" data-i18n="book.title_em">ça matche</em><span data-i18n="book.title_b">.</span>
+        </h2>
+        <p class="body large" style="margin-top:24px;" data-i18n="book.sub">
+          On te montre une démo personnalisée sur tes données. Si baakalai ne correspond pas à ton cas, on te le dit franchement — pas de pitch déguisé.
+        </p>
+        <ul class="feature-list" id="book-points" style="margin-top:32px;"></ul>
+      </div>
+      <div class="booking-iframe">
+        <iframe src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ3rSiCfLGBNOgotcPE9gIgs31x90NJPRD9kPOcSV0gcr0VCjM5b5vSpknyMGyxsz8gPhVzJRBjE?gv=true" style="border:0;border-radius:12px;background:var(--paper);" width="100%" height="600" frameborder="0"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────── FAQ ──────── -->
+  <section class="section" id="faq">
+    <div class="container-sm">
+      <span class="eyebrow" data-i18n="faq.eyebrow">QUESTIONS FRÉQUENTES</span>
+      <h2 class="h-section" style="margin-top:18px;">
+        <span data-i18n="faq.title_a">Les vraies questions. </span><em class="accent" data-i18n="faq.title_em">Les vraies réponses.</em>
+      </h2>
+      <div class="faq-list" id="faq-list"></div>
+    </div>
+  </section>
+
+  <!-- ──────── BLOG ──────── -->
+  <section class="section paper-2" id="blog">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
+        <div style="max-width:680px;">
+          <span class="eyebrow" data-i18n="blog.eyebrow">JOURNAL</span>
+          <h2 class="h-section" style="margin-top:18px;">
+            <span data-i18n="blog.title_a">Ce qu'on apprend </span><em class="accent" data-i18n="blog.title_em">en construisant</em><span data-i18n="blog.title_b">.</span>
+          </h2>
+          <p class="body large" style="margin-top:24px;" data-i18n="blog.sub">
+            Notes de terrain, expérimentations, retours bruts de nos premiers utilisateurs.
+          </p>
+        </div>
+        <a href="#" class="btn btn-ghost" data-i18n="nav.blog">Voir tous les articles →</a>
+      </div>
+      <div class="blog-grid" id="blog-grid"></div>
+    </div>
+  </section>
+
+  <!-- ──────── FOOTER ──────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+            <img src="../assets/synapse-mark-on-dark.svg" width="28" height="28" alt="">
+            <span style="font-weight:600;font-size:18px;letter-spacing:-0.022em;color:var(--paper);">baakalai</span>
+          </div>
+          <p style="font-size:14.5px;line-height:1.6;max-width:340px;" data-i18n="footer.blurb">L'IA qui orchestre ta prospection ET tes clients. Lowercase, on insiste.</p>
+        </div>
+        <div>
+          <h5 data-i18n="footer.product">PRODUIT</h5>
+          <ul>
+            <li><a href="#how" data-i18n="footer.links.how">Comment ça marche</a></li>
+            <li><a href="#prospection" data-i18n="footer.links.prosp">Prospection</a></li>
+            <li><a href="#activation" data-i18n="footer.links.crm">Activation client</a></li>
+            <li><a href="#synapse" data-i18n="footer.links.synapse">Synapse</a></li>
+            <li><a href="#pricing" data-i18n="footer.links.pricing">Tarifs</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 data-i18n="footer.company">ENTREPRISE</h5>
+          <ul>
+            <li><a href="#" data-i18n="footer.links.about">À propos</a></li>
+            <li><a href="#blog" data-i18n="footer.links.blog">Blog</a></li>
+            <li><a href="#" data-i18n="footer.links.contact">Contact</a></li>
+            <li><a href="#" data-i18n="footer.links.careers">Recrutement</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 data-i18n="footer.legal">LÉGAL</h5>
+          <ul>
+            <li><a href="#" data-i18n="footer.links.terms">CGU</a></li>
+            <li><a href="#" data-i18n="footer.links.privacy">Confidentialité</a></li>
+            <li><a href="#" data-i18n="footer.links.dpa">DPA · RGPD</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span data-i18n="footer.copy">© 2026 BAAKALAI · BAAKAL.AI · FAIT À PARIS</span>
+        <span style="display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;border-radius:50%;background:#16A34A;"></span>ALL SYSTEMS OPERATIONAL</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="i18n.js"></script>
+  <script>
+    // ─── i18n engine ─────────────────────────────────────
+    const STORE_KEY = 'baakalai-lang';
+    let lang = localStorage.getItem(STORE_KEY) || 'fr';
+
+    function get(path, dict) {
+      return path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), dict);
+    }
+
+    function applyI18n() {
+      const dict = window.I18N[lang];
+      document.documentElement.lang = lang;
+
+      // Static [data-i18n] elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const v = get(el.dataset.i18n, dict);
+        if (v != null) el.textContent = v;
+      });
+
+      // Lang toggle active state
+      document.querySelectorAll('.lang-toggle button').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+
+      renderDynamic(dict);
+    }
+
+    function renderDynamic(d) {
+      // Flow steps
+      const flow = document.getElementById('flow');
+      flow.innerHTML = d.how.steps.map((s, i) => `
+        <div class="flow-step reveal">
+          <div class="num">${String(i + 1).padStart(2, '0')}</div>
+          <h4>${s.t}</h4>
+          <p>${s.d}</p>
+        </div>
+      `).join('');
+
+      // Prosp / CRM lists
+      document.getElementById('prosp-list').innerHTML = d.prosp.list.map(t => `<li>${t}</li>`).join('');
+      document.getElementById('crm-list').innerHTML = d.crm.list.map(t => `<li>${t}</li>`).join('');
+
+      // Agents
+      const icons = {
+        0: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+        1: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>`,
+        2: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.2 4.2l4.3 4.3M15.5 15.5l4.3 4.3M1 12h6M17 12h6M4.2 19.8l4.3-4.3M15.5 8.5l4.3-4.3"/></svg>`,
+        3: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+      };
+      document.getElementById('agents-grid').innerHTML = d.synapse.agents.map((a, i) => `
+        <div class="agent-card reveal">
+          <span class="agent-tag">${a.tag}</span>
+          <div class="agent-icon">${icons[i]}</div>
+          <h4>${a.t}</h4>
+          <p>${a.d}</p>
+        </div>
+      `).join('');
+
+      // Pricing
+      const check = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+      const renderPriceCard = (p, featured = false) => `
+        <div class="price-card ${featured ? 'featured' : ''} reveal">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="tier">${p.tier}</div>
+            ${p.tag ? `<span style="font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;background:var(--lavender);color:var(--ink);padding:4px 10px;border-radius:999px;">${p.tag}</span>` : ''}
+          </div>
+          <div class="name">${p.name}</div>
+          <div class="amount">
+            <span class="num">$${p.price}</span>
+            <span class="suffix">${p.suffix}</span>
+          </div>
+          <p class="blurb">${p.blurb}</p>
+          <ul class="feats">${p.feats.map(f => `<li>${check}<span>${f}</span></li>`).join('')}</ul>
+          <a href="#book" class="btn ${featured ? 'btn-accent' : 'btn-primary'}" style="width:100%;justify-content:center;">${p.cta}</a>
+        </div>
+      `;
+      document.getElementById('pricing-grid').innerHTML =
+        renderPriceCard(d.pricing.solo, false) + renderPriceCard(d.pricing.team, true);
+
+      // Booking points
+      document.getElementById('book-points').innerHTML = d.book.points.map(p => `<li>${p}</li>`).join('');
+
+      // FAQ
+      const plus = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
+      document.getElementById('faq-list').innerHTML = d.faq.items.map(it => `
+        <details class="faq-item reveal">
+          <summary>${it.q}<span class="icon">${plus}</span></summary>
+          <div class="answer">${it.a}</div>
+        </details>
+      `).join('');
+
+      // Blog
+      const arrow = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>`;
+      document.getElementById('blog-grid').innerHTML = d.blog.posts.map(p => `
+        <a href="#" class="blog-card reveal">
+          <div class="meta"><span class="tag">${p.tag}</span><span>${p.date}</span></div>
+          <h4>${p.t}</h4>
+          <p>${p.d}</p>
+          <span class="read">${d.blog.read}${arrow}</span>
+        </a>
+      `).join('');
+
+      // Re-arm reveals after dynamic insertion
+      armReveals();
+    }
+
+    // ─── Lang toggle ────────────────────────────────────
+    document.querySelectorAll('.lang-toggle button').forEach(b => {
+      b.addEventListener('click', () => {
+        lang = b.dataset.lang;
+        localStorage.setItem(STORE_KEY, lang);
+        applyI18n();
+      });
+    });
+
+    // ─── Reveal on scroll ───────────────────────────────
+    let io;
+    function armReveals() {
+      if (io) io.disconnect();
+      io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    }
+
+    // Initial render
+    applyI18n();
+    armReveals();
+  </script>
+</body>
+</html>
