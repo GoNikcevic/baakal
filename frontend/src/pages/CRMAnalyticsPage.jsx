@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../context/useApp';
 import api from '../services/api-client';
+import { useT, useI18n } from '../i18n';
 import EngagementChart from '../components/charts/EngagementChart';
 import FunnelChart from '../components/charts/FunnelChart';
 
@@ -212,7 +213,7 @@ export default function CRMAnalyticsPage() {
       </div>
 
       {/* Content */}
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Chargement...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}
 
       {!loading && activeTab === 'pipeline' && tabData && <PipelineSection data={tabData} />}
       {!loading && activeTab === 'attribution' && tabData && <AttributionSection data={tabData} />}
@@ -541,18 +542,21 @@ function ChannelsSection({ data }) {
 
 /* ═══ CRM Health Section — Live Data Cleaning ═══ */
 
-const ISSUE_CONFIG = {
-  duplicate_email: { icon: '\uD83D\uDD04', label: 'Doublons (email)', severity: 'high', color: 'var(--danger)' },
-  duplicate_name: { icon: '\uD83D\uDC65', label: 'Doublons (nom+entreprise)', severity: 'medium', color: 'var(--warning)' },
-  missing_email: { icon: '\uD83D\uDCE7', label: 'Email manquant', severity: 'high', color: 'var(--danger)' },
+function getIssueConfig(en) { return {
+  duplicate_email: { icon: '\uD83D\uDD04', label: en ? 'Duplicates (email)' : 'Doublons (email)', severity: 'high', color: 'var(--danger)' },
+  duplicate_name: { icon: '\uD83D\uDC65', label: en ? 'Duplicates (name+company)' : 'Doublons (nom+entreprise)', severity: 'medium', color: 'var(--warning)' },
+  missing_email: { icon: '\uD83D\uDCE7', label: en ? 'Missing email' : 'Email manquant', severity: 'high', color: 'var(--danger)' },
   missing_name: { icon: '\uD83D\uDC64', label: 'Nom manquant', severity: 'medium', color: 'var(--warning)' },
   missing_company: { icon: '\uD83C\uDFE2', label: 'Entreprise manquante', severity: 'low', color: 'var(--text-muted)' },
-  invalid_email: { icon: '\u26A0\uFE0F', label: 'Email invalide', severity: 'high', color: 'var(--danger)' },
-  inactive: { icon: '\uD83D\uDCA4', label: 'Contacts inactifs (6+ mois)', severity: 'low', color: 'var(--text-muted)' },
-  format_name_caps: { icon: 'Aa', label: 'Noms en MAJUSCULES', severity: 'low', color: 'var(--blue)' },
-};
+  invalid_email: { icon: '\u26A0\uFE0F', label: en ? 'Invalid email' : 'Email invalide', severity: 'high', color: 'var(--danger)' },
+  inactive: { icon: '\uD83D\uDCA4', label: en ? 'Inactive contacts (6+ months)' : 'Contacts inactifs (6+ mois)', severity: 'low', color: 'var(--text-muted)' },
+  format_name_caps: { icon: 'Aa', label: en ? 'Names in ALL CAPS' : 'Noms en MAJUSCULES', severity: 'low', color: 'var(--blue)' },
+}; }
 
 function CRMHealthSection() {
+  const { lang } = useI18n();
+  const en = lang === 'en';
+  const ISSUE_CONFIG = getIssueConfig(en);
   const [report, setReport] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [fixing, setFixing] = useState(null);
@@ -605,8 +609,8 @@ function CRMHealthSection() {
     return (
       <div className="crm-section" style={{ textAlign: 'center', padding: 60 }}>
         <div style={{ fontSize: 32, marginBottom: 16 }}>{'\uD83D\uDD0D'}</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Scan CRM en cours...</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Analyse des contacts Pipedrive</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{en ? 'CRM scan in progress...' : 'Scan CRM en cours...'}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{en ? 'Analyzing Pipedrive contacts' : 'Analyse des contacts Pipedrive'}</div>
       </div>
     );
   }
@@ -618,7 +622,7 @@ function CRMHealthSection() {
           <div className="card-body" style={{ textAlign: 'center', padding: 40 }}>
             <div style={{ fontSize: 14, color: 'var(--danger)' }}>{report.error}</div>
             <button className="btn btn-primary" style={{ marginTop: 16, fontSize: 12 }} onClick={handleScan}>
-              Réessayer
+              {en ? 'Retry' : 'R\u00E9essayer'}
             </button>
           </div>
         </div>
@@ -637,25 +641,25 @@ function CRMHealthSection() {
       {/* Score + Summary */}
       <div className="crm-grid-2">
         <div className="card">
-          <div className="card-title">Score de santé CRM</div>
+          <div className="card-title">{en ? 'CRM Health Score' : 'Score de sant\u00E9 CRM'}</div>
           <div className="card-body" style={{ display: 'flex', justifyContent: 'center' }}>
             <HealthGauge score={report.score} label={scoreLabel} />
           </div>
           <div style={{ textAlign: 'center', padding: '0 16px 16px', fontSize: 12, color: 'var(--text-muted)' }}>
-            {report.totalContacts} contacts analysés
+            {report.totalContacts} {en ? 'contacts analyzed' : 'contacts analys\u00E9s'}
           </div>
         </div>
 
         <div className="card">
-          <div className="card-title">Résumé</div>
+          <div className="card-title">{en ? 'Summary' : 'R\u00E9sum\u00E9'}</div>
           <div className="card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { label: 'Doublons email', value: summary.duplicateEmails || 0, color: 'var(--danger)' },
-                { label: 'Doublons nom', value: summary.duplicateNames || 0, color: 'var(--warning)' },
+                { label: en ? 'Email duplicates' : 'Doublons email', value: summary.duplicateEmails || 0, color: 'var(--danger)' },
+                { label: en ? 'Name duplicates' : 'Doublons nom', value: summary.duplicateNames || 0, color: 'var(--warning)' },
                 { label: 'Emails manquants', value: summary.missingEmails || 0, color: 'var(--danger)' },
                 { label: 'Emails invalides', value: summary.invalidEmails || 0, color: 'var(--danger)' },
-                { label: 'Contacts inactifs', value: summary.inactive || 0, color: 'var(--text-muted)' },
+                { label: en ? 'Inactive contacts' : 'Contacts inactifs', value: summary.inactive || 0, color: 'var(--text-muted)' },
                 { label: 'Problèmes de format', value: summary.formatIssues || 0, color: 'var(--blue)' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -717,12 +721,12 @@ function CRMHealthSection() {
                           onClick={() => handleFix(issue)}
                         >
                           {isFixing ? '\u23F3...' :
-                            issue.suggestedAction === 'merge' ? 'Fusionner' :
-                            issue.suggestedAction === 'auto_fix' ? 'Corriger' :
-                            issue.suggestedAction === 'enrich' ? 'Enrichir' :
-                            issue.suggestedAction === 'archive' ? 'Archiver' :
-                            issue.suggestedAction === 'fix' ? 'Corriger' :
-                            'Voir'}
+                            issue.suggestedAction === 'merge' ? (en ? 'Merge' : 'Fusionner') :
+                            issue.suggestedAction === 'auto_fix' ? (en ? 'Fix' : 'Corriger') :
+                            issue.suggestedAction === 'enrich' ? (en ? 'Enrich' : 'Enrichir') :
+                            issue.suggestedAction === 'archive' ? (en ? 'Archive' : 'Archiver') :
+                            issue.suggestedAction === 'fix' ? (en ? 'Fix' : 'Corriger') :
+                            (en ? 'View' : 'Voir')}
                         </button>
                       )}
                     </div>
@@ -737,7 +741,7 @@ function CRMHealthSection() {
       {(report.issues || []).length === 0 && (
         <div className="card" style={{ marginTop: 20, textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>{'\u2705'}</div>
-          <div style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600 }}>CRM propre — aucun problème détecté</div>
+          <div style={{ fontSize: 14, color: 'var(--success)', fontWeight: 600 }}>{en ? 'CRM clean — no issues detected' : 'CRM propre — aucun probl\u00E8me d\u00E9tect\u00E9'}</div>
         </div>
       )}
 
@@ -748,7 +752,7 @@ function CRMHealthSection() {
           style={{ fontSize: 12, padding: '8px 20px', color: 'var(--text-muted)' }}
           onClick={handleScan}
         >
-          {'\uD83D\uDD04'} Relancer le scan
+          {'\uD83D\uDD04'} {en ? 'Run scan again' : 'Relancer le scan'}
         </button>
       </div>
     </div>
