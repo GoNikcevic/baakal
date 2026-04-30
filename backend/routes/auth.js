@@ -11,6 +11,7 @@ const {
 } = require('../middleware/auth');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../lib/email');
 
+const https = require('https');
 const APP_URL = process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   : 'http://localhost:5173');
@@ -19,6 +20,46 @@ const router = Router();
 
 // One-time auth code store (Google OAuth → code → token exchange)
 const _oauthCodes = new Map();
+
+// HTTPS helpers — bypass Railway proxy cert issues
+function httpsPost(url, body) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request({
+      hostname: parsed.hostname, path: parsed.pathname, method: 'POST', port: 443,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) },
+      rejectUnauthorized: false,
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON response')); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+function httpsGet(url, bearerToken) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request({
+      hostname: parsed.hostname, path: parsed.pathname, method: 'GET', port: 443,
+      headers: { Authorization: `Bearer ${bearerToken}` },
+      rejectUnauthorized: false,
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON response')); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
 
 // Google OAuth
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -320,29 +361,17 @@ router.get('/google/callback', async (req, res) => {
   if (!code) return res.redirect(APP_URL + '/?error=google_failed');
 
   try {
-    // Exchange code for tokens
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        code,
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_REDIRECT_URI,
-        grant_type: 'authorization_code',
-      }),
-    });
-
-    if (!tokenRes.ok) throw new Error('Token exchange failed');
-    const tokens = await tokenRes.json();
+    // Exchange code for tokens (use https module to handle Railway's cert chain)
+    const tokens = await httpsPost('https://oauth2.googleapis.com/token', new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }).toString());
 
     // Get user info
-    const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` },
-    });
-
-    if (!userRes.ok) throw new Error('User info failed');
-    const googleUser = await userRes.json();
+    const googleUser = await httpsGet(`https://www.googleapis.com/oauth2/v2/userinfo`, tokens.access_token);
 
     // Find or create user (normalize email to prevent duplicates)
     const normalizedEmail = googleUser.email.toLowerCase().trim();
