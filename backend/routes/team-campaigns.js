@@ -17,6 +17,25 @@ const logger = require('../lib/logger');
 
 const router = Router();
 
+/** Verify user belongs to the campaign's team. Returns campaign row or null. */
+async function verifyCampaignAccess(campaignId, userId) {
+  const result = await db.query(
+    `SELECT tc.* FROM team_campaigns tc
+     JOIN team_members tm ON tm.team_id = tc.team_id AND tm.user_id = $2
+     WHERE tc.id = $1`,
+    [campaignId, userId]
+  );
+  return result.rows[0] || null;
+}
+
+/** Check if user is admin of their team */
+async function isTeamAdmin(userId) {
+  const result = await db.query(
+    `SELECT role FROM team_members WHERE user_id = $1 LIMIT 1`, [userId]
+  );
+  return !result.rows[0] || result.rows[0].role === 'admin';
+}
+
 // POST /api/team-campaigns — Create
 router.post('/', async (req, res, next) => {
   try {
@@ -67,8 +86,8 @@ router.get('/', async (req, res, next) => {
 // GET /api/team-campaigns/:id — Details
 router.get('/:id', async (req, res, next) => {
   try {
-    const campaign = await db.query(`SELECT * FROM team_campaigns WHERE id = $1`, [req.params.id]);
-    if (!campaign.rows[0]) return res.status(404).json({ error: 'Not found' });
+    const tc = await verifyCampaignAccess(req.params.id, req.user.id);
+    if (!tc) return res.status(404).json({ error: 'Not found' });
 
     // Get emails for this campaign
     const emails = await db.query(`
@@ -79,16 +98,16 @@ router.get('/:id', async (req, res, next) => {
       ORDER BY ne.created_at DESC
     `, [req.params.id]);
 
-    res.json({ campaign: campaign.rows[0], emails: emails.rows });
+    res.json({ campaign: tc, emails: emails.rows });
   } catch (err) { next(err); }
 });
 
-// POST /api/team-campaigns/:id/preview — Preview contacts grouped by owner
+// POST /api/team-campaigns/:id/preview — Preview contacts grouped by owner (admin only)
 router.post('/:id/preview', async (req, res, next) => {
   try {
-    const campaign = await db.query(`SELECT * FROM team_campaigns WHERE id = $1`, [req.params.id]);
-    if (!campaign.rows[0]) return res.status(404).json({ error: 'Not found' });
-    const tc = campaign.rows[0];
+    if (!await isTeamAdmin(req.user.id)) return res.status(403).json({ error: 'Admin only' });
+    const tc = await verifyCampaignAccess(req.params.id, req.user.id);
+    if (!tc) return res.status(404).json({ error: 'Not found' });
 
     // Get matching contacts
     const contacts = await getTargetContacts(tc);
@@ -138,12 +157,12 @@ router.post('/:id/preview', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/team-campaigns/:id/launch — Generate + send emails
+// POST /api/team-campaigns/:id/launch — Generate + send emails (admin only)
 router.post('/:id/launch', async (req, res, next) => {
   try {
-    const campaign = await db.query(`SELECT * FROM team_campaigns WHERE id = $1`, [req.params.id]);
-    if (!campaign.rows[0]) return res.status(404).json({ error: 'Not found' });
-    const tc = campaign.rows[0];
+    if (!await isTeamAdmin(req.user.id)) return res.status(403).json({ error: 'Admin only' });
+    const tc = await verifyCampaignAccess(req.params.id, req.user.id);
+    if (!tc) return res.status(404).json({ error: 'Not found' });
 
     if (tc.status === 'running') return res.status(400).json({ error: 'Campaign already running' });
 
@@ -206,9 +225,12 @@ router.post('/:id/launch', async (req, res, next) => {
   }
 });
 
-// POST /api/team-campaigns/:id/cancel
+// POST /api/team-campaigns/:id/cancel (admin only)
 router.post('/:id/cancel', async (req, res, next) => {
   try {
+    if (!await isTeamAdmin(req.user.id)) return res.status(403).json({ error: 'Admin only' });
+    const tc = await verifyCampaignAccess(req.params.id, req.user.id);
+    if (!tc) return res.status(404).json({ error: 'Not found' });
     await db.query(
       `UPDATE team_campaigns SET status = 'cancelled' WHERE id = $1`,
       [req.params.id]

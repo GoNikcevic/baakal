@@ -63,7 +63,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
 
   try {
     // ── Step 1: Delta Sync ──
-    await stepSync(userId, token, report, event);
+    await stepSync(userId, token, report, event, crmProvider);
 
     // ── Step 2: Quick Data Quality Check ──
     await stepDataQuality(userId, token, report);
@@ -126,7 +126,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
 
 // ── Step 1: Delta Sync ──
 
-async function stepSync(userId, token, report, event) {
+async function stepSync(userId, token, report, event, crmProvider = 'pipedrive') {
   try {
     // If triggered by a specific event, only sync that contact
     if (event?.type === 'person_updated' && event?.personId) {
@@ -166,7 +166,7 @@ async function stepSync(userId, token, report, event) {
           title: raw.job_title || null,
           company: raw.org_name || raw.org_id?.name || null,
           status: 'imported',
-          crmProvider: 'pipedrive',
+          crmProvider,
           crmContactId: String(raw.id),
           crmOwnerId,
           ownerEmail,

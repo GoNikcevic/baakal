@@ -93,7 +93,7 @@ export default function ClientsPage() {
       setImportResult({ error: err.message });
     }
     setImporting(false);
-  }, [loadData]);
+  }, [loadData, connectedCrm]);
 
   const filtered = clients.filter(c => {
     if (filter === 'churn_risk' && (c.churn_score == null || c.churn_score < 50)) return false;

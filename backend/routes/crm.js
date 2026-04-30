@@ -821,7 +821,12 @@ router.post('/product-lines', async (req, res, next) => {
 // DELETE /api/crm/product-lines/:id
 router.delete('/product-lines/:id', async (req, res, next) => {
   try {
-    await db.query(`DELETE FROM product_lines WHERE id = $1`, [req.params.id]);
+    // Verify team membership
+    const result = await db.query(
+      `DELETE FROM product_lines WHERE id = $1 AND team_id = (SELECT team_id FROM team_members WHERE user_id = $2 LIMIT 1) RETURNING id`,
+      [req.params.id, req.user.id]
+    );
+    if (result.rowCount === 0) return res.status(403).json({ error: 'Access denied' });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

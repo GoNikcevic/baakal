@@ -110,18 +110,18 @@ export default function NurturePage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-        {tabs.map(t => (
+        {tabs.map(tab => (
           <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '10px 18px', border: 'none', background: 'transparent',
-              borderBottom: `2px solid ${activeTab === t.key ? 'var(--accent)' : 'transparent'}`,
-              color: activeTab === t.key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: activeTab === t.key ? 600 : 400, fontSize: 13, cursor: 'pointer',
+              borderBottom: `2px solid ${activeTab === tab.key ? 'var(--accent)' : 'transparent'}`,
+              color: activeTab === tab.key ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontWeight: activeTab === tab.key ? 600 : 400, fontSize: 13, cursor: 'pointer',
             }}
           >
-            {t.label} {t.count > 0 && <span style={{ fontSize: 11, opacity: 0.7 }}>({t.count})</span>}
+            {tab.label} {tab.count > 0 && <span style={{ fontSize: 11, opacity: 0.7 }}>({tab.count})</span>}
           </button>
         ))}
       </div>
@@ -738,6 +738,7 @@ function TeamCampaignsSection({ lang }) {
   const [productLines, setProductLines] = useState([]);
   const [previewing, setPreviewing] = useState(null);
   const [previewData, setPreviewData] = useState(null);
+  const [previewedId, setPreviewedId] = useState(null);
   const [launching, setLaunching] = useState(null);
 
   const [form, setForm] = useState({
@@ -780,6 +781,7 @@ function TeamCampaignsSection({ lang }) {
   const handlePreview = async (id) => {
     setPreviewing(id);
     setPreviewData(null);
+    setPreviewedId(id);
     try {
       const data = await request(`/team-campaigns/${id}/preview`, { method: 'POST' });
       setPreviewData(data);
@@ -996,7 +998,7 @@ function TeamCampaignsSection({ lang }) {
               </div>
 
               {/* Preview results */}
-              {previewData && previewing === null && (
+              {previewData && previewedId === c.id && previewing === null && (
                 <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
                     {en ? `${previewData.totalContacts} contacts targeted` : `${previewData.totalContacts} contacts cibl\u00E9s`}
