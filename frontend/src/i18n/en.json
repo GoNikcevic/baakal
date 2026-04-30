@@ -584,7 +584,7 @@
     "dailyLimit": "Daily Lemlist limit",
     "sendingWindow": "Sending window",
     "sendingDays": "Sending days",
-    "claudeModel": "Claude model",
+    "claudeModel": "AI model",
     "notifEmail": "Notification email",
     "resetPrefs": "Reset preferences",
     "monFri": "Mon-Fri",
