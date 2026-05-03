@@ -111,6 +111,25 @@ async function runMemoryAgent() {
     report.errors.push({ step: 'sector-templates', error: err.message });
   }
 
+  // ── Step 5: Strategic agents (run for all users with enough data) ──
+  try {
+    const { runAll } = require('./agents/strategic-orchestrator');
+    const users = await db.query(
+      `SELECT DISTINCT user_id FROM opportunities GROUP BY user_id HAVING COUNT(*) >= 20`
+    );
+    for (const { user_id } of users.rows) {
+      try {
+        const stratReport = await runAll(user_id);
+        report.strategic = report.strategic || {};
+        report.strategic[user_id] = stratReport;
+      } catch (err) {
+        logger.warn('memory-agent', `Strategic agents failed for ${user_id}: ${err.message}`);
+      }
+    }
+  } catch (err) {
+    report.errors.push({ step: 'strategic', error: err.message });
+  }
+
   report.duration = Date.now() - startTime;
   logger.info('memory-agent', `Complete in ${report.duration}ms — skipped: ${report.skipped.length}, errors: ${report.errors.length}`);
 

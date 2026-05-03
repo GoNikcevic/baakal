@@ -83,7 +83,7 @@ Based on actual results, refine the ICP. Return JSON:
       report.icp = analysis;
 
       // Store as memory pattern
-      await db.memoryPatterns.create({
+      await db.memoryPatterns.replaceOrCreate({
         pattern: `ICP refin\u00e9 : ${analysis.summary}`,
         category: 'Cible',
         data: JSON.stringify(analysis),
@@ -95,7 +95,7 @@ Based on actual results, refine the ICP. Return JSON:
 
       if (analysis.surprises?.length > 0) {
         for (const surprise of analysis.surprises) {
-          await db.memoryPatterns.create({
+          await db.memoryPatterns.replaceOrCreate({
             pattern: `ICP surprise : ${surprise}`,
             category: 'Cible',
             data: JSON.stringify({ type: 'icp_surprise' }),

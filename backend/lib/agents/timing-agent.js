@@ -59,7 +59,7 @@ async function run(userId) {
       const insight = `Meilleur jour d'envoi : ${dayNames[bestDay]} (${Math.round(bestRate * 100)}% de r\u00e9ponses vs moyenne)`;
       report.recommendations.push(insight);
 
-      await db.memoryPatterns.create({
+      await db.memoryPatterns.replaceOrCreate({
         pattern: insight,
         category: 'S\u00e9quence',
         data: JSON.stringify({ byDay, bestDay: dayNames[bestDay], bestRate: Math.round(bestRate * 100) }),

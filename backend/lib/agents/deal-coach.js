@@ -64,6 +64,7 @@ Contact: ${deal.name} (${deal.title || 'N/A'}) at ${deal.company || 'N/A'}
 Status: ${deal.status || 'open'}
 Days since last activity: ${daysSinceUpdate}
 Churn risk score: ${deal.churn_score || 'N/A'}/100
+Churn factors: ${deal.churn_factors ? (typeof deal.churn_factors === 'string' ? JSON.parse(deal.churn_factors) : deal.churn_factors).map(f => f.detail).join(', ') : 'N/A'}
 Emails sent: ${contactEmails.length}
 Last email sentiment: ${contactEmails[0]?.sentiment || 'N/A'}
 

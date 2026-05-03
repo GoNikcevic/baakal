@@ -75,7 +75,7 @@ Return JSON:
 
     if (analysis?.patterns) {
       for (const p of analysis.patterns) {
-        await db.memoryPatterns.create({
+        await db.memoryPatterns.replaceOrCreate({
           pattern: `Win/Loss: ${p.insight}`,
           category: 'Cible',
           data: JSON.stringify({ type: 'win_loss', category: p.category }),
@@ -87,7 +87,7 @@ Return JSON:
       }
 
       if (analysis.winProfile) {
-        await db.memoryPatterns.create({
+        await db.memoryPatterns.replaceOrCreate({
           pattern: `Profil de deal gagnant : ${analysis.winProfile}`,
           category: 'Cible',
           data: JSON.stringify({ type: 'win_profile', lossSignals: analysis.lossSignals }),

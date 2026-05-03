@@ -48,7 +48,7 @@ async function run(userId) {
         : `Les emails d\u00e9taill\u00e9s performent mieux (${avgRepliedLen} car. vs ${avgIgnoredLen} car.)`;
       report.optimizations.push(lenInsight);
 
-      await db.memoryPatterns.create({
+      await db.memoryPatterns.replaceOrCreate({
         pattern: `Copy: longueur optimale ~${avgRepliedLen} caract\u00e8res (emails avec r\u00e9ponse)`,
         category: 'S\u00e9quence',
         data: JSON.stringify({ avgRepliedLen, avgIgnoredLen, sampleSize: rows.length }),
@@ -95,7 +95,7 @@ Return JSON:
 
     if (analysis) {
       if (analysis.subjectPatterns?.length > 0) {
-        await db.memoryPatterns.create({
+        await db.memoryPatterns.replaceOrCreate({
           pattern: `Sujets efficaces : ${analysis.subjectPatterns.join(' | ')}`,
           category: 'S\u00e9quence',
           data: JSON.stringify(analysis),

@@ -62,7 +62,7 @@ Return JSON:
     if (analysis) {
       // Store as memory patterns
       if (analysis.positioningAngles?.length > 0) {
-        await db.memoryPatterns.create({
+        await db.memoryPatterns.replaceOrCreate({
           pattern: `Angles concurrentiels : ${analysis.positioningAngles.join(' | ')}`,
           category: 'Objection',
           data: JSON.stringify(analysis),
@@ -74,7 +74,7 @@ Return JSON:
       }
 
       if (analysis.evaluationTriggers?.length > 0) {
-        await db.memoryPatterns.create({
+        await db.memoryPatterns.replaceOrCreate({
           pattern: `Signaux d'\u00e9valuation : ${analysis.evaluationTriggers.join(' | ')}`,
           category: 'Cible',
           data: JSON.stringify({ triggers: analysis.evaluationTriggers }),

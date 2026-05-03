@@ -689,6 +689,37 @@ const memoryPatterns = {
     return { changes: result.rowCount };
   },
 
+  /**
+   * Replace an existing pattern by source identifier, or create a new one.
+   * Prevents pattern explosion from agents that run repeatedly.
+   */
+  /**
+   * Replace an existing pattern with the same category + similar pattern text,
+   * or create a new one. Prevents pattern explosion from repeated agent runs.
+   */
+  async replaceOrCreate(data) {
+    // Try to find existing pattern with same category and similar content
+    const existing = await query(
+      `SELECT id FROM memory_patterns WHERE category = $1 AND pattern = $2 LIMIT 1`,
+      [data.category, data.pattern]
+    );
+    if (existing.rows[0]) {
+      return this.update(existing.rows[0].id, data);
+    }
+    // Also check by partial match (pattern text may change slightly)
+    const prefix = (data.pattern || '').slice(0, 30);
+    if (prefix.length >= 10) {
+      const partial = await query(
+        `SELECT id FROM memory_patterns WHERE category = $1 AND pattern LIKE $2 LIMIT 1`,
+        [data.category, prefix + '%']
+      );
+      if (partial.rows[0]) {
+        return this.update(partial.rows[0].id, data);
+      }
+    }
+    return this.create(data);
+  },
+
   async pruneOld(daysOld = 90) {
     const result = await query(
       `DELETE FROM memory_patterns WHERE confidence = 'Faible' AND created_at < NOW() - INTERVAL '1 day' * $1 RETURNING id`,
