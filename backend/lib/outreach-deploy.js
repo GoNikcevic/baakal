@@ -8,6 +8,18 @@ const { getUserKey } = require('../config');
 const { withRetry } = require('./retry');
 const logger = require('./logger');
 
+/**
+ * Convert plain text to HTML for outreach tools.
+ * Double newlines → paragraph breaks, single newlines → <br>
+ */
+function textToHtml(text) {
+  if (!text) return '';
+  return text
+    .split(/\n\n+/)
+    .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
 // Variable mapping from Lemlist format to each provider's format
 const VARIABLE_MAP = {
   apollo: {
@@ -198,11 +210,12 @@ async function deployToOutreach(userId, provider, campaignName, touchpoints) {
   if (!apiKey) throw new Error(`No ${provider} API key configured`);
 
   // Map variables and build steps — only email steps
+  // Outreach tools expect HTML body — convert \n to <br> for proper paragraph rendering
   const steps = touchpoints
     .filter((tp) => tp.type === 'email')
     .map((tp) => ({
       subject: mapVariables(tp.subject, provider),
-      body: mapVariables(tp.body, provider),
+      body: textToHtml(mapVariables(tp.body, provider)),
       timing: tp.timing,
       days: extractDays(tp.timing),
       step: tp.step,
