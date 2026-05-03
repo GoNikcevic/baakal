@@ -141,6 +141,7 @@ app.use('/api/variables', requireAuth, variablesRouter);
 app.use('/api/export', requireAuth, exportRouter);
 app.use('/api/crm', requireAuth, crmRouter);
 app.use('/api/team-campaigns', requireAuth, require('./routes/team-campaigns'));
+app.use('/api/strategic', requireAuth, require('./routes/strategic'));
 app.use('/api/analytics', requireAuth, analyticsRouter);
 app.use('/api/notifications', requireAuth, require('./routes/notifications'));
 app.use('/api/templates', requireAuth, require('./routes/templates'));
