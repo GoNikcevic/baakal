@@ -112,6 +112,9 @@ app.get('/api/health', async (_req, res) => {
 // Auth routes (public)
 app.use('/api/auth', authRouter);
 
+// Webhooks (public — validated via shared secret, not JWT)
+app.use('/api/webhooks', require('./routes/webhooks'));
+
 // OAuth email callbacks (public — user returns from Google/Microsoft redirect, no auth needed)
 const { gmailCallback, microsoftCallback } = require('./routes/nurture');
 app.get('/api/nurture/email-accounts/callback/gmail', gmailCallback);

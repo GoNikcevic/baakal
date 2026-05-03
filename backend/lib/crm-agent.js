@@ -129,9 +129,9 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
 
 async function stepSync(userId, token, report, event, crmProvider = 'pipedrive') {
   try {
-    // If triggered by a specific event, only sync that contact
-    if (event?.type === 'person_updated' && event?.personId) {
-      // TODO: single-person sync via webhook
+    // If triggered by a webhook event, skip full sync (already handled by webhook route)
+    if (event?.type && (event.type.startsWith('deal_') || event.type === 'person_updated')) {
+      logger.info('crm-agent', `Skipping full sync — webhook event: ${event.type}`);
       return;
     }
 
