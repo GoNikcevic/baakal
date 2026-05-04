@@ -4,7 +4,7 @@
    Click a client to open detail panel with timeline + emails + actions.
    =============================================================================== */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api, { request, runChurnScoring, getChurnSummary } from '../services/api-client';
 import { getUser } from '../services/auth';
 import { useT, useI18n } from '../i18n';
@@ -46,18 +46,22 @@ export default function ClientsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Detect connected CRM
-      const providersData = await request('/crm/providers').catch(() => ({ providers: [] }));
+      // Parallel: providers + opportunities + churn + owners
+      const [providersData, oppsData, churnData, ownersData] = await Promise.all([
+        request('/crm/providers').catch(() => ({ providers: [] })),
+        request('/dashboard/opportunities').catch(() => ({ opportunities: [] })),
+        getChurnSummary().catch(() => null),
+        request('/crm/team-owners').catch(() => ({ owners: [] })),
+      ]);
+
       const crmProviders = ['pipedrive', 'hubspot', 'salesforce', 'odoo'];
       const connected = (providersData.providers || []).find(p => crmProviders.includes(p.provider) && p.connected);
       setConnectedCrm(connected?.provider || null);
-
-      const [oppsData] = await Promise.all([
-        request('/dashboard/opportunities').catch(() => ({ opportunities: [] })),
-      ]);
       setClients(oppsData.opportunities || []);
+      if (churnData) setChurnSummary(churnData);
+      setOwners(ownersData.owners || []);
 
-      // Load pipeline stages for connected CRM
+      // Load pipeline stages (depends on detected provider)
       if (connected?.provider === 'pipedrive') {
         const pipelinesData = await request('/crm/pipedrive/pipelines').catch(() => ({ pipelines: [] }));
         if (pipelinesData.pipelines?.length > 0) {
@@ -70,9 +74,6 @@ export default function ClientsPage() {
       }
     } catch { /* ignore */ }
     setLoading(false);
-    // Load churn summary + team owners
-    getChurnSummary().then(setChurnSummary).catch(() => {});
-    request('/crm/team-owners').then(d => setOwners(d.owners || [])).catch(() => {});
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -95,7 +96,7 @@ export default function ClientsPage() {
     setImporting(false);
   }, [loadData, connectedCrm]);
 
-  const filtered = clients.filter(c => {
+  const filtered = useMemo(() => clients.filter(c => {
     if (filter === 'churn_risk' && (c.churn_score == null || c.churn_score < 50)) return false;
     else if (filter !== 'all' && filter !== 'churn_risk' && c.status !== filter) return false;
     if (ownerFilter !== 'all' && c.owner_id !== ownerFilter) return false;
@@ -109,10 +110,13 @@ export default function ClientsPage() {
   }).sort((a, b) => {
     if (filter === 'churn_risk') return (b.churn_score || 0) - (a.churn_score || 0);
     return 0;
-  });
+  }), [clients, filter, ownerFilter, search]);
 
-  const statusCounts = {};
-  for (const c of clients) statusCounts[c.status || 'unknown'] = (statusCounts[c.status || 'unknown'] || 0) + 1;
+  const statusCounts = useMemo(() => {
+    const counts = {};
+    for (const c of clients) counts[c.status || 'unknown'] = (counts[c.status || 'unknown'] || 0) + 1;
+    return counts;
+  }, [clients]);
 
   const statusTabs = [
     { key: 'all', label: t('clients.all'), count: clients.length },

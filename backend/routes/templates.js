@@ -76,7 +76,7 @@ const TEMPLATES = [
 ];
 
 // GET / — returns DB templates + static fallback merged
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const dbTemplates = await db.templates.list();
     // Merge: DB templates first, then static ones that aren't duplicated
@@ -96,7 +96,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /:id — checks DB first, then static
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const dbTemplate = await db.templates.get(req.params.id);
     if (dbTemplate) {
@@ -112,7 +112,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /use/:id — increment popularity when user selects a template
-router.post('/use/:id', async (req, res) => {
+router.post('/use/:id', async (req, res, next) => {
   try {
     await db.templates.incrementPopularity(req.params.id);
     res.json({ ok: true });
@@ -122,7 +122,7 @@ router.post('/use/:id', async (req, res) => {
 });
 
 // POST /generate — Generate templates for specific sectors (on-demand)
-router.post('/generate', async (req, res) => {
+router.post('/generate', async (req, res, next) => {
   try {
     const { sectors } = req.body;
     const { generateForSectors, TARGET_SECTORS } = require('../lib/template-agent');

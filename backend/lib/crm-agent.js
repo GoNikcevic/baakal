@@ -33,7 +33,16 @@ const DAY_MS = 86400000;
  * Run the CRM agent for a user.
  * Returns a structured report of everything that was done.
  */
+// Concurrency lock — prevent duplicate runs for the same user
+const _running = new Set();
+
 async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
+  if (_running.has(userId)) {
+    logger.warn('crm-agent', `Skipping — already running for user ${userId}`);
+    return { skipped: true, reason: 'already running' };
+  }
+  _running.add(userId);
+
   const startTime = Date.now();
   const report = {
     trigger,
@@ -55,6 +64,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     }
   }
   if (!token) {
+    _running.delete(userId);
     report.errors.push('No CRM connected');
     return report;
   }
@@ -66,8 +76,11 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     // ── Step 1: Delta Sync ──
     await stepSync(userId, token, report, event, crmProvider);
 
+    // Pre-load opportunities once for Steps 2-6 (avoid 3x identical query)
+    const _opps = await db.opportunities.listByUser(userId, 10000, 0);
+
     // ── Step 2: Quick Data Quality Check ──
-    await stepDataQuality(userId, token, report);
+    await stepDataQuality(userId, token, report, _opps);
 
     // ── Step 3: Nurture Evaluation ──
     await stepNurture(userId, token, report);
@@ -122,6 +135,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
 
   logger.info('crm-agent', `User ${userId} [${trigger}]: sync +${report.sync.imported}/${report.sync.updated}, nurture ${report.nurture.sent}/${report.nurture.queued}, alerts ${report.alerts.length} (${report.duration}ms)`);
 
+  _running.delete(userId);
   return report;
 }
 
@@ -218,9 +232,9 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
 
 // ── Step 2: Data Quality ──
 
-async function stepDataQuality(userId, token, report) {
+async function stepDataQuality(userId, token, report, opps = null) {
   try {
-    const opps = await db.opportunities.listByUser(userId, 10000, 0);
+    if (!opps) opps = await db.opportunities.listByUser(userId, 10000, 0);
 
     let issues = 0;
     const missingEmail = opps.filter(o => !o.email).length;

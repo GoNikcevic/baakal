@@ -20,6 +20,12 @@ const router = Router();
 
 // One-time auth code store (Google OAuth → code → token exchange)
 const _oauthCodes = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of _oauthCodes) {
+    if (val.expiresAt < now) _oauthCodes.delete(key);
+  }
+}, 60000);
 
 // HTTPS helpers — bypass Railway proxy cert issues
 function httpsPost(url, body) {
