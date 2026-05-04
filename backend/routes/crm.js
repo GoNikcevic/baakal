@@ -232,16 +232,19 @@ router.get('/providers', async (req, res, next) => {
   try {
     const providers = ['hubspot', 'salesforce', 'pipedrive', 'folk', 'notion', 'airtable'];
     const labelMap = { hubspot: 'HubSpot', salesforce: 'Salesforce', pipedrive: 'Pipedrive', folk: 'Folk', notion: 'Notion', airtable: 'Airtable' };
-    const statuses = [];
 
-    for (const provider of providers) {
-      const integration = await db.userIntegrations.get(req.user.id, provider);
-      statuses.push({
-        provider,
-        connected: !!integration,
-        label: labelMap[provider] || provider,
-      });
-    }
+    // Single query instead of 6
+    const result = await db.query(
+      `SELECT provider FROM user_integrations WHERE user_id = $1 AND provider = ANY($2)`,
+      [req.user.id, providers]
+    );
+    const connectedSet = new Set(result.rows.map(r => r.provider));
+
+    const statuses = providers.map(provider => ({
+      provider,
+      connected: connectedSet.has(provider),
+      label: labelMap[provider] || provider,
+    }));
 
     res.json({ providers: statuses });
   } catch (err) {

@@ -168,57 +168,69 @@ router.post('/:id/launch', async (req, res, next) => {
 
     await db.query(`UPDATE team_campaigns SET status = 'running' WHERE id = $1`, [tc.id]);
 
-    const contacts = await getTargetContacts(tc);
-    let sent = 0, failed = 0;
+    // Respond immediately — process in background
+    res.status(202).json({ status: 'running', message: 'Campaign launched in background' });
 
-    // Filter out recently emailed contacts
-    const recentEmails = await db.query(
-      `SELECT DISTINCT to_email FROM nurture_emails WHERE team_campaign_id IS NOT NULL AND created_at > now() - interval '7 days'`
-    );
-    const recentSet = new Set(recentEmails.rows.map(r => r.to_email?.toLowerCase()));
-
-    for (const contact of contacts) {
-      if (!contact.email || recentSet.has(contact.email.toLowerCase())) continue;
-      if (!contact.owner_id) continue; // skip contacts without an owner
-
+    // Background processing
+    (async () => {
+      let sent = 0, failed = 0;
       try {
-        // Generate personalized email
-        const prompt = buildEmailPrompt(tc, contact);
-        const result = await claude.callClaude('Return only valid JSON.', prompt, 500);
-        let email = result.parsed;
-        if (!email) {
-          const m = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*"body"[\s\S]*\}/);
-          if (m) email = JSON.parse(m[0]);
-        }
-        if (!email?.subject || !email?.body) {
-          failed++;
-          continue;
-        }
+        const contacts = await getTargetContacts(tc);
 
-        // Send from the OWNER's email account (not the admin's)
-        const sendResult = await sendNurtureEmail(contact.owner_id, {
-          to: contact.email,
-          toName: contact.name,
-          subject: email.subject,
-          body: email.body,
-          opportunityId: contact.id,
-          teamCampaignId: tc.id,
-        });
+        const recentEmails = await db.query(
+          `SELECT DISTINCT to_email FROM nurture_emails WHERE team_campaign_id IS NOT NULL AND created_at > now() - interval '7 days'`
+        );
+        const recentSet = new Set(recentEmails.rows.map(r => r.to_email?.toLowerCase()));
 
-        if (sendResult.success) sent++;
-        else failed++;
+        const toProcess = contacts.filter(c => c.email && !recentSet.has(c.email.toLowerCase()) && c.owner_id);
+
+        // Process in batches of 5 (parallel within batch, sequential between batches)
+        for (let i = 0; i < toProcess.length; i += 5) {
+          // Check if cancelled
+          if (i > 0 && i % 10 === 0) {
+            const fresh = await db.query(`SELECT status FROM team_campaigns WHERE id = $1`, [tc.id]);
+            if (fresh.rows[0]?.status === 'cancelled') break;
+          }
+
+          const batch = toProcess.slice(i, i + 5);
+          const results = await Promise.allSettled(batch.map(async (contact) => {
+            const prompt = buildEmailPrompt(tc, contact);
+            const result = await claude.callClaude('Return only valid JSON.', prompt, 500);
+            let email = result.parsed;
+            if (!email) {
+              const m = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*"body"[\s\S]*\}/);
+              if (m) email = JSON.parse(m[0]);
+            }
+            if (!email?.subject || !email?.body) throw new Error('No email generated');
+
+            return sendNurtureEmail(contact.owner_id, {
+              to: contact.email, toName: contact.name,
+              subject: email.subject, body: email.body,
+              opportunityId: contact.id, teamCampaignId: tc.id,
+            });
+          }));
+
+          for (const r of results) {
+            if (r.status === 'fulfilled' && r.value?.success) sent++;
+            else failed++;
+          }
+
+          // Update progress
+          await db.query(
+            `UPDATE team_campaigns SET sent_count = $1, failed_count = $2 WHERE id = $3`,
+            [sent, failed, tc.id]
+          );
+        }
       } catch (err) {
-        logger.warn('team-campaigns', `Failed for ${contact.email}: ${err.message}`);
-        failed++;
+        logger.error('team-campaigns', `Launch failed: ${err.message}`);
       }
-    }
 
-    await db.query(
-      `UPDATE team_campaigns SET status = 'completed', sent_count = $1, failed_count = $2, completed_at = now() WHERE id = $3`,
-      [sent, failed, tc.id]
-    );
-
-    res.json({ sent, failed, total: contacts.length });
+      await db.query(
+        `UPDATE team_campaigns SET status = 'completed', sent_count = $1, failed_count = $2, completed_at = now() WHERE id = $3`,
+        [sent, failed, tc.id]
+      );
+      logger.info('team-campaigns', `Campaign ${tc.id} done: ${sent} sent, ${failed} failed`);
+    })();
   } catch (err) {
     await db.query(`UPDATE team_campaigns SET status = 'draft' WHERE id = $1`, [req.params.id]).catch(() => {});
     next(err);

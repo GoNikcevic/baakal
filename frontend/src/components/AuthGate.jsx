@@ -127,11 +127,11 @@ const styles = {
   },
 };
 
-export default function AuthGate({ onAuth }) {
+export default function AuthGate({ onAuth, error: externalError }) {
   const t = useT();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(externalError || '');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);

@@ -35,6 +35,7 @@ export default function App() {
   const [onboarded, setOnboarded] = useState(() =>
     localStorage.getItem('bakal_onboarding_complete') === 'true'
   )
+  const [authError, setAuthError] = useState(null)
 
   // Re-initialize data after onboarding completes
   // (initial initData may have run before onboarding was done)
@@ -65,11 +66,13 @@ export default function App() {
           })
           .catch(err => {
             console.error('[google-auth] Exchange error:', err)
+            setAuthError('Google sign-in failed. Please try again.')
             window.history.replaceState({}, '', '/')
           })
       }
 
       if (params.get('error')) {
+        setAuthError('Google sign-in failed. Please try again.')
         window.history.replaceState({}, '', '/')
       }
     }
@@ -128,7 +131,7 @@ export default function App() {
   }
 
   if (!authed) {
-    return <AuthGate onAuth={() => setAuthed(true)} />
+    return <AuthGate onAuth={() => setAuthed(true)} error={authError} />
   }
 
   if (!onboarded) {
