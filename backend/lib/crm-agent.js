@@ -228,12 +228,42 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
               );
             }
           }
-          if (mapped.customFields.status && mapped.customFields.status !== existing.status) {
-            await db.opportunities.update(existing.id, { status: mapped.customFields.status });
+          const fieldUpdates = {};
+          if (mapped.customFields.status && mapped.customFields.status !== existing.status) fieldUpdates.status = mapped.customFields.status;
+          if (mapped.customFields.renewal_date) fieldUpdates.renewal_date = mapped.customFields.renewal_date;
+          if (Object.keys(fieldUpdates).length > 0) {
+            await db.opportunities.update(existing.id, fieldUpdates);
           }
         } catch { /* mapping is optional */ }
       }
     }
+    // Sync deal values + lifecycle dates from CRM deals
+    try {
+      let deals = [];
+      if (crmProvider === 'pipedrive') deals = await pipedrive.getDeals(token, 500);
+      // TODO: add HubSpot/Salesforce deal fetch
+
+      for (const deal of deals) {
+        const personId = deal.personId ? String(deal.personId) : null;
+        if (!personId) continue;
+
+        const opp = await db.query(
+          `SELECT id, status, won_date, lost_date, deal_value FROM opportunities WHERE user_id = $1 AND crm_contact_id = $2 LIMIT 1`,
+          [userId, personId]
+        );
+        if (!opp.rows[0]) continue;
+        const o = opp.rows[0];
+
+        const updates = {};
+        if (deal.value && deal.value !== parseFloat(o.deal_value)) updates.deal_value = deal.value;
+        if (deal.status === 'won' && o.status !== 'won') { updates.status = 'won'; updates.won_date = new Date().toISOString(); }
+        if (deal.status === 'lost' && o.status !== 'lost') { updates.status = 'lost'; updates.lost_date = new Date().toISOString(); }
+
+        if (Object.keys(updates).length > 0) {
+          await db.opportunities.update(o.id, updates);
+        }
+      }
+    } catch { /* deal sync is optional */ }
   } catch (err) {
     report.errors.push(`Sync: ${err.message}`);
   }

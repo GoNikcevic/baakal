@@ -1297,6 +1297,11 @@ const opportunities = {
       owner_id: 'owner_id', ownerId: 'owner_id',
       owner_email: 'owner_email', ownerEmail: 'owner_email',
       crm_owner_id: 'crm_owner_id', crmOwnerId: 'crm_owner_id',
+      deal_value: 'deal_value', dealValue: 'deal_value',
+      won_date: 'won_date', wonDate: 'won_date',
+      lost_date: 'lost_date', lostDate: 'lost_date',
+      renewal_date: 'renewal_date', renewalDate: 'renewal_date',
+      last_activity_at: 'last_activity_at', lastActivityAt: 'last_activity_at',
     };
     const jsonbCols = new Set(['personalization', 'churn_factors']);
     const seen = new Set();

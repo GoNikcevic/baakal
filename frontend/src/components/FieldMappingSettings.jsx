@@ -11,6 +11,7 @@ import { useI18n } from '../i18n';
 const BAAKALAI_FIELDS = [
   { key: 'product_line', label: { fr: 'Ligne de produits', en: 'Product line' } },
   { key: 'status', label: { fr: 'Statut du contact', en: 'Contact status' } },
+  { key: 'renewal_date', label: { fr: 'Date de renouvellement', en: 'Renewal date' } },
 ];
 
 const STATUS_OPTIONS = [

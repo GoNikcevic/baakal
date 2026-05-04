@@ -143,6 +143,7 @@ app.use('/api/crm', requireAuth, crmRouter);
 app.use('/api/team-campaigns', requireAuth, require('./routes/team-campaigns'));
 app.use('/api/strategic', requireAuth, require('./routes/strategic'));
 app.use('/api/analytics', requireAuth, analyticsRouter);
+app.use('/api/analytics/membership', requireAuth, require('./routes/analytics-membership'));
 app.use('/api/notifications', requireAuth, require('./routes/notifications'));
 app.use('/api/templates', requireAuth, require('./routes/templates'));
 app.use('/api/nurture', requireAuth, require('./routes/nurture'));

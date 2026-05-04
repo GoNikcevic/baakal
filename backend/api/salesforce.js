@@ -127,12 +127,127 @@ function mapOpportunityToContact(opp) {
   };
 }
 
+// ── Update Contact ──
+
+async function updateContact(instanceUrl, accessToken, contactId, data) {
+  await sfFetch(instanceUrl, accessToken, `/sobjects/Contact/${contactId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      FirstName: data.firstName,
+      LastName: data.lastName,
+      Email: data.email,
+      Title: data.title,
+      ...(data.company ? { Account: { Name: data.company } } : {}),
+    }),
+  });
+  return { id: contactId };
+}
+
+// ── Upsert Contact (search by email, update or create) ──
+
+async function upsertContact(instanceUrl, accessToken, data) {
+  const existing = await searchContacts(instanceUrl, accessToken, data.email);
+  if (existing && existing.length > 0) {
+    const contactId = existing[0].Id;
+    await updateContact(instanceUrl, accessToken, contactId, data);
+    return { id: contactId, created: false };
+  }
+  const created = await createContact(instanceUrl, accessToken, data);
+  return { id: created.id, created: true };
+}
+
+// ── Get Deal by ID ──
+
+async function getDeal(instanceUrl, accessToken, dealId) {
+  return sfFetch(instanceUrl, accessToken, `/sobjects/Opportunity/${dealId}`);
+}
+
+// ── Get Deal Stages (dynamic discovery) ──
+
+async function getStages(instanceUrl, accessToken) {
+  const result = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent("SELECT Id, MasterLabel, SortOrder, IsClosed, IsWon FROM OpportunityStage ORDER BY SortOrder")}`
+  );
+  return (result.records || []).map(s => ({
+    id: s.Id,
+    name: s.MasterLabel,
+    order: s.SortOrder,
+    isClosed: s.IsClosed,
+    isWon: s.IsWon,
+  }));
+}
+
+// ── Get Users (for owner mapping) ──
+
+async function getUsers(instanceUrl, accessToken) {
+  const result = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent("SELECT Id, Name, Email, IsActive FROM User WHERE IsActive = true LIMIT 200")}`
+  );
+  return (result.records || []).map(u => ({
+    id: u.Id,
+    name: u.Name,
+    email: u.Email,
+    active: u.IsActive,
+  }));
+}
+
+// ── Get Activities/Tasks ──
+
+async function getActivities(instanceUrl, accessToken, contactId) {
+  const result = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent(`SELECT Id, Subject, Status, ActivityDate, Description, WhoId FROM Task WHERE WhoId = '${contactId}' ORDER BY ActivityDate DESC LIMIT 50`)}`
+  );
+  return (result.records || []).map(a => ({
+    id: a.Id,
+    subject: a.Subject,
+    status: a.Status,
+    date: a.ActivityDate,
+    description: a.Description,
+  }));
+}
+
+// ── List All Contacts ──
+
+async function listContacts(instanceUrl, accessToken, { limit = 500 } = {}) {
+  const result = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent(`SELECT Id, FirstName, LastName, Email, Title, Account.Name, OwnerId FROM Contact WHERE Email != null ORDER BY CreatedDate DESC LIMIT ${limit}`)}`
+  );
+  return (result.records || []).map(c => ({
+    id: c.Id,
+    name: `${c.FirstName || ''} ${c.LastName || ''}`.trim(),
+    email: c.Email,
+    title: c.Title,
+    company: c.Account?.Name || '',
+    ownerId: c.OwnerId,
+  }));
+}
+
+// ── Get Contact Fields (for field mapping) ──
+
+async function getContactFields(instanceUrl, accessToken) {
+  const data = await sfFetch(instanceUrl, accessToken, '/sobjects/Contact/describe');
+  return (data.fields || []).map(f => ({
+    key: f.name,
+    name: f.label,
+    type: f.type,
+    options: (f.picklistValues || []).map(p => ({ id: p.value, label: p.label })),
+  }));
+}
+
 module.exports = {
   createContact,
+  updateContact,
+  upsertContact,
   searchContacts,
+  listContacts,
   createDeal,
   updateDeal,
+  getDeal,
   getDeals,
+  getStages,
+  getUsers,
+  getActivities,
+  getContactFields,
   createNote,
   mapStatusToStage,
   mapOpportunityToContact,

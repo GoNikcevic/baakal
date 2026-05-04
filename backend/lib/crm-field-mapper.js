@@ -137,6 +137,10 @@ async function applyMappings(userId, crmProvider, rawContact) {
     } else if (mapping.baakalai_field === 'status') {
       const mappedStatus = values[String(fieldValue)];
       if (mappedStatus) result.customFields.status = mappedStatus;
+    } else if (mapping.baakalai_field === 'renewal_date') {
+      // Date field — parse and store as ISO date
+      const date = new Date(fieldValue);
+      if (!isNaN(date.getTime())) result.customFields.renewal_date = date.toISOString();
     } else {
       result.customFields[mapping.baakalai_field] = fieldValue;
     }

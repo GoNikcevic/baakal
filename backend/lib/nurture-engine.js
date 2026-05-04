@@ -92,7 +92,23 @@ async function evaluateTriggers(userId) {
       }
 
       case 'renewal': {
-        // TODO: needs custom field mapping for renewal date
+        const daysBefore = conditions.days || 30;
+        const now = Date.now();
+        // Load opportunities with renewal_date set
+        const oppsWithRenewal = await db.query(
+          `SELECT o.* FROM opportunities o WHERE o.user_id = (SELECT user_id FROM nurture_triggers WHERE id = $1) AND o.renewal_date IS NOT NULL AND o.status != 'lost'`,
+          [trigger.id]
+        );
+        for (const o of (oppsWithRenewal.rows || [])) {
+          const renewalTime = new Date(o.renewal_date).getTime();
+          const daysUntilRenewal = (renewalTime - now) / DAY_MS;
+          // Match if within window: X days before to 7 days after
+          if (daysUntilRenewal <= daysBefore && daysUntilRenewal >= -7) {
+            const contact = contacts.find(c => c.id === o.crm_contact_id);
+            if (contact) matched.push(normalizeContact(contact, { name: o.company, status: 'open' }));
+            else matched.push({ id: o.id, name: o.name, email: o.email, title: o.title || '', company: o.company || '', dealName: null, dealStage: null, dealStatus: 'renewal' });
+          }
+        }
         break;
       }
 
