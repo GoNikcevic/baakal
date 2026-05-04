@@ -920,6 +920,7 @@ export default function SettingsPage() {
 /* ═══ Odoo Config Form ═══ */
 
 function OdooConfigForm({ onSave, onCancel, saving, isConnected, onRemove }) {
+  const { t } = useI18n();
   const [url, setUrl] = useState('');
   const [dbName, setDbName] = useState('');
   const [username, setUsername] = useState('');

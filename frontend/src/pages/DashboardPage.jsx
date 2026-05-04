@@ -538,6 +538,7 @@ function WelcomeBanner({ onCreateCampaign }) {
 }
 
 function EmptyKpis() {
+  const t = useT();
   const items = [
     { label: '\u{1F4E4} Contacts atteints' },
     { label: "\u{1F4EC} Taux d'ouverture" },
@@ -565,6 +566,7 @@ function EmptyKpis() {
 }
 
 function EmptyOverviewGrid({ onCreateCampaign }) {
+  const t = useT();
   return (
     <div className="section-grid">
       <div className="card card-empty">
