@@ -156,12 +156,13 @@ router.get('/triggers', async (req, res, next) => {
 // PATCH /api/nurture/triggers/:id
 router.patch('/triggers/:id', async (req, res, next) => {
   try {
-    const { name, conditions, emailTemplate, mode, enabled } = req.body;
+    const { name, conditions, emailTemplate, mode, enabled, abEnabled } = req.body;
     const sets = [];
     const values = [];
     let i = 1;
     if (name !== undefined) { sets.push(`name = $${i++}`); values.push(name); }
     if (conditions !== undefined) { sets.push(`conditions = $${i++}`); values.push(JSON.stringify(conditions)); }
+    if (abEnabled !== undefined) { sets.push(`ab_enabled = $${i++}`); values.push(abEnabled); }
     if (emailTemplate !== undefined) { sets.push(`email_template = $${i++}`); values.push(JSON.stringify(emailTemplate)); }
     if (mode !== undefined) { sets.push(`mode = $${i++}`); values.push(mode); }
     if (enabled !== undefined) { sets.push(`enabled = $${i++}`); values.push(enabled); }
@@ -568,6 +569,37 @@ async function microsoftCallback(req, res) {
     res.redirect(APP_URL + '/settings?email_error=microsoft_failed');
   }
 }
+
+// GET /api/nurture/ab-results — Get A/B test results
+router.get('/ab-results', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT ab_group_id, variant,
+        COUNT(*) AS sent,
+        COUNT(*) FILTER (WHERE replied_at IS NOT NULL OR sentiment = 'positive') AS replies,
+        MIN(subject) AS sample_subject,
+        MIN(created_at) AS started_at
+      FROM nurture_emails
+      WHERE user_id = $1 AND ab_group_id IS NOT NULL AND status = 'sent'
+      GROUP BY ab_group_id, variant
+      ORDER BY MIN(created_at) DESC
+    `, [req.user.id]);
+
+    // Group by ab_group_id
+    const groups = {};
+    for (const r of result.rows) {
+      if (!groups[r.ab_group_id]) groups[r.ab_group_id] = { id: r.ab_group_id, startedAt: r.started_at, variants: {} };
+      groups[r.ab_group_id].variants[r.variant] = {
+        sent: parseInt(r.sent),
+        replies: parseInt(r.replies),
+        replyRate: parseInt(r.sent) > 0 ? Math.round((parseInt(r.replies) / parseInt(r.sent)) * 100) : 0,
+        sampleSubject: r.sample_subject,
+      };
+    }
+
+    res.json({ tests: Object.values(groups) });
+  } catch (err) { next(err); }
+});
 
 // POST /api/nurture/send — Send a one-off personal email (from chat or UI)
 router.post('/send', async (req, res, next) => {

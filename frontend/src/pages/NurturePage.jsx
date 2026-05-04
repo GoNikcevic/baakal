@@ -391,6 +391,23 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <button
                       className="btn btn-ghost"
+                      style={{
+                        fontSize: 10, padding: '4px 10px',
+                        color: trigger.ab_enabled ? 'var(--accent)' : 'var(--text-muted)',
+                        border: `1px solid ${trigger.ab_enabled ? 'var(--accent)' : 'var(--border)'}`,
+                        background: trigger.ab_enabled ? 'rgba(110,87,250,0.06)' : 'transparent',
+                      }}
+                      onClick={async () => {
+                        try {
+                          await request(`/nurture/triggers/${trigger.id}`, { method: 'PATCH', body: JSON.stringify({ abEnabled: !trigger.ab_enabled }) });
+                          onRefresh();
+                        } catch { showToast({ type: 'error', title: 'Erreur', message: 'Failed to toggle A/B' }); }
+                      }}
+                    >
+                      A/B {trigger.ab_enabled ? 'ON' : 'OFF'}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
                       style={{ fontSize: 10, padding: '4px 10px', color: trigger.enabled ? 'var(--warning)' : 'var(--success)' }}
                       onClick={() => handleToggle(trigger.id, trigger.enabled)}
                     >

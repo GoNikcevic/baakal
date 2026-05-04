@@ -94,6 +94,15 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
       report.errors.push(`Responses: ${err.message}`);
     }
 
+    // ── Step 4b: A/B Test Analysis ──
+    try {
+      const { analyzeAbTests } = require('./agents/ab-analyzer');
+      const abReport = await analyzeAbTests(userId);
+      report.abTests = abReport;
+    } catch (err) {
+      report.errors.push(`A/B: ${err.message}`);
+    }
+
     // ── Step 5: Churn Scoring ──
     try {
       const { scoreAllForUser } = require('./churn-scoring');
@@ -357,10 +366,25 @@ async function stepNurture(userId, token, report) {
       matched = matched.filter(o => o.email && !recentSet.has(o.email.toLowerCase()));
       report.nurture.evaluated += matched.length;
 
-      for (const opp of matched.slice(0, 10)) { // max 10 per trigger per run
+      // A/B testing: split contacts into two groups
+      const abEnabled = trigger.ab_enabled && matched.length >= 4;
+      const abGroupId = abEnabled ? `ab_${trigger.id}_${Date.now()}` : null;
+
+      for (let idx = 0; idx < Math.min(matched.length, 10); idx++) {
+        const opp = matched[idx];
         try {
-          // Generate email with Claude
-          const emailContent = await generateNurtureEmail(trigger, opp);
+          // Generate email(s) — A/B or single
+          const emailContent = await generateNurtureEmail(trigger, opp, { abTest: abEnabled && idx < 2 });
+
+          // Determine which variant to use
+          let variant = null;
+          let email;
+          if (abEnabled && emailContent.A && emailContent.B) {
+            variant = idx % 2 === 0 ? 'A' : 'B';
+            email = emailContent[variant];
+          } else {
+            email = emailContent.subject ? emailContent : (emailContent.A || emailContent);
+          }
 
           if (trigger.mode === 'auto') {
             const result = await sendNurtureEmail(userId, {
@@ -368,18 +392,23 @@ async function stepNurture(userId, token, report) {
               opportunityId: opp.id,
               to: opp.email,
               toName: opp.name,
-              subject: emailContent.subject,
-              body: emailContent.body,
-              crmProvider: 'pipedrive',
+              subject: email.subject,
+              body: email.body,
+              crmProvider,
             });
-            if (result.success) report.nurture.sent++;
-            else report.errors.push(`Email to ${opp.name}: ${result.error}`);
+            if (result.success) {
+              // Tag with variant info
+              if (variant && result.emailId) {
+                await db.query(`UPDATE nurture_emails SET variant = $1, ab_group_id = $2 WHERE id = $3`, [variant, abGroupId, result.emailId]);
+              }
+              report.nurture.sent++;
+            } else report.errors.push(`Email to ${opp.name}: ${result.error}`);
           } else {
-            // Queue for approval
+            // Queue for approval with variant info
             await db.query(`
-              INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
-            `, [userId, trigger.id, opp.id, opp.email, opp.name, emailContent.subject, emailContent.body]);
+              INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status, variant, ab_group_id)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
+            `, [userId, trigger.id, opp.id, opp.email, opp.name, email.subject, email.body, variant, abGroupId]);
             report.nurture.queued++;
           }
 
@@ -397,7 +426,11 @@ async function stepNurture(userId, token, report) {
   }
 }
 
-async function generateNurtureEmail(trigger, opp) {
+/**
+ * Generate nurture email(s). If abTest=true, returns { A: {subject,body}, B: {subject,body} }
+ * Otherwise returns { subject, body }
+ */
+async function generateNurtureEmail(trigger, opp, { abTest = false } = {}) {
   const template = trigger.email_template || {};
 
   // Load relevant memory patterns (user-applied + high confidence)
@@ -407,7 +440,7 @@ async function generateNurtureEmail(trigger, opp) {
     if (allPatterns.length > 0) {
       patternsContext = `\n\nPATTERNS QUI FONCTIONNENT (m\u00E9moire cross-campagne) :\n` +
         allPatterns.map(p => `- ${p.applied ? '[APPROUV\u00c9]' : `[${p.confidence}]`} ${p.pattern}`).join('\n') +
-        `\nApplique en priorit\u00e9 les patterns APPROUV\u00c9S. Utilise-les pour le ton, l'angle et la structure. Ne copie pas mot pour mot.`;
+        `\nApplique en priorit\u00e9 les patterns APPROUV\u00c9S.`;
     }
   } catch { /* patterns optional */ }
 
@@ -418,18 +451,46 @@ async function generateNurtureEmail(trigger, opp) {
   if (effectiveness && effectiveness.total >= 3) {
     effectivenessContext = `\n\nEFFICACIT\u00C9 DE CE TRIGGER : ${effectiveness.successRate}% de r\u00E9ponses positives sur ${effectiveness.total} envois.`;
     if (effectiveness.successRate < 30) {
-      effectivenessContext += ` Le taux est faible \u2014 essaie un angle diff\u00E9rent de ce qui a \u00E9t\u00E9 fait pr\u00E9c\u00E9demment.`;
+      effectivenessContext += ` Le taux est faible \u2014 essaie un angle diff\u00E9rent.`;
     } else if (effectiveness.successRate >= 60) {
-      effectivenessContext += ` Le taux est bon \u2014 garde un ton similaire aux emails pr\u00E9c\u00E9dents.`;
+      effectivenessContext += ` Le taux est bon \u2014 garde un ton similaire.`;
     }
   }
 
+  const contactCtx = `${opp.name} (${opp.title || ''}) chez ${opp.company || ''}`;
+  const triggerCtx = `${trigger.trigger_type} \u2014 ${trigger.name}`;
+  const toneCtx = template.tone || 'professionnel mais chaleureux';
+
+  if (abTest) {
+    const prompt = `G\u00E9n\u00E8re DEUX variantes d'email personnel (PAS marketing) pour A/B testing.
+- Contact : ${contactCtx}
+- Trigger : ${triggerCtx}
+- Ton : ${toneCtx}
+- Max 6 lignes chaque, texte simple, doit sembler humain
+
+Variante A : approche directe et concise
+Variante B : approche diff\u00E9rente (angle, sujet, ou ton)
+Les deux doivent \u00EAtre radicalement diff\u00E9rentes pour que le test soit significatif.${patternsContext}${effectivenessContext}
+
+Retourne un JSON : { "A": { "subject": "...", "body": "..." }, "B": { "subject": "...", "body": "..." } }`;
+
+    try {
+      const result = await claude.callClaude('Retourne uniquement du JSON valide.', prompt, 800);
+      let parsed = result.parsed;
+      if (!parsed) {
+        const match = (result.content || '').match(/\{[\s\S]*"A"[\s\S]*"B"[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+      if (parsed?.A?.subject && parsed?.B?.subject) return parsed;
+    } catch { /* fallback to single */ }
+  }
+
+  // Single email (no A/B or A/B generation failed)
   const prompt = `G\u00E9n\u00E8re un email personnel (PAS marketing) pour :
-- ${opp.name} (${opp.title || ''}) chez ${opp.company || ''}
-- Trigger : ${trigger.trigger_type} \u2014 ${trigger.name}
-- Ton : ${template.tone || 'professionnel mais chaleureux'}
-- Max 6 lignes, texte simple
-- L'email doit sembler \u00E9crit par un humain, pas g\u00E9n\u00E9r\u00E9${patternsContext}${effectivenessContext}
+- ${contactCtx}
+- Trigger : ${triggerCtx}
+- Ton : ${toneCtx}
+- Max 6 lignes, texte simple, doit sembler humain${patternsContext}${effectivenessContext}
 
 Retourne un JSON : { "subject": "...", "body": "..." }`;
 
