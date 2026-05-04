@@ -386,10 +386,14 @@ router.post('/memory/:id/toggle-apply', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/ai/memory/:id — delete a single memory pattern
+// DELETE /api/ai/memory/:id — soft-delete (dismiss) a memory pattern
+// Pattern won't be recreated by agents for 7 days
 router.delete('/memory/:id', async (req, res, next) => {
   try {
-    await db.memoryPatterns.delete(req.params.id);
+    await db.query(
+      `UPDATE memory_patterns SET dismissed_at = now() WHERE id = $1`,
+      [req.params.id]
+    );
     res.json({ deleted: true });
   } catch (err) {
     next(err);

@@ -579,7 +579,7 @@ const versions = {
 const memoryPatterns = {
   async list(filter = {}) {
     let sql = 'SELECT * FROM memory_patterns';
-    const conditions = [];
+    const conditions = ['dismissed_at IS NULL'];
     const params = [];
     let i = 1;
     if (filter.category) {
@@ -696,7 +696,7 @@ const memoryPatterns = {
   async listForPrompt(limit = 15) {
     const result = await query(
       `SELECT * FROM memory_patterns
-       WHERE applied = true OR confidence = 'Haute'
+       WHERE dismissed_at IS NULL AND (applied = true OR confidence = 'Haute')
        ORDER BY applied DESC, date_discovered DESC
        LIMIT $1`,
       [limit]
@@ -709,19 +709,28 @@ const memoryPatterns = {
    * or create a new one. Prevents pattern explosion from repeated agent runs.
    */
   async replaceOrCreate(data) {
-    // Try to find existing pattern with same category and similar content
+    // Check if a similar pattern was dismissed within the last 7 days — respect user's choice
+    const prefix = (data.pattern || '').slice(0, 30);
+    if (prefix.length >= 10) {
+      const dismissed = await query(
+        `SELECT id FROM memory_patterns WHERE category = $1 AND pattern LIKE $2 AND dismissed_at > now() - interval '7 days' LIMIT 1`,
+        [data.category, prefix + '%']
+      );
+      if (dismissed.rows[0]) return null; // User dismissed this recently, don't recreate
+    }
+
+    // Try to find existing active pattern with same category and content
     const existing = await query(
-      `SELECT id FROM memory_patterns WHERE category = $1 AND pattern = $2 LIMIT 1`,
+      `SELECT id FROM memory_patterns WHERE category = $1 AND pattern = $2 AND dismissed_at IS NULL LIMIT 1`,
       [data.category, data.pattern]
     );
     if (existing.rows[0]) {
       return this.update(existing.rows[0].id, data);
     }
-    // Also check by partial match (pattern text may change slightly)
-    const prefix = (data.pattern || '').slice(0, 30);
+    // Also check by partial match
     if (prefix.length >= 10) {
       const partial = await query(
-        `SELECT id FROM memory_patterns WHERE category = $1 AND pattern LIKE $2 LIMIT 1`,
+        `SELECT id FROM memory_patterns WHERE category = $1 AND pattern LIKE $2 AND dismissed_at IS NULL LIMIT 1`,
         [data.category, prefix + '%']
       );
       if (partial.rows[0]) {
@@ -732,9 +741,14 @@ const memoryPatterns = {
   },
 
   async pruneOld(daysOld = 90) {
+    // Delete old low-confidence patterns
     const result = await query(
       `DELETE FROM memory_patterns WHERE confidence = 'Faible' AND created_at < NOW() - INTERVAL '1 day' * $1 RETURNING id`,
       [daysOld]
+    );
+    // Also permanently delete dismissed patterns older than 30 days
+    await query(
+      `DELETE FROM memory_patterns WHERE dismissed_at IS NOT NULL AND dismissed_at < NOW() - INTERVAL '30 days'`
     );
     return result.rows.length;
   },
