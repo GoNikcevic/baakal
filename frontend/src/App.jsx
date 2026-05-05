@@ -33,6 +33,7 @@ const IntegrationsPage = lazyRetry(() => import('./pages/IntegrationsPage'))
 const CRMAnalyticsPage = lazyRetry(() => import('./pages/CRMAnalyticsPage'))
 const ClientsPage = lazyRetry(() => import('./pages/ClientsPage'))
 const NurturePage = lazyRetry(() => import('./pages/NurturePage'))
+const SignalsPage = lazyRetry(() => import('./pages/SignalsPage'))
 const JoinTeamPage = lazyRetry(() => import('./pages/JoinTeamPage'))
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'))
 
@@ -173,6 +174,7 @@ export default function App() {
             <Route path="/integrations" element={<IntegrationsPage />} />
             <Route path="/crm-analytics" element={<CRMAnalyticsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/signals" element={<SignalsPage />} />
             <Route path="/nurture" element={<NurturePage />} />
             <Route path="/join/:code" element={<JoinTeamPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
