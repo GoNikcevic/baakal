@@ -80,8 +80,29 @@ async function runProspectionAgent() {
     logger.error('prospection-agent', `Deliverability failed: ${err.message}`);
   }
 
+  // ── Step 4: Signal-based prospecting ──
+  try {
+    const { run: runSignalAgent } = require('./agents/signal-agent');
+    const users = await db.query(
+      `SELECT DISTINCT user_id FROM signal_configs WHERE enabled = true`
+    );
+    let totalSignals = 0;
+    for (const { user_id } of users.rows) {
+      try {
+        const signalReport = await runSignalAgent(user_id);
+        totalSignals += signalReport.detected;
+      } catch (err) {
+        logger.warn('prospection-agent', `Signal scan failed for ${user_id}: ${err.message}`);
+      }
+    }
+    report.signals = totalSignals;
+    if (totalSignals > 0) logger.info('prospection-agent', `Signal agent: ${totalSignals} signals detected`);
+  } catch (err) {
+    report.errors.push({ step: 'signals', error: err.message });
+  }
+
   report.duration = Date.now() - startTime;
-  logger.info('prospection-agent', `Complete in ${report.duration}ms — stats: ${report.stats?.collected || 0}, batch: ${report.batch ? 'yes' : 'skipped'}, deliv: ${report.deliverability ? 'yes' : 'skipped'}, errors: ${report.errors.length}`);
+  logger.info('prospection-agent', `Complete in ${report.duration}ms — stats: ${report.stats?.collected || 0}, batch: ${report.batch ? 'yes' : 'skipped'}, deliv: ${report.deliverability ? 'yes' : 'skipped'}, signals: ${report.signals || 0}, errors: ${report.errors.length}`);
 
   return report;
 }
