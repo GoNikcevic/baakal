@@ -489,7 +489,7 @@ export default function ProfilePage() {
                 className="btn btn-primary"
                 onClick={handleAutoFill}
                 disabled={autoFilling}
-                style={{ marginTop: 12 }}
+                style={{ marginTop: 12, width: 'auto', alignSelf: 'flex-start' }}
               >
                 {autoFilling ? 'Analyse en cours...' : '\uD83E\uDDE0 Auto-remplir avec mes documents entreprise'}
               </button>
