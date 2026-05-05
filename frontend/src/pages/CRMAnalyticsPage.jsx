@@ -561,7 +561,15 @@ function CRMHealthSection() {
   const [scanning, setScanning] = useState(true);
   const [fixing, setFixing] = useState(null);
   const [fixResults, setFixResults] = useState(null);
-  const [provider] = useState('pipedrive');
+  const [provider, setProvider] = useState('pipedrive');
+
+  // Auto-detect connected CRM provider
+  useEffect(() => {
+    api.request('/crm/providers').then(data => {
+      const connected = (data.providers || []).find(p => ['pipedrive', 'hubspot', 'salesforce', 'odoo'].includes(p.provider) && p.connected);
+      if (connected) setProvider(connected.provider);
+    }).catch(() => {});
+  }, []);
 
   const handleScan = useCallback(async () => {
     setScanning(true);

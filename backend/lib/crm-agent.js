@@ -54,7 +54,7 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     errors: [],
   };
 
-  // Detect connected CRM provider
+  // Detect connected CRM provider and resolve credentials
   let crmProvider = 'pipedrive';
   let token = await getUserKey(userId, 'pipedrive');
   if (!token) {
@@ -69,12 +69,28 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     return report;
   }
 
+  // Salesforce needs instanceUrl + accessToken as credentials object
+  let crmCreds = token;
+  if (crmProvider === 'salesforce') {
+    const { decrypt } = require('../config/crypto');
+    const integration = await db.query(
+      `SELECT access_token, instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`,
+      [userId]
+    );
+    if (integration.rows[0]) {
+      crmCreds = {
+        accessToken: typeof token === 'string' ? token : decrypt(integration.rows[0].access_token),
+        instanceUrl: integration.rows[0].instance_url || 'https://login.salesforce.com',
+      };
+    }
+  }
+
   // Notify user that agent is working
   notifyUser(userId, 'crm-agent', { status: 'running', trigger });
 
   try {
     // ── Step 1: Delta Sync ──
-    await stepSync(userId, token, report, event, crmProvider);
+    await stepSync(userId, crmCreds, report, event, crmProvider);
 
     // Pre-load opportunities once for Steps 2-6 (avoid 3x identical query)
     const _opps = await db.opportunities.listByUser(userId, 10000, 0);
@@ -107,7 +123,10 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     try {
       const { scoreAllForUser } = require('./churn-scoring');
       let deals = [];
-      try { deals = await pipedrive.getDeals(token, 500); } catch { /* ok */ }
+      try {
+        if (crmProvider === 'pipedrive') deals = await pipedrive.getDeals(crmCreds, 500);
+        else if (crmProvider === 'salesforce') { const sf = require('../api/salesforce'); deals = await sf.getDeals(crmCreds.instanceUrl, crmCreds.accessToken); }
+      } catch { /* ok */ }
       const churnReport = await scoreAllForUser(userId, { deals });
       report.churn = churnReport;
       if (churnReport.atRisk > 0) {
@@ -158,7 +177,23 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
       return;
     }
 
-    const persons = await pipedrive.listAllPersons(token);
+    // Fetch contacts from the connected CRM
+    let persons = [];
+    if (crmProvider === 'pipedrive') {
+      persons = await pipedrive.listAllPersons(token);
+    } else if (crmProvider === 'salesforce') {
+      const salesforce = require('../api/salesforce');
+      persons = await salesforce.listContacts(token.instanceUrl, token.accessToken);
+    } else if (crmProvider === 'hubspot') {
+      // HubSpot returns contacts via search
+      const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=500&properties=email,firstname,lastname,jobtitle,company,hubspot_owner_id', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { const d = await res.json(); persons = (d.results || []).map(c => ({ id: c.id, name: `${c.properties?.firstname || ''} ${c.properties?.lastname || ''}`.trim(), email: c.properties?.email, job_title: c.properties?.jobtitle, org_name: c.properties?.company, owner_id: c.properties?.hubspot_owner_id })); }
+    } else if (crmProvider === 'odoo') {
+      const odoo = require('../api/odoo');
+      persons = await odoo.listAllContacts(token);
+    }
     const existingOpps = await db.opportunities.listByUser(userId, 10000, 0);
     const existingByEmail = new Map();
     for (const o of existingOpps) {
@@ -187,8 +222,8 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
           userId,
           name: raw.name || 'Unknown',
           email,
-          title: raw.job_title || null,
-          company: raw.org_name || raw.org_id?.name || null,
+          title: raw.job_title || raw.title || null,
+          company: raw.org_name || raw.org_id?.name || raw.company || null,
           status: 'imported',
           crmProvider,
           crmContactId: String(raw.id),
@@ -198,9 +233,11 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
         });
         report.sync.imported++;
       } else {
-        // Update if Pipedrive data is different
+        // Update if CRM data is different
         const updates = {};
         if (raw.name && raw.name !== existing.name) updates.name = raw.name;
+        const title = raw.job_title || raw.title;
+        if (title && title !== existing.title) updates.title = title;
         if (raw.job_title && raw.job_title !== existing.title) updates.title = raw.job_title;
         const company = raw.org_name || raw.org_id?.name || '';
         if (company && company !== existing.company) updates.company = company;
@@ -240,8 +277,8 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
     // Sync deal values + lifecycle dates from CRM deals
     try {
       let deals = [];
-      if (crmProvider === 'pipedrive') deals = await pipedrive.getDeals(token, 500);
-      // TODO: add HubSpot/Salesforce deal fetch
+      if (crmProvider === 'pipedrive') deals = await pipedrive.getDeals(crmCreds, 500);
+      else if (crmProvider === 'salesforce') { const sf = require('../api/salesforce'); deals = await sf.getDeals(crmCreds.instanceUrl, crmCreds.accessToken); }
 
       for (const deal of deals) {
         const personId = deal.personId ? String(deal.personId) : null;

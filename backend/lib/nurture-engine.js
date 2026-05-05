@@ -38,12 +38,29 @@ async function evaluateTriggers(userId) {
   const crmToken = await getUserKey(userId, crmProvider);
   if (!crmToken) return [];
 
-  // Get CRM data
+  // Get CRM data (multi-provider)
   let contacts = [];
   let deals = [];
   if (crmProvider === 'pipedrive') {
     contacts = await pipedrive.listAllPersons(crmToken);
     deals = await pipedrive.getDeals(crmToken, 500);
+  } else if (crmProvider === 'salesforce') {
+    const sf = require('../api/salesforce');
+    const integration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [userId]
+    );
+    const instanceUrl = integration.rows[0]?.instance_url || 'https://login.salesforce.com';
+    contacts = await sf.listContacts(instanceUrl, crmToken);
+    deals = await sf.getDeals(instanceUrl, crmToken);
+  } else if (crmProvider === 'hubspot') {
+    const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=500&properties=email,firstname,lastname,jobtitle,company', {
+      headers: { Authorization: `Bearer ${crmToken}` },
+    });
+    if (res.ok) { const d = await res.json(); contacts = (d.results || []).map(c => ({ id: c.id, name: `${c.properties?.firstname || ''} ${c.properties?.lastname || ''}`.trim(), email: c.properties?.email, job_title: c.properties?.jobtitle, org_name: c.properties?.company })); }
+  } else if (crmProvider === 'odoo') {
+    const odoo = require('../api/odoo');
+    contacts = await odoo.listAllContacts(crmToken);
+    deals = await odoo.getDeals(crmToken);
   }
 
   const results = [];

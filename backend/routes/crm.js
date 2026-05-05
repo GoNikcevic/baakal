@@ -589,6 +589,59 @@ router.post('/import/:provider', async (req, res, next) => {
           errors.push({ name: raw.name, error: err.message });
         }
       }
+    } else if (provider === 'salesforce') {
+      const integration = await db.query(
+        `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]
+      );
+      const instanceUrl = integration.rows[0]?.instance_url || 'https://login.salesforce.com';
+      const sf = require('../api/salesforce');
+      const contacts = await sf.listContacts(instanceUrl, token);
+
+      for (const raw of contacts) {
+        try {
+          if (!raw.email) { skipped++; continue; }
+          const existing = await db.opportunities.findByEmail(req.user.id, raw.email);
+          if (existing) { skipped++; continue; }
+          await db.opportunities.create({
+            userId: req.user.id,
+            name: raw.name || 'Unknown',
+            email: raw.email,
+            title: raw.title || null,
+            company: raw.company || null,
+            status: 'imported',
+            crmProvider: 'salesforce',
+            crmContactId: String(raw.id),
+            crmOwnerId: raw.ownerId || null,
+          });
+          imported++;
+        } catch (err) { errors.push({ name: raw.name, error: err.message }); }
+      }
+    } else if (provider === 'hubspot') {
+      const res2 = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=500&properties=email,firstname,lastname,jobtitle,company', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res2.ok) {
+        const data = await res2.json();
+        for (const c of (data.results || [])) {
+          try {
+            const email = c.properties?.email;
+            if (!email) { skipped++; continue; }
+            const existing = await db.opportunities.findByEmail(req.user.id, email);
+            if (existing) { skipped++; continue; }
+            await db.opportunities.create({
+              userId: req.user.id,
+              name: `${c.properties?.firstname || ''} ${c.properties?.lastname || ''}`.trim() || 'Unknown',
+              email,
+              title: c.properties?.jobtitle || null,
+              company: c.properties?.company || null,
+              status: 'imported',
+              crmProvider: 'hubspot',
+              crmContactId: String(c.id),
+            });
+            imported++;
+          } catch (err) { errors.push({ error: err.message }); }
+        }
+      }
     } else {
       return res.status(400).json({ error: `Import not yet supported for ${provider}` });
     }
@@ -691,6 +744,11 @@ router.get('/client/:id', async (req, res, next) => {
         const token = await getUserCrmToken(req.user.id, opp.crm_provider);
         if (token && opp.crm_provider === 'pipedrive') {
           crmActivities = await pipedrive.getActivities(token, parseInt(opp.crm_contact_id, 10));
+        } else if (token && opp.crm_provider === 'salesforce') {
+          const sf = require('../api/salesforce');
+          const integration = await db.query(`SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]);
+          const instanceUrl = integration.rows[0]?.instance_url || 'https://login.salesforce.com';
+          crmActivities = await sf.getActivities(instanceUrl, token, opp.crm_contact_id);
         } else if (token && opp.crm_provider === 'odoo') {
           let creds;
           try { creds = JSON.parse(token); } catch { creds = null; }
@@ -721,12 +779,19 @@ router.post('/churn/score', async (req, res, next) => {
     const { scoreAllForUser } = require('../lib/churn-scoring');
     const { getUserKey } = require('../config');
 
-    // Try to get deals from CRM for better scoring
+    // Try to get deals from connected CRM for better scoring
     let deals = [];
-    const token = await getUserKey(req.user.id, 'pipedrive');
-    if (token) {
+    for (const provider of ['pipedrive', 'salesforce', 'hubspot']) {
+      const token = await getUserKey(req.user.id, provider);
+      if (!token) continue;
       try {
-        deals = await pipedrive.getDeals(token, 500);
+        if (provider === 'pipedrive') deals = await pipedrive.getDeals(token, 500);
+        else if (provider === 'salesforce') {
+          const sf = require('../api/salesforce');
+          const integ = await db.query(`SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]);
+          deals = await sf.getDeals(integ.rows[0]?.instance_url || 'https://login.salesforce.com', token);
+        }
+        break;
       } catch { /* scoring works without deals */ }
     }
 
