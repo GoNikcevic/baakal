@@ -746,7 +746,7 @@ function ProductLinesSection({ profile, renderInput, renderTextarea, renderSelec
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12 }}>×</button>
                       </div>
                     ))}
-                    <button className="btn btn-primary" onClick={handleAutoFill} disabled={autoFilling} style={{ marginTop: 6, fontSize: 12 }}>
+                    <button className="btn btn-primary" onClick={handleAutoFill} disabled={autoFilling} style={{ marginTop: 6, fontSize: 12, width: 'auto' }}>
                       {autoFilling ? '...' : (en ? 'Auto-fill from documents' : 'Auto-remplir avec les documents')}
                     </button>
                   </div>
