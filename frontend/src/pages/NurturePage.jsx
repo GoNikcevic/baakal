@@ -9,16 +9,19 @@ import { getUser } from '../services/auth';
 import { showToast } from '../services/notifications';
 import { useT, useI18n } from '../i18n';
 
-const TRIGGER_TYPES = [
-  { value: 'deal_won', label: 'Deal gagn\u00E9', desc: 'Email de bienvenue / onboarding quand un deal est gagn\u00E9', icon: '\uD83C\uDF89', defaultDays: 1, defaultName: 'Bienvenue nouveau client' },
-  { value: 'deal_stagnant', label: 'Deal stagnant', desc: 'Relancer quand un deal est inactif depuis X jours', icon: '\u23F0', defaultDays: 30, defaultName: 'Relance deals stagnants' },
-  { value: 'inactive_contact', label: 'Contact inactif', desc: 'R\u00E9engager un contact sans activit\u00E9 depuis X jours', icon: '\uD83D\uDCA4', defaultDays: 60, defaultName: 'R\u00E9activation contacts inactifs' },
-  { value: 'deal_lost', label: 'Deal perdu', desc: 'Email de suivi apr\u00E8s un deal perdu (win-back)', icon: '\uD83D\uDC94', defaultDays: 14, defaultName: 'Win-back deals perdus' },
-  { value: 'onboarding_check', label: 'Check onboarding', desc: 'V\u00E9rifier la prise en main X jours apr\u00E8s signature', icon: '\uD83D\uDE80', defaultDays: 7, defaultName: 'Suivi onboarding J+7' },
-  { value: 'renewal_reminder', label: 'Renouvellement', desc: 'Rappel X jours avant la date de renouvellement', icon: '\uD83D\uDD14', defaultDays: 30, defaultName: 'Rappel renouvellement' },
-  { value: 'upsell_opportunity', label: 'Opportunit\u00E9 upsell', desc: 'Proposer un upgrade aux clients actifs depuis X jours', icon: '\u2B06\uFE0F', defaultDays: 90, defaultName: 'Proposition upsell' },
-  { value: 'feedback_request', label: 'Demande de feedback', desc: 'Demander un retour d\'exp\u00E9rience apr\u00E8s X jours', icon: '\u2B50', defaultDays: 30, defaultName: 'Demande de t\u00E9moignage' },
-];
+function getTriggerTypes(lang) {
+  const en = lang === 'en';
+  return [
+    { value: 'deal_won', label: en ? 'Deal won' : 'Deal gagn\u00E9', desc: en ? 'Welcome/onboarding email when a deal is won' : 'Email de bienvenue quand un deal est gagn\u00E9', icon: '\uD83C\uDF89', defaultDays: 1, defaultName: en ? 'Welcome new client' : 'Bienvenue nouveau client' },
+    { value: 'deal_stagnant', label: en ? 'Stagnant deal' : 'Deal stagnant', desc: en ? 'Follow up when a deal is inactive for X days' : 'Relancer quand un deal est inactif depuis X jours', icon: '\u23F0', defaultDays: 30, defaultName: en ? 'Stagnant deal follow-up' : 'Relance deals stagnants' },
+    { value: 'inactive_contact', label: en ? 'Inactive contact' : 'Contact inactif', desc: en ? 'Re-engage a contact with no activity for X days' : 'R\u00E9engager un contact sans activit\u00E9 depuis X jours', icon: '\uD83D\uDCA4', defaultDays: 60, defaultName: en ? 'Re-engage inactive contacts' : 'R\u00E9activation contacts inactifs' },
+    { value: 'deal_lost', label: en ? 'Deal lost' : 'Deal perdu', desc: en ? 'Win-back email after a lost deal' : 'Email de suivi apr\u00E8s un deal perdu', icon: '\uD83D\uDC94', defaultDays: 14, defaultName: en ? 'Win-back lost deals' : 'Win-back deals perdus' },
+    { value: 'onboarding_check', label: en ? 'Onboarding check' : 'Check onboarding', desc: en ? 'Check adoption X days after signing' : 'V\u00E9rifier la prise en main X jours apr\u00E8s signature', icon: '\uD83D\uDE80', defaultDays: 7, defaultName: en ? 'Onboarding follow-up D+7' : 'Suivi onboarding J+7' },
+    { value: 'renewal_reminder', label: en ? 'Renewal' : 'Renouvellement', desc: en ? 'Reminder X days before renewal date' : 'Rappel X jours avant la date de renouvellement', icon: '\uD83D\uDD14', defaultDays: 30, defaultName: en ? 'Renewal reminder' : 'Rappel renouvellement' },
+    { value: 'upsell_opportunity', label: en ? 'Upsell opportunity' : 'Opportunit\u00E9 upsell', desc: en ? 'Suggest upgrade to active clients after X days' : 'Proposer un upgrade aux clients actifs depuis X jours', icon: '\u2B06\uFE0F', defaultDays: 90, defaultName: en ? 'Upsell proposal' : 'Proposition upsell' },
+    { value: 'feedback_request', label: en ? 'Feedback request' : 'Demande de feedback', desc: en ? 'Ask for feedback after X days' : 'Demander un retour d\'exp\u00E9rience apr\u00E8s X jours', icon: '\u2B50', defaultDays: 30, defaultName: en ? 'Testimonial request' : 'Demande de t\u00E9moignage' },
+  ];
+}
 
 export default function NurturePage() {
   const t = useT();
@@ -240,6 +243,8 @@ export default function NurturePage() {
 
 function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
   const t = useT();
+  const { lang } = useI18n();
+  const TRIGGER_TYPES = getTriggerTypes(lang);
   const [form, setForm] = useState({
     name: '',
     triggerType: 'deal_stagnant',
@@ -300,7 +305,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 type="text"
-                placeholder="Nom du trigger (ex: Relance deals stagnants)"
+                placeholder={lang === 'en' ? 'Trigger name (e.g., Stagnant deal follow-up)' : 'Nom du trigger (ex: Relance deals stagnants)'}
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 className="form-input"
@@ -327,7 +332,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                 </select>
                 <input
                   type="number"
-                  placeholder="Jours"
+                  placeholder={lang === 'en' ? 'Days' : 'Jours'}
                   value={form.days}
                   onChange={e => setForm(p => ({ ...p, days: e.target.value }))}
                   className="form-input"
@@ -339,16 +344,16 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                   className="form-input"
                   style={{ width: 140, fontSize: 13, padding: '8px 12px' }}
                 >
-                  <option value="approval">Approbation</option>
-                  <option value="auto">Automatique</option>
+                  <option value="approval">{lang === 'en' ? 'Approval' : 'Approbation'}</option>
+                  <option value="auto">{lang === 'en' ? 'Automatic' : 'Automatique'}</option>
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setShowCreate(false)}>
-                  Annuler
+                  {lang === 'en' ? 'Cancel' : 'Annuler'}
                 </button>
                 <button className="btn btn-primary" style={{ fontSize: 12 }} onClick={handleCreate} disabled={saving || !form.name}>
-                  {saving ? 'Cr\u00E9ation...' : 'Cr\u00E9er'}
+                  {saving ? '...' : (lang === 'en' ? 'Create' : 'Cr\u00e9er')}
                 </button>
               </div>
             </div>
@@ -384,7 +389,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                       {typeConfig.desc} {conditions.days ? `(${conditions.days}j)` : ''}
-                      {' \u00B7 '} Mode : {trigger.mode === 'auto' ? 'automatique' : 'approbation'}
+                      {' \u00B7 '} {lang === 'en' ? 'Mode' : 'Mode'}: {trigger.mode === 'auto' ? (lang === 'en' ? 'automatic' : 'automatique') : (lang === 'en' ? 'approval' : 'approbation')}
                       {trigger.last_run && ` \u00B7 Dernier run : ${new Date(trigger.last_run).toLocaleDateString('fr-FR')}`}
                     </div>
                   </div>
@@ -418,7 +423,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                       style={{ fontSize: 10, padding: '4px 10px', color: 'var(--danger)' }}
                       onClick={() => handleDelete(trigger.id)}
                     >
-                      Supprimer
+                      {lang === 'en' ? 'Delete' : 'Supprimer'}
                     </button>
                   </div>
                 </div>
