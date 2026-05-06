@@ -40,6 +40,11 @@ export default function SignalsPage() {
   const [filter, setFilter] = useState('new');
   const [showCreate, setShowCreate] = useState(false);
   const [actioningId, setActioningId] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [companyView, setCompanyView] = useState(null);
+  const [companyData, setCompanyData] = useState(null);
+  const [sequenceResult, setSequenceResult] = useState(null);
+  const [creatingSequence, setCreatingSequence] = useState(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -59,6 +64,8 @@ export default function SignalsPage() {
       setSignals(sigData.signals || []);
       setCounts(sigData.counts || {});
       setConfigs(cfgData.configs || []);
+      // Load stats
+      request('/signals/stats').then(d => setStats(d)).catch(() => {});
     } catch { /* ignore */ }
     setLoading(false);
   }, [filter]);
@@ -115,6 +122,26 @@ export default function SignalsPage() {
     } catch { showToast({ type: 'error', title: 'Erreur' }); }
   };
 
+  const handleViewCompany = async (companyName) => {
+    setCompanyView(companyName);
+    setCompanyData(null);
+    try {
+      const data = await request(`/signals/company/${encodeURIComponent(companyName)}`);
+      setCompanyData(data);
+    } catch { setCompanyData({ signals: [], contacts: [] }); }
+  };
+
+  const handleCreateSequence = async (signalId) => {
+    setCreatingSequence(signalId);
+    setSequenceResult(null);
+    try {
+      const data = await request(`/signals/${signalId}/create-sequence`, { method: 'POST' });
+      setSequenceResult(data);
+      showToast({ type: 'success', title: en ? 'Sequence created!' : 'Séquence créée !' });
+    } catch { showToast({ type: 'error', title: en ? 'Failed' : 'Échec' }); }
+    setCreatingSequence(null);
+  };
+
   const handleToggleConfig = async (id, enabled) => {
     try {
       await request(`/signals/configs/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !enabled }) });
@@ -125,7 +152,8 @@ export default function SignalsPage() {
   const tabs = [
     { key: 'feed', label: en ? 'Signal Feed' : 'Flux de signaux', count: (counts.new || 0) + (counts.reviewed || 0) },
     { key: 'config', label: en ? 'Monitoring' : 'Surveillance', count: configs.length },
-  ];
+    companyView ? { key: 'company', label: `📊 ${companyView}`, count: null } : null,
+  ].filter(Boolean);
 
   return (
     <div className="dashboard-page">
@@ -150,6 +178,27 @@ export default function SignalsPage() {
         </div>
       </div>
 
+      {/* KPIs Dashboard */}
+      {stats?.kpis && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          {[
+            { label: en ? 'This week' : 'Cette semaine', value: stats.kpis.this_week || 0, color: 'var(--accent)' },
+            { label: en ? 'Pending' : 'En attente', value: stats.kpis.pending || 0, color: 'var(--warning)' },
+            { label: en ? 'Actioned' : 'Traités', value: stats.kpis.actioned || 0, color: 'var(--success)' },
+            { label: en ? 'Avg relevance' : 'Pertinence moy.', value: stats.kpis.avg_relevance || 0, color: 'var(--text-primary)' },
+            { label: en ? 'Companies (30d)' : 'Entreprises (30j)', value: stats.kpis.unique_companies_30d || 0, color: 'var(--blue)' },
+          ].map(k => (
+            <div key={k.label} style={{
+              flex: '1 1 120px', background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderLeft: `3px solid ${k.color}`, borderRadius: 8, padding: '10px 14px',
+            }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
         {tabs.map(tab => (
@@ -168,7 +217,12 @@ export default function SignalsPage() {
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>{t('common.loading')}</div>
       ) : activeTab === 'feed' ? (
         <SignalFeed signals={signals} counts={counts} filter={filter} setFilter={setFilter}
-          onAction={handleAction} actioningId={actioningId} en={en} />
+          onAction={handleAction} actioningId={actioningId} en={en}
+          onViewCompany={handleViewCompany} onCreateSequence={handleCreateSequence}
+          creatingSequence={creatingSequence} sequenceResult={sequenceResult} />
+      ) : activeTab === 'company' ? (
+        <CompanyTimeline data={companyData} companyName={companyView} en={en}
+          onClose={() => { setCompanyView(null); setActiveTab('feed'); }} />
       ) : (
         <ConfigSection configs={configs} showCreate={showCreate} form={form} setForm={setForm}
           onCreateConfig={handleCreateConfig} onDeleteConfig={handleDeleteConfig}
@@ -180,7 +234,7 @@ export default function SignalsPage() {
 
 /* ═══ Signal Feed ═══ */
 
-function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId, en }) {
+function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId, en, onViewCompany, onCreateSequence, creatingSequence, sequenceResult }) {
   const filters = [
     { key: 'new', label: en ? 'New' : 'Nouveaux', count: counts.new || 0 },
     { key: 'actioned', label: en ? 'Actioned' : 'Traités', count: counts.actioned || 0 },
@@ -247,7 +301,8 @@ function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId,
                     <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{s.title}</div>
                     {s.description && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>{s.description}</div>}
                     <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted)' }}>
-                      {s.company_name && <span>🏢 {s.company_name}</span>}
+                      {s.company_name && <span style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+                        onClick={(e) => { e.stopPropagation(); onViewCompany?.(s.company_name); }}>🏢 {s.company_name}</span>}
                       {s.contact_name && <span>👤 {s.contact_name}{s.contact_title ? ` · ${s.contact_title}` : ''}</span>}
                       {s.contact_email && <span>✉️ {s.contact_email}</span>}
                       <span>{new Date(s.detected_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}</span>
@@ -288,17 +343,119 @@ function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId,
                         {en ? 'Source' : 'Source'} ↗
                       </a>
                     )}
+                    <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px', border: '1px solid var(--accent)', color: 'var(--accent)' }}
+                      onClick={() => onCreateSequence?.(s.id)} disabled={creatingSequence === s.id}>
+                      {creatingSequence === s.id ? '...' : (en ? '⚡ Create sequence' : '⚡ Créer séquence')}
+                    </button>
                     <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px', color: 'var(--text-muted)' }}
                       onClick={() => onAction(s.id, 'dismiss')} disabled={actioningId === s.id}>
                       {en ? 'Dismiss' : 'Ignorer'}
                     </button>
                   </div>
+                  {sequenceResult?.signal?.id === s.id && sequenceResult?.sequence && (
+                    <div style={{ marginTop: 10, padding: 12, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--accent)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--accent)' }}>
+                        ⚡ {sequenceResult.sequence.name}
+                      </div>
+                      {sequenceResult.sequence.steps.map((step, i) => (
+                        <div key={i} style={{ fontSize: 11, marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid var(--border)' }}>
+                          <div style={{ fontWeight: 600 }}>{step.step} ({step.timing}) — {step.subject}</div>
+                          <div style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 )}
                 {s.status === 'actioned' && (
                   <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 8 }}>
                     ✅ {s.action_taken === 'add_to_crm' ? (en ? 'Added to CRM' : 'Ajouté au CRM') :
                         s.action_taken === 'send_email' ? (en ? 'Email sent' : 'Email envoyé') : s.action_taken}
                   </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══ Config Section ═══ */
+
+/* ═══ Company Timeline ═══ */
+
+function CompanyTimeline({ data, companyName, en, onClose }) {
+  if (!data) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>📊 {companyName}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {data.signals.length} {en ? 'signals' : 'signaux'} · {data.contacts.length} {en ? 'contacts in CRM' : 'contacts dans le CRM'}
+          </div>
+        </div>
+        <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}>
+          {en ? '← Back to feed' : '← Retour au flux'}
+        </button>
+      </div>
+
+      {/* CRM contacts for this company */}
+      {data.contacts.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+            {en ? 'CRM Contacts' : 'Contacts CRM'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {data.contacts.map(c => (
+              <div key={c.id} style={{
+                padding: '8px 12px', background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 8, fontSize: 12,
+              }}>
+                <div style={{ fontWeight: 600 }}>{c.name}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                  {c.title || ''} · {c.status} {c.deal_value ? `· ${c.deal_value}€` : ''} {c.churn_score >= 50 ? `· Churn ${c.churn_score}%` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Signal timeline */}
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+        {en ? 'Signal Timeline' : 'Historique des signaux'}
+      </div>
+      {data.signals.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)', fontSize: 13 }}>
+          {en ? 'No signals for this company' : 'Aucun signal pour cette entreprise'}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {data.signals.map(s => {
+            const color = SIGNAL_COLORS[s.signal_type] || 'var(--text-muted)';
+            return (
+              <div key={s.id} style={{
+                padding: '10px 14px', borderLeft: `3px solid ${color}`,
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: `${color}15`, color, fontWeight: 600, textTransform: 'uppercase', marginRight: 8 }}>
+                      {s.signal_type.replace('_', ' ')}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{s.title}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {new Date(s.detected_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                {s.description && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{s.description}</div>}
+                {s.contact_name && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>👤 {s.contact_name} {s.contact_title ? `· ${s.contact_title}` : ''}</div>}
+                {s.status === 'actioned' && (
+                  <div style={{ fontSize: 10, color: 'var(--success)', marginTop: 4 }}>✅ {s.action_taken}</div>
                 )}
               </div>
             );

@@ -247,4 +247,122 @@ router.get('/linkedin/status', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/signals/stats — Signal dashboard KPIs
+router.get('/stats', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status = 'new') AS pending,
+        COUNT(*) FILTER (WHERE status = 'actioned') AS actioned,
+        COUNT(*) FILTER (WHERE status = 'dismissed') AS dismissed,
+        COUNT(*) FILTER (WHERE detected_at > now() - interval '7 days') AS this_week,
+        COUNT(*) FILTER (WHERE detected_at > now() - interval '7 days' AND status = 'actioned') AS actioned_this_week,
+        ROUND(AVG(relevance_score) FILTER (WHERE status = 'new'), 1) AS avg_relevance,
+        COUNT(DISTINCT company_name) FILTER (WHERE detected_at > now() - interval '30 days') AS unique_companies_30d
+      FROM signals WHERE user_id = $1
+    `, [req.user.id]);
+
+    // Top signal types
+    const byType = await db.query(`
+      SELECT signal_type, COUNT(*) AS count,
+        COUNT(*) FILTER (WHERE status = 'actioned') AS actioned
+      FROM signals WHERE user_id = $1 AND detected_at > now() - interval '30 days'
+      GROUP BY signal_type ORDER BY count DESC
+    `, [req.user.id]);
+
+    // Weekly trend (last 8 weeks)
+    const trend = await db.query(`
+      SELECT TO_CHAR(detected_at, 'YYYY-"W"IW') AS week, COUNT(*) AS count
+      FROM signals WHERE user_id = $1 AND detected_at > now() - interval '8 weeks'
+      GROUP BY 1 ORDER BY 1
+    `, [req.user.id]);
+
+    res.json({
+      kpis: result.rows[0] || {},
+      byType: byType.rows,
+      weeklyTrend: trend.rows,
+    });
+  } catch (err) { next(err); }
+});
+
+// GET /api/signals/company/:name — Signal history for a company
+router.get('/company/:name', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT id, signal_type, title, description, source_url, relevance_score,
+             contact_name, contact_title, contact_email, contact_linkedin,
+             status, action_taken, detected_at
+      FROM signals
+      WHERE user_id = $1 AND LOWER(company_name) = LOWER($2)
+      ORDER BY detected_at DESC LIMIT 50
+    `, [req.user.id, req.params.name]);
+
+    // Get CRM contacts for this company
+    const contacts = await db.query(
+      `SELECT id, name, email, title, status, churn_score, deal_value FROM opportunities
+       WHERE user_id = $1 AND LOWER(company) = LOWER($2)`,
+      [req.user.id, req.params.name]
+    );
+
+    res.json({
+      companyName: req.params.name,
+      signals: result.rows,
+      contacts: contacts.rows,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /api/signals/:id/create-sequence — Create a mini outreach sequence from a signal
+router.post('/:id/create-sequence', async (req, res, next) => {
+  try {
+    const signal = await db.query(`SELECT * FROM signals WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id]);
+    if (!signal.rows[0]) return res.status(404).json({ error: 'Signal not found' });
+    const s = signal.rows[0];
+
+    const claude = require('../api/claude');
+    const prompt = `Create a 3-step outreach sequence for this prospect based on the detected signal.
+
+Signal: ${s.title}
+Context: ${s.description || ''}
+Contact: ${s.contact_name || 'Decision maker'} (${s.contact_title || ''}) at ${s.company_name || ''}
+Signal type: ${s.signal_type}
+
+Generate 3 touchpoints:
+- E1 (Day 0): Initial email referencing the signal
+- E2 (Day 3): Follow-up with value proposition
+- E3 (Day 7): Break-up email
+
+Each email: personal tone, max 5 lines, reference the signal naturally.
+Return JSON:
+{
+  "name": "Campaign name",
+  "steps": [
+    { "step": "E1", "timing": "J+0", "subject": "...", "body": "..." },
+    { "step": "E2", "timing": "J+3", "subject": "...", "body": "..." },
+    { "step": "E3", "timing": "J+7", "subject": "...", "body": "..." }
+  ]
+}`;
+
+    const result = await claude.callClaude('Return only valid JSON.', prompt, 1200, 'signal_sequence');
+    let sequence = result.parsed;
+    if (!sequence) {
+      const m = (result.content || '').match(/\{[\s\S]*"name"[\s\S]*"steps"[\s\S]*\}/);
+      if (m) sequence = JSON.parse(m[0]);
+    }
+
+    if (!sequence?.steps?.length) {
+      return res.status(500).json({ error: 'Could not generate sequence' });
+    }
+
+    // Update signal status
+    await db.query(
+      `UPDATE signals SET status = 'actioned', action_taken = 'sequence_created', actioned_at = now() WHERE id = $1`,
+      [s.id]
+    );
+
+    res.json({ sequence, signal: s });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
