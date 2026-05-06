@@ -58,7 +58,7 @@ export default function ProductLinesSettings() {
         <div>
           <div className="card-title">{en ? 'Product Lines' : 'Lignes de produits'}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-            {en ? 'Organize contacts by product or business unit' : 'Organisez vos contacts par produit ou unit\u00E9'}
+            {en ? 'Define your products or verticals for targeted prospecting and campaigns' : 'D\u00e9finissez vos produits ou verticales pour cibler vos campagnes'}
           </div>
         </div>
         {!showForm && (

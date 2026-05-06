@@ -30,6 +30,7 @@ const PROVIDER_MAP = {
   lgmKey: 'lgm',
   waalaxyKey: 'waalaxy',
   // ── LinkedIn / Scraping ──
+  linkedinKey: 'linkedin',
   phantombusterKey: 'phantombuster',
   captaindataKey: 'captaindata',
   // ── Calendar ──

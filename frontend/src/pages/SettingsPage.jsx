@@ -52,6 +52,8 @@ const EXTENDED_TOOLS = [
     { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre clé API Snov', color: '#E17055', icon: 'S' },
   ]},
   { label: 'LinkedIn / Scraping', keys: [
+    { field: 'linkedinKey', label: 'LinkedIn', desc: 'Cookie li_at — enrichissement + outreach automatisé', placeholder: 'Votre cookie li_at (depuis le navigateur)', color: '#0A66C2', icon: 'in', category: 'LinkedIn',
+      helpSteps: ['Connectez-vous à linkedin.com', 'Ouvrez les DevTools (F12) → Application → Cookies', 'Copiez la valeur du cookie "li_at"', 'Collez-la ici'] },
     { field: 'phantombusterKey', label: 'PhantomBuster', desc: 'Scraping et automatisation web', placeholder: 'Votre clé API PhantomBuster', color: '#636E72', icon: 'PB' },
     { field: 'captaindataKey', label: 'Captain Data', desc: 'Extraction de données multi-sources', placeholder: 'Votre clé API CaptainData', color: '#0984E3', icon: 'CD' },
   ]},
