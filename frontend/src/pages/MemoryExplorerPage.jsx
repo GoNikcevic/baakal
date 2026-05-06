@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api-client';
+import api, { request } from '../services/api-client';
 import { useT } from '../i18n';
 
 const DEMO_PATTERNS = [
