@@ -137,16 +137,16 @@ export default function SignalsPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }}
-            onClick={handleScan} disabled={scanning}>
-            {scanning ? '...' : (en ? '🔍 Scan now' : '🔍 Scanner')}
-          </button>
           {activeTab === 'config' && (
-            <button className="btn btn-primary" style={{ fontSize: 12, padding: '6px 14px' }}
+            <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }}
               onClick={() => setShowCreate(true)}>
               {en ? '+ New config' : '+ Nouvelle config'}
             </button>
           )}
+          <button className="btn btn-primary" style={{ fontSize: 13, padding: '8px 18px' }}
+            onClick={handleScan} disabled={scanning}>
+            {scanning ? (en ? 'Scanning...' : 'Scan...') : (en ? '🔍 Scan for signals' : '🔍 Lancer le scan')}
+          </button>
         </div>
       </div>
 

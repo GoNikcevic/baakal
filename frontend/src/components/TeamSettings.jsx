@@ -193,11 +193,13 @@ export default function TeamSettings() {
                     value={m.role}
                     onChange={e => handleRoleChange(m.user_id, e.target.value)}
                     disabled={isCreator}
+                    title={isCreator ? (lang === 'en' ? 'Creator role cannot be changed' : 'Le rôle du créateur ne peut pas être modifié') : ''}
                     style={{
                       fontSize: 11, padding: '3px 8px', borderRadius: 6,
                       border: `1px solid ${roleConf.color}`,
                       background: `${roleConf.color}15`, color: roleConf.color,
-                      cursor: isCreator ? 'default' : 'pointer',
+                      cursor: isCreator ? 'not-allowed' : 'pointer',
+                      opacity: isCreator ? 0.7 : 1,
                     }}
                   >
                     {Object.entries(ROLE_CONFIG).map(([key, conf]) => (
