@@ -1,0 +1,23 @@
+<!-- Open this in a browser, right-click each canvas, "Save image as" to get icon16.png, icon48.png, icon128.png -->
+<canvas id="c16" width="16" height="16"></canvas>
+<canvas id="c48" width="48" height="48"></canvas>
+<canvas id="c128" width="128" height="128"></canvas>
+<script>
+function draw(id, size) {
+  const c = document.getElementById(id).getContext('2d');
+  const s = size / 100;
+  // Purple circle (hub)
+  c.beginPath(); c.arc(50*s, 50*s, 13*s, 0, Math.PI*2); c.fillStyle = '#6E57FA'; c.fill();
+  // Lines
+  c.strokeStyle = '#C4B5FD'; c.lineWidth = 5*s; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(50*s, 50*s); c.lineTo(22*s, 26*s); c.stroke();
+  c.beginPath(); c.moveTo(50*s, 50*s); c.lineTo(30*s, 80*s); c.stroke();
+  c.strokeStyle = '#9A84EB';
+  c.beginPath(); c.moveTo(50*s, 50*s); c.lineTo(82*s, 30*s); c.stroke();
+  // Satellite circles
+  c.fillStyle = '#C4B5FD'; c.beginPath(); c.arc(22*s, 26*s, 7*s, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#9A84EB'; c.beginPath(); c.arc(82*s, 30*s, 8*s, 0, Math.PI*2); c.fill();
+  c.fillStyle = '#C4B5FD'; c.beginPath(); c.arc(30*s, 80*s, 7*s, 0, Math.PI*2); c.fill();
+}
+draw('c16', 16); draw('c48', 48); draw('c128', 128);
+</script>

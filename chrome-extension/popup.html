@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #FAFAF9;
+      color: #0A0A0A;
+      padding: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .brand svg { flex-shrink: 0; }
+    .brand span { font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+    .status {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #E5E5E3;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .status.connected { border-color: #16A34A; background: rgba(22,163,74,0.05); }
+    .status.disconnected { border-color: #E5E5E3; background: #F5F5F4; }
+    .status .label { font-weight: 600; margin-bottom: 4px; }
+    .status .detail { font-size: 11px; color: #737373; }
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #6E57FA; color: #fff; }
+    .btn-primary:hover { background: #5B45E0; }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; }
+    .btn-danger { background: transparent; color: #DC2626; border: 1px solid #FCA5A5; margin-top: 8px; }
+    .btn-danger:hover { background: rgba(220,38,38,0.05); }
+    .error { color: #DC2626; font-size: 11px; margin-top: 8px; }
+    .success { color: #16A34A; font-size: 11px; margin-top: 8px; }
+    .info { font-size: 11px; color: #737373; margin-top: 12px; line-height: 1.5; }
+    .login-prompt { text-align: center; padding: 8px 0; }
+    .login-prompt a { color: #6E57FA; text-decoration: none; font-weight: 600; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="50" y1="50" x2="22" y2="26" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
+      <line x1="50" y1="50" x2="82" y2="30" stroke="#9A84EB" stroke-width="5" stroke-linecap="round"/>
+      <line x1="50" y1="50" x2="30" y2="80" stroke="#C4B5FD" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="22" cy="26" r="7" fill="#C4B5FD"/>
+      <circle cx="82" cy="30" r="8" fill="#9A84EB"/>
+      <circle cx="30" cy="80" r="7" fill="#C4B5FD"/>
+      <circle cx="50" cy="50" r="13" fill="#6E57FA"/>
+    </svg>
+    <span>baakalai</span>
+  </div>
+
+  <div id="content">
+    <div style="text-align:center;padding:20px;color:#737373;font-size:12px;">Loading...</div>
+  </div>
+
+  <div class="info">
+    Your LinkedIn cookie is sent securely to Baakalai (encrypted AES-256). It is never shared or stored in plain text.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
