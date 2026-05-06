@@ -19,13 +19,11 @@ async function init() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
-      // Try refresh
       const refreshed = await tryRefreshToken();
       if (!refreshed) { showLoginForm(); return; }
     }
   } catch {
-    showLoginForm();
-    return;
+    // Network error — assume token is still valid (offline mode)
   }
 
   // Check LinkedIn cookie
@@ -107,7 +105,7 @@ function showLoginForm() {
   content.innerHTML = `
     <div class="status disconnected">
       <div class="label">Log in to Baakalai</div>
-      <div class="detail">Use your Baakalai account credentials.</div>
+      <div class="detail">Use your Baakalai account.</div>
     </div>
     <input id="email" type="email" placeholder="Email" autocomplete="email"
       style="width:100%;padding:8px 12px;border:1px solid #E5E5E3;border-radius:8px;font-size:12px;margin-bottom:8px;">
@@ -156,39 +154,61 @@ async function handleLogin() {
 }
 
 function handleGoogleLogin() {
-  // Open Google OAuth in a new tab — user logs in, gets redirected to app.baakal.ai
-  // They copy the token from there (or we detect it via the extension)
+  // Open Baakalai in a new tab — the user logs in with Google there
+  // Then we detect the token from the Baakalai tab
   chrome.tabs.create({ url: 'https://app.baakal.ai/api/auth/google' });
 
-  // Poll for token after Google redirect
-  showMsg('success', 'Complete Google sign-in in the new tab...');
-  let attempts = 0;
-  const poll = setInterval(async () => {
-    attempts++;
-    if (attempts > 30) { clearInterval(poll); return; }
+  // Show waiting state with a manual "I'm logged in" button
+  content.innerHTML = `
+    <div class="status disconnected">
+      <div class="label">Complete Google sign-in</div>
+      <div class="detail">Sign in to Baakalai in the new tab, then click below.</div>
+    </div>
+    <button class="btn btn-primary" id="check-login" style="margin-top:8px;">I'm logged in — connect</button>
+    <button class="btn" id="cancel-login" style="width:100%;margin-top:6px;background:transparent;color:#737373;border:1px solid #E5E5E3;font-size:11px;">Cancel</button>
+    <div id="msg"></div>
+  `;
 
-    // Try to get token from app.baakal.ai localStorage via content script
+  document.getElementById('check-login').onclick = async () => {
+    const btn = document.getElementById('check-login');
+    btn.disabled = true; btn.textContent = 'Checking...';
+
     try {
+      // Try to read token from any open app.baakal.ai tab
       const tabs = await chrome.tabs.query({ url: 'https://app.baakal.ai/*' });
+      let found = false;
+
       for (const tab of tabs) {
-        const results = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => ({
-            token: localStorage.getItem('bakal_token'),
-            refresh: localStorage.getItem('bakal_refresh_token'),
-          }),
-        });
-        const data = results?.[0]?.result;
-        if (data?.token) {
-          clearInterval(poll);
-          await saveTokens(data.token, data.refresh);
-          showMsg('success', 'Connected via Google!');
-          setTimeout(init, 800);
-          return;
-        }
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => ({
+              token: localStorage.getItem('bakal_token'),
+              refresh: localStorage.getItem('bakal_refresh_token'),
+            }),
+          });
+          const data = results?.[0]?.result;
+          if (data?.token) {
+            await saveTokens(data.token, data.refresh);
+            showMsg('success', 'Connected via Google!');
+            found = true;
+            setTimeout(init, 800);
+            break;
+          }
+        } catch { /* tab not accessible */ }
       }
-    } catch { /* tab not ready yet */ }
-  }, 2000);
+
+      if (!found) {
+        showMsg('error', 'Could not detect login. Make sure you completed Google sign-in on app.baakal.ai');
+        btn.disabled = false; btn.textContent = "I'm logged in — connect";
+      }
+    } catch (err) {
+      showMsg('error', err.message);
+      btn.disabled = false; btn.textContent = "I'm logged in — connect";
+    }
+  };
+
+  document.getElementById('cancel-login').onclick = () => showLoginForm();
 }
 
 function showNoLinkedIn() {
@@ -200,7 +220,7 @@ function showNoLinkedIn() {
     <a href="https://www.linkedin.com/login" target="_blank" class="btn btn-primary" style="display:block;text-align:center;text-decoration:none;color:#fff;">
       Open LinkedIn
     </a>
-    <button class="btn btn-danger" id="logout-ext" style="margin-top:8px;">Log out of Baakalai</button>
+    <button class="btn btn-danger" id="logout-ext">Log out of Baakalai</button>
   `;
   document.getElementById('logout-ext').onclick = async () => { await clearTokens(); init(); };
 }
@@ -224,7 +244,7 @@ function showConnected(name, counts, cookie) {
       <div class="label">LinkedIn connected</div>
       <div class="detail">${name || 'Connected'}</div>
       ${counts ? `<div class="detail" style="margin-top:4px;">
-        Today: ${counts.connections || 0}/30 connections · ${counts.views || 0}/50 views · ${counts.messages || 0}/20 messages
+        Today: ${counts.connections || 0}/30 · ${counts.views || 0}/50 · ${counts.messages || 0}/20
       </div>` : ''}
     </div>
     <button class="btn btn-primary" id="refresh-btn">Refresh cookie</button>
