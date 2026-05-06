@@ -9,43 +9,67 @@ const content = document.getElementById('content');
 async function init() {
   const token = await getToken();
   if (!token) {
+    // Try auto-detect from open Baakalai tab first
+    const detected = await detectFromBaakalaiTab();
+    if (detected) { init(); return; }
     showLoginForm();
     return;
   }
 
-  // Verify token is still valid
+  // Verify token
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
       const refreshed = await tryRefreshToken();
-      if (!refreshed) { showLoginForm(); return; }
+      if (!refreshed) {
+        await clearTokens();
+        showLoginForm();
+        return;
+      }
     }
-  } catch {
-    // Network error — assume token is still valid (offline mode)
-  }
+  } catch { /* offline — assume valid */ }
 
-  // Check LinkedIn cookie
+  // LinkedIn check
   const cookie = await getLinkedInCookie();
-
   try {
     const res = await fetch(`${API_BASE}/signals/linkedin/status`, {
       headers: { Authorization: `Bearer ${await getToken()}` },
     });
     const data = await res.json();
-
-    if (data.connected) {
-      showConnected(data.name, data.counts, cookie);
-    } else if (cookie) {
-      showReadyToConnect(cookie);
-    } else {
-      showNoLinkedIn();
-    }
+    if (data.connected) showConnected(data.name, data.counts, cookie);
+    else if (cookie) showReadyToConnect(cookie);
+    else showNoLinkedIn();
   } catch {
     if (cookie) showReadyToConnect(cookie);
     else showNoLinkedIn();
   }
+}
+
+// ── Auto-detect token from any open app.baakal.ai tab ──
+
+async function detectFromBaakalaiTab() {
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://app.baakal.ai/*' });
+    for (const tab of tabs) {
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => ({
+            token: localStorage.getItem('bakal_token'),
+            refresh: localStorage.getItem('bakal_refresh_token'),
+          }),
+        });
+        const data = results?.[0]?.result;
+        if (data?.token) {
+          await saveTokens(data.token, data.refresh);
+          return true;
+        }
+      } catch { /* tab not accessible */ }
+    }
+  } catch { /* no tabs permission or no tabs */ }
+  return false;
 }
 
 // ── LinkedIn cookie ──
@@ -104,27 +128,43 @@ async function tryRefreshToken() {
 function showLoginForm() {
   content.innerHTML = `
     <div class="status disconnected">
-      <div class="label">Log in to Baakalai</div>
-      <div class="detail">Use your Baakalai account.</div>
+      <div class="label">Connect to Baakalai</div>
+      <div class="detail">Log in or auto-detect from an open Baakalai tab.</div>
+    </div>
+    <button class="btn btn-primary" id="auto-detect" style="margin-bottom:8px;">
+      🔍 Auto-detect from Baakalai
+    </button>
+    <div style="text-align:center;margin:6px 0;">
+      <span style="font-size:11px;color:#737373;">or log in manually</span>
     </div>
     <input id="email" type="email" placeholder="Email" autocomplete="email"
       style="width:100%;padding:8px 12px;border:1px solid #E5E5E3;border-radius:8px;font-size:12px;margin-bottom:8px;">
     <input id="password" type="password" placeholder="Password" autocomplete="current-password"
       style="width:100%;padding:8px 12px;border:1px solid #E5E5E3;border-radius:8px;font-size:12px;margin-bottom:8px;">
-    <button class="btn btn-primary" id="login-btn">Log in</button>
-    <div style="text-align:center;margin:10px 0;">
-      <span style="font-size:11px;color:#737373;">or</span>
+    <button class="btn" id="login-btn" style="width:100%;background:#fff;border:1px solid #E5E5E3;color:#0A0A0A;">Log in</button>
+    <div style="text-align:center;margin-top:8px;">
+      <a href="https://app.baakal.ai" target="_blank" style="font-size:11px;color:#6E57FA;text-decoration:none;">
+        Open Baakalai first if not logged in →
+      </a>
     </div>
-    <button class="btn" id="google-btn" style="width:100%;background:#fff;border:1px solid #E5E5E3;color:#0A0A0A;display:flex;align-items:center;justify-content:center;gap:8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Sign in with Google
-    </button>
     <div id="msg"></div>
   `;
 
+  document.getElementById('auto-detect').onclick = async () => {
+    const btn = document.getElementById('auto-detect');
+    btn.disabled = true; btn.textContent = 'Detecting...';
+    const found = await detectFromBaakalaiTab();
+    if (found) {
+      showMsg('success', 'Connected!');
+      setTimeout(init, 600);
+    } else {
+      showMsg('error', 'No Baakalai tab found. Open app.baakal.ai and log in first.');
+      btn.disabled = false; btn.textContent = '🔍 Auto-detect from Baakalai';
+    }
+  };
+
   document.getElementById('login-btn').onclick = handleLogin;
   document.getElementById('password').onkeydown = (e) => { if (e.key === 'Enter') handleLogin(); };
-  document.getElementById('google-btn').onclick = handleGoogleLogin;
 }
 
 async function handleLogin() {
@@ -146,81 +186,23 @@ async function handleLogin() {
 
     await saveTokens(data.token, data.refreshToken);
     showMsg('success', 'Logged in!');
-    setTimeout(init, 800);
+    setTimeout(init, 600);
   } catch (err) {
     showMsg('error', err.message);
     btn.disabled = false; btn.textContent = 'Log in';
   }
 }
 
-function handleGoogleLogin() {
-  // Open Baakalai in a new tab — the user logs in with Google there
-  // Then we detect the token from the Baakalai tab
-  chrome.tabs.create({ url: 'https://app.baakal.ai/api/auth/google' });
-
-  // Show waiting state with a manual "I'm logged in" button
-  content.innerHTML = `
-    <div class="status disconnected">
-      <div class="label">Complete Google sign-in</div>
-      <div class="detail">Sign in to Baakalai in the new tab, then click below.</div>
-    </div>
-    <button class="btn btn-primary" id="check-login" style="margin-top:8px;">I'm logged in — connect</button>
-    <button class="btn" id="cancel-login" style="width:100%;margin-top:6px;background:transparent;color:#737373;border:1px solid #E5E5E3;font-size:11px;">Cancel</button>
-    <div id="msg"></div>
-  `;
-
-  document.getElementById('check-login').onclick = async () => {
-    const btn = document.getElementById('check-login');
-    btn.disabled = true; btn.textContent = 'Checking...';
-
-    try {
-      // Try to read token from any open app.baakal.ai tab
-      const tabs = await chrome.tabs.query({ url: 'https://app.baakal.ai/*' });
-      let found = false;
-
-      for (const tab of tabs) {
-        try {
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => ({
-              token: localStorage.getItem('bakal_token'),
-              refresh: localStorage.getItem('bakal_refresh_token'),
-            }),
-          });
-          const data = results?.[0]?.result;
-          if (data?.token) {
-            await saveTokens(data.token, data.refresh);
-            showMsg('success', 'Connected via Google!');
-            found = true;
-            setTimeout(init, 800);
-            break;
-          }
-        } catch { /* tab not accessible */ }
-      }
-
-      if (!found) {
-        showMsg('error', 'Could not detect login. Make sure you completed Google sign-in on app.baakal.ai');
-        btn.disabled = false; btn.textContent = "I'm logged in — connect";
-      }
-    } catch (err) {
-      showMsg('error', err.message);
-      btn.disabled = false; btn.textContent = "I'm logged in — connect";
-    }
-  };
-
-  document.getElementById('cancel-login').onclick = () => showLoginForm();
-}
-
 function showNoLinkedIn() {
   content.innerHTML = `
-    <div class="status disconnected">
-      <div class="label">LinkedIn not detected</div>
-      <div class="detail">Log in to linkedin.com first, then reopen this popup.</div>
+    <div class="status connected" style="border-color:var(--border);">
+      <div class="label">✅ Baakalai connected</div>
+      <div class="detail">LinkedIn not detected — log in to linkedin.com first.</div>
     </div>
     <a href="https://www.linkedin.com/login" target="_blank" class="btn btn-primary" style="display:block;text-align:center;text-decoration:none;color:#fff;">
       Open LinkedIn
     </a>
-    <button class="btn btn-danger" id="logout-ext">Log out of Baakalai</button>
+    <button class="btn btn-danger" id="logout-ext">Log out</button>
   `;
   document.getElementById('logout-ext').onclick = async () => { await clearTokens(); init(); };
 }
