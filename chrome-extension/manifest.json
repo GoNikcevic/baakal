@@ -3,7 +3,7 @@
   "name": "Baakalai — LinkedIn Connect",
   "version": "1.0.0",
   "description": "Connect your LinkedIn session to Baakalai in one click. Enables automated outreach and enrichment.",
-  "permissions": ["cookies", "activeTab", "storage"],
+  "permissions": ["cookies", "activeTab", "storage", "scripting", "tabs"],
   "host_permissions": ["https://www.linkedin.com/*", "https://app.baakal.ai/*"],
   "action": {
     "default_popup": "popup.html",
