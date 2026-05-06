@@ -262,6 +262,9 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
   if (action === 'list_clients') {
     return <ListClientsCard metadata={metadata} />;
   }
+  if (action === 'search_signals') {
+    return <SignalSearchCard metadata={metadata} />;
+  }
 
   return null;
 }
@@ -927,6 +930,68 @@ function ListClientsCard({ metadata }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function SignalSearchCard({ metadata }) {
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState(null);
+  const { lang } = useI18n();
+  const en = lang === 'en';
+
+  const handleScan = async () => {
+    setScanning(true);
+    try {
+      // Create a temporary config and scan
+      const config = await request('/signals/configs', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: `Chat scan ${new Date().toLocaleDateString()}`,
+          signalTypes: metadata.keywords || ['funding', 'hiring', 'news'],
+          targetSectors: metadata.sectors || [],
+          targetTitles: metadata.titles || [],
+          targetKeywords: metadata.keywords || metadata.sectors || [],
+        }),
+      });
+      // Run the scan
+      const report = await request('/signals/scan', { method: 'POST' });
+      setResults(report);
+    } catch { setResults({ error: true }); }
+    setScanning(false);
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: 12,
+      padding: 16, marginTop: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 18 }}>📡</span>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{en ? 'Signal Search' : 'Recherche de signaux'}</div>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+        {metadata.sectors?.length > 0 && <span>{en ? 'Sectors' : 'Secteurs'}: {metadata.sectors.join(', ')} · </span>}
+        {metadata.titles?.length > 0 && <span>{en ? 'Titles' : 'Titres'}: {metadata.titles.join(', ')} · </span>}
+        {metadata.keywords?.length > 0 && <span>{en ? 'Keywords' : 'Mots-clés'}: {metadata.keywords.join(', ')}</span>}
+      </div>
+      {!results ? (
+        <button className="btn btn-primary" style={{ fontSize: 12, width: '100%', justifyContent: 'center' }}
+          onClick={handleScan} disabled={scanning}>
+          {scanning ? (en ? 'Scanning...' : 'Scan en cours...') : (en ? '🔍 Scan for signals' : '🔍 Lancer le scan')}
+        </button>
+      ) : results.error ? (
+        <div style={{ fontSize: 12, color: 'var(--danger)' }}>{en ? 'Scan failed' : 'Échec du scan'}</div>
+      ) : (
+        <div style={{ fontSize: 12 }}>
+          <div style={{ color: 'var(--success)', fontWeight: 600, marginBottom: 6 }}>
+            ✅ {results.detected || 0} {en ? 'signals detected' : 'signaux détectés'}
+          </div>
+          <a href="/signals" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 12 }}>
+            {en ? 'View signals →' : 'Voir les signaux →'}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

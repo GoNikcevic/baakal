@@ -52,6 +52,21 @@ const SIGNAL_QUERIES = {
     if (!competitors) return null;
     return `(${competitors}) (review OR alternative OR switch OR complaint OR "moved from")`;
   },
+  product_launch: (config) => {
+    const sectors = config.target_sectors?.join(' OR ') || '';
+    const keywords = config.target_keywords?.join(' OR ') || '';
+    return `(${sectors} ${keywords}) ("just launched" OR "product launch" OR "new feature" OR "now available") site:producthunt.com OR site:techcrunch.com`;
+  },
+  expansion: (config) => {
+    const sectors = config.target_sectors?.join(' OR ') || '';
+    const keywords = config.target_keywords?.join(' OR ') || '';
+    return `(${sectors} ${keywords}) ("opens office" OR "expands to" OR "new market" OR "international expansion")`;
+  },
+  tech_adoption: (config) => {
+    const keywords = config.target_keywords?.join(' OR ') || '';
+    if (!keywords) return null;
+    return `(${keywords}) ("switched to" OR "migrated to" OR "now using" OR "adopted")`;
+  },
 };
 
 /**
@@ -105,7 +120,7 @@ async function run(userId) {
             let enriched = {};
             if (signal.companyName) {
               try {
-                enriched = await enrichContact(signal);
+                enriched = await enrichContact(signal, userId);
               } catch { /* enrichment is optional */ }
             }
 
@@ -141,8 +156,56 @@ async function run(userId) {
     logger.error('signal-agent', err.message);
   }
 
+  // Notify user of high-relevance signals
   if (report.detected > 0) {
     logger.info('signal-agent', `User ${userId}: ${report.detected} signals detected from ${report.configs} configs`);
+
+    try {
+      const highRelevance = await db.query(
+        `SELECT COUNT(*) AS count FROM signals WHERE user_id = $1 AND status = 'new' AND relevance_score >= 70 AND detected_at > now() - interval '1 day'`,
+        [userId]
+      );
+      const count = parseInt(highRelevance.rows[0]?.count || 0);
+      if (count > 0) {
+        const { notifyUser } = require('../../socket');
+        notifyUser(userId, 'signals', {
+          type: 'new_signals',
+          count,
+          message: `${count} high-relevance signal(s) detected`,
+        });
+      }
+    } catch { /* notifications are optional */ }
+
+    // Auto-prospecting: if user has no outreach tool, auto-add top signals to CRM
+    try {
+      const hasOutreach = await db.query(
+        `SELECT 1 FROM user_integrations WHERE user_id = $1 AND provider IN ('lemlist', 'apollo', 'smartlead') LIMIT 1`,
+        [userId]
+      );
+      if (hasOutreach.rows.length === 0) {
+        // No outreach tool — auto-add top signals to CRM
+        const topSignals = await db.query(
+          `SELECT id, contact_name, contact_email, contact_title, company_name, contact_linkedin
+           FROM signals WHERE user_id = $1 AND status = 'new' AND relevance_score >= 75 AND contact_email IS NOT NULL
+           ORDER BY relevance_score DESC LIMIT 5`,
+          [userId]
+        );
+        for (const s of topSignals.rows) {
+          try {
+            await db.opportunities.create({
+              userId, name: s.contact_name || s.company_name || 'Unknown',
+              email: s.contact_email, title: s.contact_title, company: s.company_name,
+              status: 'new', linkedinUrl: s.contact_linkedin,
+            });
+            await db.query(`UPDATE signals SET status = 'actioned', action_taken = 'auto_crm', actioned_at = now() WHERE id = $1`, [s.id]);
+            report.autoAdded = (report.autoAdded || 0) + 1;
+          } catch { /* skip duplicates */ }
+        }
+        if (report.autoAdded > 0) {
+          logger.info('signal-agent', `Auto-added ${report.autoAdded} high-relevance prospects to CRM (no outreach tool)`);
+        }
+      }
+    } catch { /* auto-prospecting is optional */ }
   }
 
   return report;
@@ -214,15 +277,14 @@ Return empty array [] if nothing is relevant.`;
 
 /**
  * Try to enrich a signal with contact email via Apollo.
+ * Uses the USER's Apollo key if available.
  */
-async function enrichContact(signal) {
+async function enrichContact(signal, userId) {
   try {
-    const apollo = require('../../api/apollo-enrichment');
-    if (!apollo?.enrichCompany) return {};
-
-    // Search for a contact at the company
-    const apiKey = process.env.APOLLO_API_KEY;
-    if (!apiKey) return {};
+    // Use user's Apollo key (not a shared key)
+    const { getUserKey } = require('../../config');
+    const apiKey = userId ? await getUserKey(userId, 'apollo') : null;
+    if (!apiKey) return {}; // No Apollo connected — skip enrichment
 
     const res = await fetch('https://api.apollo.io/v1/mixed_people/search', {
       method: 'POST',

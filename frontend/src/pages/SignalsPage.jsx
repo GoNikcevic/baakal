@@ -15,11 +15,15 @@ const SIGNAL_TYPE_OPTIONS = [
   { value: 'job_change', icon: '🔄', label: { fr: 'Changements de poste', en: 'Job changes' } },
   { value: 'leadership_change', icon: '👔', label: { fr: 'Nouveau leadership', en: 'Leadership changes' } },
   { value: 'competitor', icon: '⚔️', label: { fr: 'Activité concurrents', en: 'Competitor activity' } },
+  { value: 'product_launch', icon: '🚀', label: { fr: 'Lancements produit', en: 'Product launches' } },
+  { value: 'expansion', icon: '🌍', label: { fr: 'Expansion géographique', en: 'Geographic expansion' } },
+  { value: 'tech_adoption', icon: '⚡', label: { fr: 'Adoption tech', en: 'Tech adoption' } },
 ];
 
 const SIGNAL_COLORS = {
   funding: '#16A34A', hiring: '#2563EB', news: '#D97706',
   job_change: '#7C3AED', leadership_change: '#0891B2', competitor: '#DC2626',
+  product_launch: '#EA580C', expansion: '#0D9488', tech_adoption: '#6D28D9',
 };
 
 export default function SignalsPage() {
