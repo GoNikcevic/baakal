@@ -592,7 +592,14 @@
     "monSat": "Mon-Sat",
     "everyday": "Every day",
     "languageTitle": "Language",
-    "languageDesc": "Interface language"
+    "languageDesc": "Interface language",
+    "dangerZone": "Danger Zone",
+    "deleteAccount": "Delete Account",
+    "deleteAccountDesc": "Permanently delete your account and all associated data. This action cannot be undone.",
+    "deleteAccountConfirm": "Are you sure? This will permanently delete all your campaigns, contacts, messages, documents, and integration credentials.",
+    "deleteAccountPassword": "Enter your password to confirm",
+    "deleteAccountSuccess": "Account deleted successfully. You will be redirected.",
+    "deleting": "Deleting..."
   },
   "triggers": {
     "dealWon": "Deal won",

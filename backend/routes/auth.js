@@ -20,10 +20,15 @@ const router = Router();
 
 // One-time auth code store (Google OAuth → code → token exchange)
 const _oauthCodes = new Map();
+// OAuth state store (CSRF protection for Google login)
+const _oauthStates = new Map();
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of _oauthCodes) {
     if (val.expiresAt < now) _oauthCodes.delete(key);
+  }
+  for (const [key, val] of _oauthStates) {
+    if (val < now) _oauthStates.delete(key);
   }
 }, 60000);
 
@@ -350,6 +355,9 @@ router.post('/reset-password', async (req, res, next) => {
 router.get('/google', (req, res) => {
   if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: 'Google OAuth not configured' });
 
+  const state = crypto.randomBytes(32).toString('hex');
+  _oauthStates.set(state, Date.now() + 5 * 60 * 1000); // 5 min expiry
+
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: GOOGLE_REDIRECT_URI,
@@ -357,14 +365,23 @@ router.get('/google', (req, res) => {
     scope: 'email profile',
     access_type: 'offline',
     prompt: 'select_account',
+    state,
   });
 
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
 router.get('/google/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.redirect(APP_URL + '/?error=google_failed');
+
+  // CSRF protection: validate state parameter
+  const stateExpiry = _oauthStates.get(state);
+  if (!state || !stateExpiry || stateExpiry < Date.now()) {
+    _oauthStates.delete(state);
+    return res.redirect(APP_URL + '/?error=invalid_state');
+  }
+  _oauthStates.delete(state);
 
   try {
     // Exchange code for tokens (use https module to handle Railway's cert chain)
@@ -420,6 +437,65 @@ router.get('/google/callback', async (req, res) => {
   } catch (err) {
     console.error('[google-auth] Error:', err.message);
     res.redirect(APP_URL + '/?error=google_failed');
+  }
+});
+
+// DELETE /api/auth/account — Delete user account and all associated data (GDPR/CCPA right to erasure)
+router.delete('/account', requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { password } = req.body;
+
+    const user = await db.users.getById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Require password confirmation for password-based accounts
+    if (user.password_hash) {
+      if (!password) return res.status(400).json({ error: 'Password confirmation required to delete account' });
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) return res.status(403).json({ error: 'Invalid password' });
+    }
+
+    // Check if user is a team admin — must transfer or disband first
+    try {
+      const team = await db.teams.getByUser(userId);
+      if (team && team.role === 'admin') {
+        const membersResult = await db.query(
+          'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = $1 AND user_id != $2',
+          [team.team_id, userId]
+        );
+        if (parseInt(membersResult.rows[0].cnt) > 0) {
+          return res.status(409).json({
+            error: 'You are a team admin with other members. Transfer admin role or remove members before deleting your account.',
+          });
+        }
+      }
+    } catch { /* no team — ok */ }
+
+    // Cascade delete all user data (order matters for FK constraints)
+    // Most tables have ON DELETE CASCADE from users(id), but we explicitly clean up
+    // tables that may not have direct FK or need special handling
+    await db.query('DELETE FROM nurture_emails WHERE trigger_id IN (SELECT id FROM nurture_triggers WHERE user_id = $1)', [userId]);
+    await db.query('DELETE FROM nurture_triggers WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM email_accounts WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM prospect_activities WHERE campaign_id IN (SELECT id FROM campaigns WHERE user_id = $1)', [userId]);
+    await db.query('DELETE FROM opportunity_product_lines WHERE opportunity_id IN (SELECT id FROM opportunities WHERE user_id = $1)', [userId]);
+    await db.query('DELETE FROM crm_field_mappings WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM crm_cleaning_reports WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM team_campaigns WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)', [userId]);
+    await db.query('DELETE FROM product_lines WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = $1 AND role = $2)', [userId, 'admin']);
+    await db.query('DELETE FROM team_members WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM notifications WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM user_integrations WHERE user_id = $1', [userId]);
+    await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+
+    // Final: delete user (cascades to campaigns, projects, threads, documents, reports, etc.)
+    await db.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    console.log(`[account-deletion] User ${userId} account deleted (GDPR/CCPA erasure)`);
+    res.json({ success: true, message: 'Account and all associated data have been permanently deleted.' });
+  } catch (err) {
+    next(err);
   }
 });
 

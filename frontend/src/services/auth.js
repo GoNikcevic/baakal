@@ -140,6 +140,22 @@ export async function refreshAccessToken() {
   return _refreshPromise;
 }
 
+export async function deleteAccount(password) {
+  const token = getToken();
+  const res = await fetch('/api/auth/account', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+    },
+    body: JSON.stringify({ password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+  clearSession();
+  return data;
+}
+
 export async function logout() {
   const rt = getRefreshToken();
   // Revoke refresh token on the server (best-effort)

@@ -592,7 +592,14 @@
     "monSat": "Lun-Sam",
     "everyday": "Tous les jours",
     "languageTitle": "Langue",
-    "languageDesc": "Langue de l'interface"
+    "languageDesc": "Langue de l'interface",
+    "dangerZone": "Zone de danger",
+    "deleteAccount": "Supprimer le compte",
+    "deleteAccountDesc": "Supprime d\u00E9finitivement votre compte et toutes les donn\u00E9es associ\u00E9es. Cette action est irr\u00E9versible.",
+    "deleteAccountConfirm": "\u00CAtes-vous s\u00FBr ? Cela supprimera d\u00E9finitivement toutes vos campagnes, contacts, messages, documents et identifiants d'int\u00E9gration.",
+    "deleteAccountPassword": "Entrez votre mot de passe pour confirmer",
+    "deleteAccountSuccess": "Compte supprim\u00E9 avec succ\u00E8s. Vous allez \u00EAtre redirig\u00E9.",
+    "deleting": "Suppression..."
   },
   "triggers": {
     "dealWon": "Deal gagn\u00E9",

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getKeys, saveKeys, testKeys, syncLemlist, syncCRM, syncOutreach, saveLanguage } from '../services/api-client';
+import { deleteAccount } from '../services/auth';
 import { useNotifications } from '../context/NotificationContext';
 import { useSocket } from '../context/SocketContext';
 import { useI18n } from '../i18n';
@@ -913,7 +914,112 @@ export default function SettingsPage() {
           {t('settings.resetPrefs')}
         </button>
       </div>
+
+      {/* Danger Zone */}
+      <DeleteAccountSection t={t} showToast={showToast} />
       </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Delete Account Section ═══ */
+
+function DeleteAccountSection({ t, showToast }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [password, setPassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Check if user is OAuth-only (no password_hash)
+  const user = JSON.parse(localStorage.getItem('bakal_user') || '{}');
+  const isOAuth = !user.hasPassword && user.hasPassword !== undefined;
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteAccount(password || undefined);
+      showToast(t('settings.deleteAccountSuccess'));
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+    } catch (err) {
+      showToast(err.message, 'error');
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 24, border: '1px solid var(--danger, #e74c3c)' }}>
+      <div className="card-header">
+        <div className="card-title" style={{ color: 'var(--danger, #e74c3c)' }}>
+          {t('settings.dangerZone')}
+        </div>
+      </div>
+      <div className="card-body">
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
+          {t('settings.deleteAccountDesc')}
+        </p>
+
+        {!showConfirm ? (
+          <button
+            className="btn"
+            onClick={() => setShowConfirm(true)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--danger, #e74c3c)',
+              color: 'var(--danger, #e74c3c)',
+              fontSize: 13,
+              padding: '8px 16px',
+              cursor: 'pointer',
+            }}
+          >
+            {t('settings.deleteAccount')}
+          </button>
+        ) : (
+          <div style={{
+            background: 'rgba(231,76,60,0.05)',
+            border: '1px solid var(--danger, #e74c3c)',
+            borderRadius: 8,
+            padding: 16,
+          }}>
+            <p style={{ fontSize: 13, color: 'var(--danger, #e74c3c)', fontWeight: 600, marginBottom: 12 }}>
+              {t('settings.deleteAccountConfirm')}
+            </p>
+            <input
+              className="form-input"
+              type="password"
+              placeholder={t('settings.deleteAccountPassword')}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') { setShowConfirm(false); setPassword(''); } }}
+              style={{ marginBottom: 12, fontSize: 13 }}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn"
+                onClick={handleDelete}
+                disabled={deleting || !password.trim()}
+                style={{
+                  background: 'var(--danger, #e74c3c)',
+                  color: 'white',
+                  border: 'none',
+                  fontSize: 13,
+                  padding: '8px 16px',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting || !password.trim() ? 0.5 : 1,
+                }}
+              >
+                {deleting ? t('settings.deleting') : t('settings.deleteAccount')}
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => { setShowConfirm(false); setPassword(''); }}
+                disabled={deleting}
+              >
+                {t('settings.configure') === 'Configure' ? 'Cancel' : 'Annuler'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

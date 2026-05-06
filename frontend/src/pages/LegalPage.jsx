@@ -81,7 +81,7 @@ export default function LegalPage() {
 
       {/* Footer */}
       <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid var(--border, #e5e7eb)', fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>
-        {isEN ? 'Last updated: April 2026' : 'Dernière mise à jour : avril 2026'} · contact@baakal.ai
+        {isEN ? 'Last updated: May 2026' : 'Dernière mise à jour : mai 2026'} · contact@baakal.ai
       </div>
     </div>
   );
@@ -125,7 +125,7 @@ function TermsFR() {
     </ul>
 
     <SectionTitle>5. Propriété des données</SectionTitle>
-    <p>L'utilisateur reste propriétaire de ses données (profil, campagnes, prospects, contenus générés). Baakalai n'utilise pas les données des utilisateurs pour entraîner ses modèles IA. Les données peuvent être exportées ou supprimées à tout moment.</p>
+    <p>L'utilisateur reste propriétaire de ses données (profil, campagnes, prospects, contenus générés). Baakalai n'utilise pas les données des utilisateurs pour entraîner ses modèles IA. Les données peuvent être exportées ou supprimées à tout moment via les paramètres du compte.</p>
 
     <SectionTitle>6. Intégrations tierces</SectionTitle>
     <p>Baakalai s'intègre avec des services tiers (Lemlist, Apollo, Brave Search, Claude API). L'utilisateur est responsable de respecter les conditions d'utilisation de ces services. Baakalai n'est pas responsable des interruptions ou changements de ces services tiers.</p>
@@ -133,8 +133,8 @@ function TermsFR() {
     <SectionTitle>7. Disponibilité</SectionTitle>
     <p>Le service est fourni "en l'état" pendant la phase beta. Aucun SLA n'est garanti. Baakalai s'efforce de maintenir une disponibilité maximale mais ne peut garantir une absence totale d'interruptions.</p>
 
-    <SectionTitle>8. Résiliation</SectionTitle>
-    <p>L'utilisateur peut résilier son compte à tout moment. La suppression du compte entraîne la suppression de toutes les données associées dans un délai de 30 jours.</p>
+    <SectionTitle>8. Résiliation et suppression de compte</SectionTitle>
+    <p>L'utilisateur peut résilier son compte à tout moment depuis les paramètres de son compte. La suppression est immédiate et entraîne la suppression définitive de toutes les données associées (campagnes, contacts, messages, documents, identifiants d'intégration). Cette action est irréversible.</p>
 
     <SectionTitle>9. Limitation de responsabilité</SectionTitle>
     <p>Baakalai ne peut être tenu responsable des résultats des campagnes de prospection, des décisions commerciales basées sur les recommandations de l'IA, ou des dommages indirects liés à l'utilisation du service.</p>
@@ -175,7 +175,7 @@ function TermsEN() {
     </ul>
 
     <SectionTitle>5. Data Ownership</SectionTitle>
-    <p>Users retain ownership of their data (profile, campaigns, prospects, generated content). Baakalai does not use user data to train its AI models. Data can be exported or deleted at any time.</p>
+    <p>Users retain ownership of their data (profile, campaigns, prospects, generated content). Baakalai does not use user data to train its AI models. Data can be exported or deleted at any time via your account settings.</p>
 
     <SectionTitle>6. Third-Party Integrations</SectionTitle>
     <p>Baakalai integrates with third-party services (Lemlist, Apollo, Brave Search, Claude API). Users are responsible for complying with the terms of service of these services. Baakalai is not liable for interruptions or changes to third-party services.</p>
@@ -183,8 +183,8 @@ function TermsEN() {
     <SectionTitle>7. Availability</SectionTitle>
     <p>The service is provided "as is" during the beta phase. No SLA is guaranteed. Baakalai strives to maintain maximum uptime but cannot guarantee zero interruptions.</p>
 
-    <SectionTitle>8. Termination</SectionTitle>
-    <p>Users may terminate their account at any time. Account deletion results in the removal of all associated data within 30 days.</p>
+    <SectionTitle>8. Termination & Account Deletion</SectionTitle>
+    <p>Users may terminate their account at any time from their account settings. Account deletion is immediate and permanently removes all associated data including campaigns, contacts, messages, uploaded documents, and integration credentials. This action cannot be undone.</p>
 
     <SectionTitle>9. Limitation of Liability</SectionTitle>
     <p>Baakalai cannot be held liable for campaign results, business decisions based on AI recommendations, or indirect damages related to the use of the service.</p>
@@ -237,8 +237,33 @@ function PrivacyFR() {
     </ul>
     <p>Contact : contact@baakal.ai</p>
 
-    <SectionTitle>6. Cookies</SectionTitle>
-    <p>Baakalai n'utilise pas de cookies tiers. Seuls des tokens d'authentification sont stockés dans le localStorage du navigateur.</p>
+    <SectionTitle>6. Vos droits (CCPA — Résidents US/Californie)</SectionTitle>
+    <p>Si vous résidez aux États-Unis ou en Californie, vous disposez des droits suivants :</p>
+    <ul>
+      <li><strong>Droit de savoir</strong> — Demander quelles données personnelles nous collectons et utilisons.</li>
+      <li><strong>Droit de suppression</strong> — Demander la suppression de vos données. Utilisez l'option "Supprimer le compte" dans vos paramètres pour une suppression immédiate et définitive.</li>
+      <li><strong>Droit de refus de vente</strong> — Baakalai ne vend pas de données personnelles à des tiers.</li>
+      <li><strong>Non-discrimination</strong> — L'exercice de vos droits n'affecte pas la qualité du service.</li>
+    </ul>
+    <p>Pour exercer vos droits : paramètres du compte ou contact@baakal.ai</p>
+
+    <SectionTitle>7. Conservation des données</SectionTitle>
+    <p>Vos données sont conservées tant que votre compte est actif. En cas de suppression du compte, toutes les données sont définitivement supprimées immédiatement. Baakalai ne conserve pas de sauvegardes des données supprimées au-delà des cycles de backup standard (maximum 7 jours).</p>
+
+    <SectionTitle>8. Sécurité des données</SectionTitle>
+    <p>Toutes les données sont chiffrées en transit (TLS/HTTPS). Les clés API et identifiants d'intégration sont chiffrés au repos (AES-256-GCM). Les mots de passe sont hashés avec bcrypt (facteur de coût 12). L'accès est protégé par des tokens JWT à courte durée de vie (15 minutes).</p>
+
+    <SectionTitle>9. Partage de données avec des tiers</SectionTitle>
+    <p>Baakalai partage des données avec des tiers uniquement pour fournir le service. Nous ne vendons pas de données.</p>
+    <ul>
+      <li><strong>Anthropic (Claude API)</strong> — Paramètres de campagne pour la génération IA. Aucun email individuel de contact n'est envoyé.</li>
+      <li><strong>CRM</strong> — Données contacts et deals synchronisées selon votre configuration.</li>
+      <li><strong>Outils d'outreach</strong> — Séquences de campagne et données prospects pour la livraison email/LinkedIn.</li>
+      <li><strong>Brave Search</strong> — Noms d'entreprises pour la recherche de prospects.</li>
+    </ul>
+
+    <SectionTitle>10. Cookies</SectionTitle>
+    <p>Baakalai n'utilise pas de cookies tiers ni de tracking. Seuls des tokens d'authentification sont stockés dans le localStorage du navigateur.</p>
   </>);
 }
 
@@ -285,7 +310,32 @@ function PrivacyEN() {
     </ul>
     <p>Contact: contact@baakal.ai</p>
 
-    <SectionTitle>6. Cookies</SectionTitle>
-    <p>Baakalai does not use third-party cookies. Only authentication tokens are stored in the browser's localStorage.</p>
+    <SectionTitle>6. Your Rights (CCPA — California/US Residents)</SectionTitle>
+    <p>If you are a California resident or US-based user, you have the following rights under the CCPA:</p>
+    <ul>
+      <li><strong>Right to Know</strong> — You may request what personal information we collect, use, and share.</li>
+      <li><strong>Right to Delete</strong> — You may request deletion of your personal information. Use the "Delete Account" option in your account settings for immediate, permanent deletion.</li>
+      <li><strong>Right to Opt-Out of Sale</strong> — Baakalai does not sell personal information to third parties.</li>
+      <li><strong>Non-Discrimination</strong> — You will not receive different service quality for exercising your rights.</li>
+    </ul>
+    <p>To exercise these rights, use your account settings or contact: contact@baakal.ai</p>
+
+    <SectionTitle>7. Data Retention</SectionTitle>
+    <p>Your data is retained as long as your account is active. Upon account deletion, all data is permanently removed immediately. Baakalai does not retain backups of deleted user data beyond standard database backup cycles (maximum 7 days).</p>
+
+    <SectionTitle>8. Data Security</SectionTitle>
+    <p>All data is encrypted in transit (TLS/HTTPS). API keys and integration credentials are encrypted at rest using AES-256-GCM. Passwords are hashed with bcrypt (cost factor 12). Access is protected by JWT tokens with short expiration (15 minutes).</p>
+
+    <SectionTitle>9. Third-Party Data Sharing</SectionTitle>
+    <p>Baakalai shares data with third parties only to provide the service. We do not sell data. Shared data includes:</p>
+    <ul>
+      <li><strong>Anthropic (Claude API)</strong> — Campaign parameters and content for AI generation. No individual contact emails are sent.</li>
+      <li><strong>CRM providers</strong> — Contact and deal data synced bidirectionally per your configuration.</li>
+      <li><strong>Outreach tools</strong> — Campaign sequences and prospect data for email/LinkedIn delivery.</li>
+      <li><strong>Brave Search</strong> — Company names for prospect research queries.</li>
+    </ul>
+
+    <SectionTitle>10. Cookies</SectionTitle>
+    <p>Baakalai does not use third-party cookies or tracking. Only authentication tokens are stored in the browser's localStorage.</p>
   </>);
 }
