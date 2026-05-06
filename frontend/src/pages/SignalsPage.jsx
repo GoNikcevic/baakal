@@ -352,19 +352,19 @@ function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId,
                       {en ? 'Dismiss' : 'Ignorer'}
                     </button>
                   </div>
-                  {sequenceResult?.signal?.id === s.id && sequenceResult?.sequence && (
-                    <div style={{ marginTop: 10, padding: 12, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--accent)' }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--accent)' }}>
-                        ⚡ {sequenceResult.sequence.name}
-                      </div>
-                      {sequenceResult.sequence.steps.map((step, i) => (
-                        <div key={i} style={{ fontSize: 11, marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid var(--border)' }}>
-                          <div style={{ fontWeight: 600 }}>{step.step} ({step.timing}) — {step.subject}</div>
-                          <div style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.body}</div>
-                        </div>
-                      ))}
+                )}
+                {sequenceResult?.signal?.id === s.id && sequenceResult?.sequence && (
+                  <div style={{ marginTop: 10, padding: 12, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--accent)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--accent)' }}>
+                      ⚡ {sequenceResult.sequence.name}
                     </div>
-                  )}
+                    {sequenceResult.sequence.steps.map((step, i) => (
+                      <div key={i} style={{ fontSize: 11, marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid var(--border)' }}>
+                        <div style={{ fontWeight: 600 }}>{step.step} ({step.timing}) — {step.subject}</div>
+                        <div style={{ color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{step.body}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {s.status === 'actioned' && (
                   <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 8 }}>
