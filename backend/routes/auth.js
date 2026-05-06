@@ -16,6 +16,24 @@ const APP_URL = process.env.APP_URL || (process.env.RAILWAY_PUBLIC_DOMAIN
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   : 'http://localhost:5173');
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || !!process.env.RAILWAY_PUBLIC_DOMAIN;
+
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: IS_PRODUCTION,
+  sameSite: IS_PRODUCTION ? 'strict' : 'lax',
+  path: '/api/auth',
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+};
+
+function setRefreshCookie(res, refreshToken) {
+  res.cookie('bakal_refresh', refreshToken, REFRESH_COOKIE_OPTIONS);
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie('bakal_refresh', { path: '/api/auth' });
+}
+
 const router = Router();
 
 // One-time auth code store (Google OAuth → code → token exchange)
@@ -152,9 +170,10 @@ router.post('/register', async (req, res, next) => {
 
     const { accessToken, refreshToken } = await issueTokens(user);
 
+    setRefreshCookie(res, refreshToken);
     res.status(201).json({
       token: accessToken,
-      refreshToken,
+      refreshToken, // kept for backward compat (Chrome extension)
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
   } catch (err) {
@@ -181,9 +200,10 @@ router.post('/login', async (req, res, next) => {
       id: user.id, email: user.email, role: user.role,
     });
 
+    setRefreshCookie(res, refreshToken);
     res.json({
       token: accessToken,
-      refreshToken,
+      refreshToken, // kept for backward compat (Chrome extension)
       user: { id: user.id, email: user.email, name: user.name, company: user.company, role: user.role },
     });
   } catch (err) {
@@ -194,7 +214,8 @@ router.post('/login', async (req, res, next) => {
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    // Read from httpOnly cookie first, fall back to body (backward compat)
+    const refreshToken = req.cookies?.bakal_refresh || req.body?.refreshToken;
     if (!refreshToken) return res.status(400).json({ error: 'Refresh token is required' });
 
     const tokenHash = hashRefreshToken(refreshToken);
@@ -211,6 +232,7 @@ router.post('/refresh', async (req, res, next) => {
     if (!user) return res.status(401).json({ error: 'User not found' });
 
     const tokens = await issueTokens({ id: user.id, email: user.email, role: user.role });
+    setRefreshCookie(res, tokens.refreshToken);
     res.json({ token: tokens.accessToken, refreshToken: tokens.refreshToken });
   } catch (err) {
     next(err);
@@ -222,6 +244,7 @@ router.post('/logout', requireAuth, async (req, res, next) => {
   try {
     // Invalidate ALL sessions for this user (not just the current token)
     await db.refreshTokens.deleteAllByUser(req.user.id);
+    clearRefreshCookie(res);
     res.json({ message: 'Logged out' });
   } catch (err) {
     next(err);

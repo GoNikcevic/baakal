@@ -29,6 +29,8 @@ export function getUser() {
 
 export function setSession(token, refreshToken, user) {
   localStorage.setItem(TOKEN_KEY, token);
+  // Refresh token is now stored in httpOnly cookie by the backend.
+  // Keep localStorage fallback for Chrome extension compatibility.
   if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
@@ -112,13 +114,13 @@ export async function refreshAccessToken() {
 
   _refreshPromise = (async () => {
     const rt = getRefreshToken();
-    if (!rt) return null;
 
     try {
       const res = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: rt }),
+        credentials: 'include', // sends httpOnly cookie
+        body: JSON.stringify(rt ? { refreshToken: rt } : {}),
       });
 
       if (!res.ok) {
@@ -157,17 +159,14 @@ export async function deleteAccount(password) {
 }
 
 export async function logout() {
-  const rt = getRefreshToken();
   // Revoke refresh token on the server (best-effort)
-  if (rt) {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: rt }),
-      });
-    } catch { /* ignore */ }
-  }
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+      credentials: 'include', // sends httpOnly cookie for server-side cleanup
+    });
+  } catch { /* ignore */ }
   clearSession();
 }
 

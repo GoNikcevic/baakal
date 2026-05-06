@@ -80,6 +80,10 @@ app.use(helmet({
 // Limit request body size
 app.use(express.json({ limit: '2mb' }));
 
+// Cookie parser (for httpOnly refresh token cookie)
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
+
 // Global API rate limiter
 app.use('/api/', apiLimiter);
 
@@ -120,6 +124,10 @@ app.get('/api/health', async (_req, res) => {
     configComplete: configOk,
   });
 });
+
+// Audit logging middleware (before routes, logs security-sensitive actions)
+const { auditMiddleware } = require('./middleware/audit-log');
+app.use('/api', auditMiddleware);
 
 // Auth routes (public)
 app.use('/api/auth', authRouter);
@@ -200,6 +208,13 @@ server.listen(config.port, '0.0.0.0', () => {
     try { await db.jobQueue.cleanup(7); } catch { /* ignore */ }
   }, 6 * 60 * 60 * 1000);
 
+  // Data retention cleanup — runs daily at startup + every 24h
+  const { runRetentionCleanup } = require('./lib/retention-cleanup');
+  runRetentionCleanup().catch(() => {});
+  const retentionInterval = setInterval(async () => {
+    try { await runRetentionCleanup(); } catch { /* ignore */ }
+  }, 24 * 60 * 60 * 1000);
+
   // Start orchestrator (cron jobs) if enabled
   orchestrator.start();
 
@@ -212,6 +227,7 @@ server.listen(config.port, '0.0.0.0', () => {
 
     clearInterval(tokenCleanupInterval);
     clearInterval(jobCleanupInterval);
+    clearInterval(retentionInterval);
 
     // Stop accepting new connections
     server.close(async () => {
