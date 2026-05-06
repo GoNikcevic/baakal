@@ -280,4 +280,56 @@ td { padding: 8px 12px; border-bottom: 1px solid #eee; }
   }
 });
 
+// GET /api/export/account — Full user data export (GDPR data portability)
+router.get('/account', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Gather all user data in parallel
+    const [
+      userResult,
+      profileResult,
+      campaignsResult,
+      opportunitiesResult,
+      threadsResult,
+      documentsResult,
+      triggersResult,
+      emailsResult,
+      reportsResult,
+      integrationsResult,
+    ] = await Promise.all([
+      db.query('SELECT id, email, name, company, role, created_at FROM users WHERE id = $1', [userId]),
+      db.query('SELECT * FROM user_profiles WHERE user_id = $1', [userId]),
+      db.query('SELECT id, name, client, status, channel, sector, position, nb_prospects, open_rate, reply_rate, interested, meetings, created_at FROM campaigns WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+      db.query('SELECT id, name, title, company, company_size, status, email, phone, linkedin_url, created_at FROM opportunities WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+      db.query(`SELECT t.id, t.title, t.created_at, json_agg(json_build_object('role', m.role, 'content', m.content, 'created_at', m.created_at) ORDER BY m.created_at) as messages FROM chat_threads t LEFT JOIN chat_messages m ON m.thread_id = t.id WHERE t.user_id = $1 GROUP BY t.id ORDER BY t.created_at DESC`, [userId]),
+      db.query('SELECT id, original_name, mime_type, file_size, created_at FROM documents WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+      db.query('SELECT id, name, trigger_type, conditions, email_template, mode, enabled, created_at FROM nurture_triggers WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+      db.query('SELECT id, to_email, to_name, subject, status, created_at FROM nurture_emails WHERE trigger_id IN (SELECT id FROM nurture_triggers WHERE user_id = $1) ORDER BY created_at DESC', [userId]),
+      db.query('SELECT id, week, date_range, score, score_label, contacts, open_rate, reply_rate, interested, meetings, synthesis, created_at FROM reports WHERE user_id = $1 ORDER BY created_at DESC', [userId]),
+      db.query('SELECT provider, metadata, created_at FROM user_integrations WHERE user_id = $1', [userId]),
+    ]);
+
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      user: userResult.rows[0] || null,
+      profile: profileResult.rows[0] || null,
+      campaigns: campaignsResult.rows,
+      contacts: opportunitiesResult.rows,
+      chat_threads: threadsResult.rows,
+      documents: documentsResult.rows.map(d => ({ ...d, note: 'File content not included — download separately' })),
+      nurture_triggers: triggersResult.rows,
+      nurture_emails: emailsResult.rows,
+      reports: reportsResult.rows,
+      integrations: integrationsResult.rows.map(i => ({ provider: i.provider, connected_at: i.created_at })),
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="baakalai-export-${userId}.json"`);
+    res.json(exportData);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

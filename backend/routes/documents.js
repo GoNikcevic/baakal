@@ -109,7 +109,11 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
     const results = [];
 
     // Get doc types from form data
-    const docTypes = req.body.docTypes ? JSON.parse(req.body.docTypes) : {};
+    let docTypes = {};
+    if (req.body.docTypes) {
+      try { docTypes = JSON.parse(req.body.docTypes); }
+      catch { return res.status(400).json({ error: 'Invalid docTypes JSON' }); }
+    }
 
     for (const file of req.files) {
       // Step 1: Parse file FIRST (while temp file still exists)

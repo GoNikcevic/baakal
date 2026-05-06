@@ -14,6 +14,10 @@ const router = Router();
 
 const PIPEDRIVE_WEBHOOK_SECRET = process.env.PIPEDRIVE_WEBHOOK_SECRET || null;
 
+if (!PIPEDRIVE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
+  logger.warn('webhooks', 'PIPEDRIVE_WEBHOOK_SECRET not set — webhook validation disabled in production. Set it to secure webhook endpoint.');
+}
+
 /**
  * POST /api/webhooks/pipedrive
  *
@@ -25,12 +29,14 @@ const PIPEDRIVE_WEBHOOK_SECRET = process.env.PIPEDRIVE_WEBHOOK_SECRET || null;
  * Payload: { current: {...}, previous: {...}, event: "updated.person", meta: { action, object, id, company_id, user_id } }
  */
 router.post('/pipedrive', async (req, res) => {
-  // Validate webhook secret if configured
+  // Validate webhook secret — reject unsigned webhooks in production
+  const authHeader = req.headers['authorization'];
   if (PIPEDRIVE_WEBHOOK_SECRET) {
-    const authHeader = req.headers['authorization'];
     if (!authHeader || authHeader !== `Bearer ${PIPEDRIVE_WEBHOOK_SECRET}`) {
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    logger.warn('webhooks', 'Accepting unsigned webhook — set PIPEDRIVE_WEBHOOK_SECRET');
   }
 
   const { current, previous, event, meta } = req.body;

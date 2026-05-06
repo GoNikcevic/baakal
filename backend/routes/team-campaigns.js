@@ -199,7 +199,7 @@ router.post('/:id/launch', async (req, res, next) => {
             let email = result.parsed;
             if (!email) {
               const m = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*"body"[\s\S]*\}/);
-              if (m) email = JSON.parse(m[0]);
+              if (m) { try { email = JSON.parse(m[0]); } catch { /* malformed AI response */ } }
             }
             if (!email?.subject || !email?.body) throw new Error('No email generated');
 

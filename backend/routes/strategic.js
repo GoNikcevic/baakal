@@ -7,7 +7,7 @@
  */
 
 const { Router } = require('express');
-const { runAll, runOne, listAgents } = require('../lib/agents/strategic-orchestrator');
+const { runAll, runOne, listAgents, AGENTS } = require('../lib/agents/strategic-orchestrator');
 
 const router = Router();
 
@@ -26,8 +26,12 @@ router.post('/run-all', async (req, res, next) => {
 
 // POST /api/strategic/run/:agent — Run a specific agent
 router.post('/run/:agent', async (req, res, next) => {
+  const { agent } = req.params;
+  if (!AGENTS[agent]) {
+    return res.status(400).json({ error: `Unknown agent: ${agent}. Available: ${Object.keys(AGENTS).join(', ')}` });
+  }
   try {
-    const result = await runOne(req.user.id, req.params.agent);
+    const result = await runOne(req.user.id, agent);
     res.json(result);
   } catch (err) { next(err); }
 });
