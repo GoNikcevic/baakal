@@ -196,4 +196,55 @@ router.post('/scan', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/signals/:id/linkedin-outreach — Send LinkedIn connection from signal
+router.post('/:id/linkedin-outreach', async (req, res, next) => {
+  try {
+    const signal = await db.query(`SELECT * FROM signals WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id]);
+    if (!signal.rows[0]) return res.status(404).json({ error: 'Signal not found' });
+    const s = signal.rows[0];
+    if (!s.contact_linkedin) return res.status(400).json({ error: 'No LinkedIn URL for this contact' });
+
+    const { getUserKey } = require('../config');
+    const cookie = await getUserKey(req.user.id, 'linkedin');
+    if (!cookie) return res.status(400).json({ error: 'LinkedIn not connected. Add your li_at cookie in Settings.' });
+
+    const linkedin = require('../api/linkedin');
+    const claude = require('../api/claude');
+
+    // Generate note
+    const noteResult = await claude.callClaude('Return only valid JSON.', `Write a LinkedIn connection note (max 280 chars).
+Signal: ${s.title}. Contact: ${s.contact_name} at ${s.company_name}.
+Be specific, reference the signal naturally. Return JSON: { "note": "..." }`, 300, 'linkedin_note');
+
+    let note = noteResult.parsed?.note || `Bonjour, votre profil a retenu mon attention. Curieux d'échanger.`;
+    const publicId = s.contact_linkedin.match(/\/in\/([^/?]+)/)?.[1];
+    if (!publicId) return res.status(400).json({ error: 'Invalid LinkedIn URL' });
+
+    await linkedin.sendConnectionRequest(cookie, { profileUrn: publicId, message: note.slice(0, 300) }, req.user.id);
+
+    await db.query(
+      `INSERT INTO linkedin_outreach (user_id, signal_id, type, linkedin_url, message, status) VALUES ($1, $2, 'connection', $3, $4, 'sent')`,
+      [req.user.id, s.id, s.contact_linkedin, note]
+    );
+    await db.query(`UPDATE signals SET status = 'actioned', action_taken = 'linkedin_connect', actioned_at = now() WHERE id = $1`, [s.id]);
+
+    res.json({ ok: true, note });
+  } catch (err) { next(err); }
+});
+
+// GET /api/signals/linkedin/status — LinkedIn connection status + daily counts
+router.get('/linkedin/status', async (req, res, next) => {
+  try {
+    const { getUserKey } = require('../config');
+    const cookie = await getUserKey(req.user.id, 'linkedin');
+    if (!cookie) return res.json({ connected: false });
+
+    const linkedin = require('../api/linkedin');
+    const test = await linkedin.testCookie(cookie);
+    const counts = linkedin.getDailyCounts(req.user.id);
+
+    res.json({ connected: test.valid, name: test.name, counts });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

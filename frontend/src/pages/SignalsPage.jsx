@@ -268,6 +268,20 @@ function SignalFeed({ signals, counts, filter, setFilter, onAction, actioningId,
                         {en ? 'Send email' : 'Envoyer un email'}
                       </button>
                     )}
+                    {s.contact_linkedin && (
+                      <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px', border: '1px solid #0A66C2', color: '#0A66C2' }}
+                        onClick={async () => {
+                          setActioningId(s.id);
+                          try {
+                            await request(`/signals/${s.id}/linkedin-outreach`, { method: 'POST' });
+                            setSignals(prev => prev.map(sig => sig.id === s.id ? { ...sig, status: 'actioned', action_taken: 'linkedin_connect' } : sig));
+                            showToast({ type: 'success', title: en ? 'Connection sent' : 'Connexion envoyée' });
+                          } catch (err) { showToast({ type: 'error', title: 'Erreur', message: err.message }); }
+                          setActioningId(null);
+                        }} disabled={actioningId === s.id}>
+                        {en ? 'Connect on LinkedIn' : 'Connecter sur LinkedIn'}
+                      </button>
+                    )}
                     {s.source_url && (
                       <a href={s.source_url} target="_blank" rel="noopener noreferrer"
                         className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px', textDecoration: 'none', border: '1px solid var(--border)' }}>

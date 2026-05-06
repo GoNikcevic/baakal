@@ -101,8 +101,29 @@ async function runProspectionAgent() {
     report.errors.push({ step: 'signals', error: err.message });
   }
 
+  // ── Step 5: LinkedIn outreach (for users with LinkedIn cookie) ──
+  try {
+    const { run: runLinkedInOutreach } = require('./agents/linkedin-outreach');
+    const linkedinUsers = await db.query(
+      `SELECT DISTINCT user_id FROM user_integrations WHERE provider = 'linkedin'`
+    );
+    let totalLinkedin = 0;
+    for (const { user_id } of linkedinUsers.rows) {
+      try {
+        const liReport = await runLinkedInOutreach(user_id);
+        totalLinkedin += (liReport.connectionsSent || 0) + (liReport.messagesSent || 0);
+      } catch (err) {
+        logger.warn('prospection-agent', `LinkedIn outreach failed for ${user_id}: ${err.message}`);
+      }
+    }
+    report.linkedinOutreach = totalLinkedin;
+    if (totalLinkedin > 0) logger.info('prospection-agent', `LinkedIn outreach: ${totalLinkedin} actions`);
+  } catch (err) {
+    report.errors.push({ step: 'linkedin', error: err.message });
+  }
+
   report.duration = Date.now() - startTime;
-  logger.info('prospection-agent', `Complete in ${report.duration}ms — stats: ${report.stats?.collected || 0}, batch: ${report.batch ? 'yes' : 'skipped'}, deliv: ${report.deliverability ? 'yes' : 'skipped'}, signals: ${report.signals || 0}, errors: ${report.errors.length}`);
+  logger.info('prospection-agent', `Complete in ${report.duration}ms — stats: ${report.stats?.collected || 0}, batch: ${report.batch ? 'yes' : 'skipped'}, deliv: ${report.deliverability ? 'yes' : 'skipped'}, signals: ${report.signals || 0}, linkedin: ${report.linkedinOutreach || 0}, errors: ${report.errors.length}`);
 
   return report;
 }
