@@ -256,7 +256,7 @@ async function sendCookie(cookie) {
     const res = await fetch(`${API_BASE}/settings/keys`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ linkedinKey: cookie }),
+      body: JSON.stringify({ keys: { linkedinKey: cookie } }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     showMsg('success', 'LinkedIn connected!');
@@ -273,7 +273,7 @@ async function disconnectLinkedIn() {
     await fetch(`${API_BASE}/settings/keys`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ linkedinKey: '' }),
+      body: JSON.stringify({ keys: { linkedinKey: '' } }),
     });
     showMsg('success', 'Disconnected.');
     setTimeout(init, 1500);
