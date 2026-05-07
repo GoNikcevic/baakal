@@ -98,8 +98,21 @@ router.post('/keys', async (req, res, next) => {
         continue;
       }
 
-      const encrypted = encrypt(trimmed);
-      await db.userIntegrations.upsert(req.user.id, provider, { accessToken: encrypted });
+      let encrypted;
+      try {
+        encrypted = encrypt(trimmed);
+      } catch (encErr) {
+        console.error(`[settings] Encryption failed for ${field}:`, encErr.message);
+        errors.push(`${field}: encryption failed`);
+        continue;
+      }
+      try {
+        await db.userIntegrations.upsert(req.user.id, provider, { accessToken: encrypted });
+      } catch (dbErr) {
+        console.error(`[settings] DB upsert failed for ${field}/${provider}:`, dbErr.message);
+        errors.push(`${field}: save failed`);
+        continue;
+      }
       saved.push(field);
     }
 
