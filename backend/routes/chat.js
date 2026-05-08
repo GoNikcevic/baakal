@@ -127,13 +127,16 @@ router.post('/threads/:id/messages', async (req, res, next) => {
     }
 
     // Documents context (bounded)
-    if (docs && docs.length > 0) {
+    const userHasDocs = docs && docs.length > 0;
+    if (userHasDocs) {
       const docContext = docs
         .map(d => `--- ${d.original_name} ---\n${(d.parsed_text || '').slice(0, 8000)}`)
         .join('\n\n');
       if (docContext.length > 0) {
         contextParts.push(`DOCUMENTS BUSINESS (extraits):\n${docContext.slice(0, MAX_DOC_CHARS)}`);
       }
+    } else {
+      contextParts.push(`⚠️ AUCUN DOCUMENT BUSINESS uploadé. L'utilisateur n'a pas encore fourni de documentation (présentation entreprise, brief, etc.). INSTRUCTION CRITIQUE : si l'utilisateur demande de créer une campagne, de générer des séquences, ou de faire de la prospection, tu DOIS lui demander d'abord d'uploader ses documents dans la page Profil. Dis-lui que sans documentation, les campagnes seront génériques et inefficaces. Redirige-le vers /profil pour uploader ses docs.`);
     }
 
     // Campaigns context (bounded, no extra queries)

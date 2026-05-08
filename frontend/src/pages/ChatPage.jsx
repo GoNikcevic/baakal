@@ -48,20 +48,20 @@ function formatMarkdown(text) {
 
 function getDefaultSuggestions(lang) {
   return lang === 'en'
-    ? ['Target CFOs in my region', 'Refine my campaign', 'Best angle for tech sector?']
-    : ['Cibler des DAF en \u00CEle-de-France', 'Affiner ma campagne', 'Quel angle pour le secteur tech ?'];
+    ? ['🎯 Create a prospecting campaign', '📡 Scan for buying signals', '🔍 Analyze my CRM health', '📊 Show my campaign performance']
+    : ['🎯 Cr\u00e9er une campagne de prospection', '📡 Scanner les signaux d\'achat', '🔍 Analyser la sant\u00e9 de mon CRM', '📊 Voir les performances de mes campagnes'];
 }
 
 function getOnboardingSuggestions(lang) {
   return lang === 'en'
-    ? ['How does baakalai work?', 'Which sector to target first?', 'Help me define my ICP']
-    : ['Comment fonctionne baakalai ?', 'Quel secteur cibler en premier ?', 'Aide-moi \u00E0 d\u00E9finir mon ICP'];
+    ? ['📄 Help me set up my profile', '🎯 Create my first campaign', '❓ How does baakalai work?', '🧠 Help me define my ICP']
+    : ['📄 Aide-moi \u00e0 configurer mon profil', '🎯 Cr\u00e9er ma premi\u00e8re campagne', '❓ Comment fonctionne baakalai ?', '🧠 Aide-moi \u00e0 d\u00e9finir mon ICP'];
 }
 
 function getReturningSuggestions(lang) {
   return lang === 'en'
-    ? ['Summary of my campaigns', 'Which campaign to refine first?', 'Create a similar campaign']
-    : ['R\u00E9sum\u00E9 de mes campagnes', 'Quelle campagne affiner en priorit\u00E9 ?', 'Cr\u00E9er une campagne similaire'];
+    ? ['🎯 Create a new campaign', '📡 Find prospects with signals', '⚡ Activate stagnant deals', '📊 Analyze my performance', '👥 Import CRM contacts', '🧠 Show AI recommendations']
+    : ['🎯 Nouvelle campagne', '📡 Trouver des prospects via signaux', '⚡ Relancer les deals stagnants', '📊 Analyser mes performances', '👥 Importer mes contacts CRM', '🧠 Voir les recommandations IA'];
 }
 
 function getActionPrompts(lang) {
@@ -1594,6 +1594,7 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [chatSidebarOpen, setChatSidebarOpen] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [campaignPreview, setCampaignPreview] = useState(null); // { campaign, edits }
 
   // Handle prefilled message from other pages (e.g. Memory Explorer "Apply")
   const location = useLocation();
@@ -1998,6 +1999,11 @@ export default function ChatPage() {
             animate: false,
           };
           setMessages((prev) => [...prev, assistantMsg]);
+
+          // Open campaign preview panel if a campaign was created
+          if (data.message.metadata?.action === 'create_campaign' && data.message.metadata?.campaign) {
+            setCampaignPreview({ campaign: data.message.metadata.campaign, edits: {} });
+          }
         }
         setStreamingContent('');
         setIsStreaming(false);
@@ -2437,6 +2443,101 @@ export default function ChatPage() {
           </button>
         </div>
       </div>
+
+      {/* ─── Campaign Preview Panel (split view) ─── */}
+      {campaignPreview && (
+        <div style={{
+          width: 420, flexShrink: 0, borderLeft: '1px solid var(--border)',
+          background: 'var(--bg-card)', overflowY: 'auto', padding: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{lang === 'en' ? 'Campaign Preview' : 'Aperçu campagne'}</div>
+            <button onClick={() => setCampaignPreview(null)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-muted)',
+            }}>×</button>
+          </div>
+
+          {/* Campaign name */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+              {lang === 'en' ? 'Campaign' : 'Campagne'}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{campaignPreview.campaign.name}</div>
+            {campaignPreview.campaign.sector && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{campaignPreview.campaign.sector}</div>
+            )}
+          </div>
+
+          {/* Touchpoints / Sequence */}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+            {lang === 'en' ? 'Sequence' : 'Séquence'} ({(campaignPreview.campaign.touchpoints || []).length} {lang === 'en' ? 'steps' : 'étapes'})
+          </div>
+          {(campaignPreview.campaign.touchpoints || []).map((tp, i) => {
+            const editKey = `tp_${i}`;
+            const editedSubject = campaignPreview.edits?.[`${editKey}_subject`];
+            const editedBody = campaignPreview.edits?.[`${editKey}_body`];
+            return (
+              <div key={i} style={{
+                marginBottom: 12, padding: 12, borderRadius: 8,
+                border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+                borderLeft: `3px solid ${tp.type === 'linkedin' ? '#0A66C2' : 'var(--accent)'}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+                    {tp.step || `E${i + 1}`} · {tp.timing || `J+${i * 3}`} · {tp.type || 'email'}
+                  </span>
+                </div>
+                {tp.subject && (
+                  <input
+                    type="text"
+                    value={editedSubject !== undefined ? editedSubject : tp.subject}
+                    onChange={(e) => setCampaignPreview(prev => ({
+                      ...prev,
+                      edits: { ...prev.edits, [`${editKey}_subject`]: e.target.value },
+                    }))}
+                    className="form-input"
+                    style={{ fontSize: 12, padding: '4px 8px', marginBottom: 6, fontWeight: 600 }}
+                  />
+                )}
+                <textarea
+                  value={editedBody !== undefined ? editedBody : (tp.body || '')}
+                  onChange={(e) => setCampaignPreview(prev => ({
+                    ...prev,
+                    edits: { ...prev.edits, [`${editKey}_body`]: e.target.value },
+                  }))}
+                  className="form-input"
+                  style={{ fontSize: 11, padding: '6px 8px', minHeight: 80, resize: 'vertical', lineHeight: 1.5 }}
+                />
+              </div>
+            );
+          })}
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button className="btn btn-primary" style={{ flex: 1, fontSize: 12, justifyContent: 'center' }}
+              onClick={() => {
+                // Apply edits to campaign and trigger creation
+                const edited = { ...campaignPreview.campaign };
+                if (edited.touchpoints) {
+                  edited.touchpoints = edited.touchpoints.map((tp, i) => ({
+                    ...tp,
+                    subject: campaignPreview.edits?.[`tp_${i}_subject`] || tp.subject,
+                    body: campaignPreview.edits?.[`tp_${i}_body`] || tp.body,
+                  }));
+                }
+                // Send to create
+                createCampaignFromChat(edited);
+                setCampaignPreview(null);
+              }}>
+              {lang === 'en' ? 'Deploy campaign' : 'Déployer la campagne'}
+            </button>
+            <button className="btn btn-ghost" style={{ fontSize: 12 }}
+              onClick={() => setCampaignPreview(null)}>
+              {lang === 'en' ? 'Close' : 'Fermer'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );
