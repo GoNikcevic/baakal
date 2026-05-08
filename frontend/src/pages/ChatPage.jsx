@@ -148,12 +148,12 @@ function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
   );
 }
 
-function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute }) {
+function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onPreview }) {
   const action = metadata?.action;
 
   // Create campaign card
   if (action === 'create_campaign' && metadata.campaign) {
-    return <CreateCampaignCard campaign={metadata.campaign} onCreateCampaign={onCreateCampaign} onModify={onModify} />;
+    return <CreateCampaignCard campaign={metadata.campaign} onCreateCampaign={onCreateCampaign} onModify={onModify} onPreview={onPreview} />;
   }
 
   // Update campaign card
@@ -694,12 +694,17 @@ function AddProspectsManualCard({ metadata, onActionExecute }) {
   );
 }
 
-function CreateCampaignCard({ campaign, onCreateCampaign, onModify }) {
+function CreateCampaignCard({ campaign, onCreateCampaign, onModify, onPreview }) {
   const navigate = useNavigate();
   const t = useT();
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
   const [createdId, setCreatedId] = useState(null);
+
+  // Auto-open preview panel on mount
+  useEffect(() => {
+    if (onPreview && campaign) onPreview(campaign);
+  }, []);
 
   const params = [campaign.sector, campaign.position, campaign.size, campaign.channel, campaign.angle, campaign.zone]
     .filter(Boolean)
@@ -1285,7 +1290,7 @@ function TypingIndicator() {
   );
 }
 
-function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaign, onSendMessage, onActionExecute }) {
+function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaign, onSendMessage, onActionExecute, onPreview }) {
   const avatar = role === 'assistant' ? 'b' : '~';
   const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -1300,7 +1305,8 @@ function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaig
 
   const hasActionCard = metadata && metadata.action;
   const quickReplies = metadata?.quick_replies;
-  const showQuickReplies = isLast && quickReplies && quickReplies.length > 0;
+  // Don't show quick replies if there's already an action card with buttons (avoid duplicate CTAs)
+  const showQuickReplies = isLast && quickReplies && quickReplies.length > 0 && !hasActionCard;
 
   return (
     <div
@@ -1319,6 +1325,7 @@ function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaig
             onCreateCampaign={onCreateCampaign}
             onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
             onActionExecute={onActionExecute}
+            onPreview={onPreview}
           />
         )}
         {showQuickReplies && (
@@ -1378,9 +1385,11 @@ function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage, 
             onCreateCampaign={onCreateCampaign}
             onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
             onActionExecute={onActionExecute}
+            onPreview={onPreview}
           />
         )}
-        {showAction && metadata?.quick_replies?.length > 0 && (
+        {/* Quick replies after action card — only for non-campaign actions to avoid duplicate buttons */}
+        {showAction && !hasActionCard && metadata?.quick_replies?.length > 0 && (
           <QuickReplies replies={metadata.quick_replies} onSend={onSendMessage} />
         )}
         <div className="chat-msg-time">{timeStr}</div>
@@ -2308,6 +2317,7 @@ export default function ChatPage() {
                   onCreateCampaign={createCampaignFromChat}
                   onSendMessage={sendMessage}
                   onActionExecute={executeAction}
+                  onPreview={(campaign) => setCampaignPreview({ campaign, edits: {} })}
                 />
               ))}
 
