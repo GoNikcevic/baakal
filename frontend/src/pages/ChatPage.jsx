@@ -2480,9 +2480,9 @@ export default function ChatPage() {
 
           {/* Touchpoints / Sequence */}
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
-            {lang === 'en' ? 'Sequence' : 'Séquence'} ({(campaignPreview.campaign.touchpoints || []).length} {lang === 'en' ? 'steps' : 'étapes'})
+            {lang === 'en' ? 'Sequence' : 'Séquence'} ({(campaignPreview.campaign.sequence || campaignPreview.campaign.touchpoints || []).length} {lang === 'en' ? 'steps' : 'étapes'})
           </div>
-          {(campaignPreview.campaign.touchpoints || []).map((tp, i) => {
+          {(campaignPreview.campaign.sequence || campaignPreview.campaign.touchpoints || []).map((tp, i) => {
             const editKey = `tp_${i}`;
             const editedSubject = campaignPreview.edits?.[`${editKey}_subject`];
             const editedBody = campaignPreview.edits?.[`${editKey}_body`];
@@ -2528,13 +2528,14 @@ export default function ChatPage() {
               onClick={() => {
                 // Apply edits to campaign and trigger creation
                 const edited = { ...campaignPreview.campaign };
-                if (edited.touchpoints) {
-                  edited.touchpoints = edited.touchpoints.map((tp, i) => ({
-                    ...tp,
-                    subject: campaignPreview.edits?.[`tp_${i}_subject`] || tp.subject,
-                    body: campaignPreview.edits?.[`tp_${i}_body`] || tp.body,
-                  }));
-                }
+                const steps = edited.sequence || edited.touchpoints || [];
+                const editedSteps = steps.map((tp, i) => ({
+                  ...tp,
+                  subject: campaignPreview.edits?.[`tp_${i}_subject`] || tp.subject,
+                  body: campaignPreview.edits?.[`tp_${i}_body`] || tp.body,
+                }));
+                if (edited.sequence) edited.sequence = editedSteps;
+                else edited.touchpoints = editedSteps;
                 // Send to create
                 createCampaignFromChat(edited);
                 setCampaignPreview(null);
