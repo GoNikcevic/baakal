@@ -9,9 +9,9 @@
    Sets localStorage 'bakal_onboarding_complete' on finish.
    =============================================================================== */
 
-import { useState, useCallback } from 'react';
-import { saveKeys } from '../services/api-client';
-import { useT } from '../i18n';
+import { useState, useCallback, useRef } from 'react';
+import { saveKeys, request } from '../services/api-client';
+import { useT, useI18n } from '../i18n';
 
 const TOTAL_STEPS = 3;
 
@@ -129,9 +129,16 @@ const CRM_GUIDES = {
 
 export default function OnboardingWizard({ onComplete }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const STEP_META = getStepMeta(t);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Document upload
+  const [uploadedDocs, setUploadedDocs] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Step 1 — Company
   const [company, setCompany] = useState('');
@@ -157,6 +164,28 @@ export default function OnboardingWizard({ onComplete }) {
   const [tone, setTone] = useState('Pro décontracté');
   const [formality, setFormality] = useState('Vous');
   const [valueProp, setValueProp] = useState('');
+
+  /* ─── Document upload ─── */
+
+  const handleDocUpload = useCallback(async (files) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      for (const f of files) formData.append('files', f);
+      formData.append('docTypes', JSON.stringify(Array(files.length).fill('company')));
+      const res = await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('bakal_token')}` },
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUploadedDocs(prev => [...prev, ...(data.documents || [{ name: 'Document uploaded' }])]);
+      }
+    } catch { /* ignore */ }
+    setUploading(false);
+  }, []);
 
   /* ─── Navigation ─── */
 
@@ -358,6 +387,39 @@ export default function OnboardingWizard({ onComplete }) {
                 <input className="form-input" placeholder="Ex: France, \u00CEle-de-France" value={targetZones} onChange={e => setTargetZones(e.target.value)} />
               </div>
             </div>
+
+            {/* Document upload — required */}
+            <div style={{ marginTop: 20, padding: 16, border: `2px dashed ${uploadedDocs.length > 0 ? 'var(--success)' : 'var(--accent)'}`, borderRadius: 12, background: 'var(--bg-elevated)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+                📄 {en ? 'Upload your company documents' : 'Uploadez vos documents entreprise'}
+                <span style={{ color: 'var(--danger)', marginLeft: 4 }}>*</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                {en
+                  ? 'Presentation, brief, case studies... baakalai needs these to personalize your campaigns. At least 1 document required.'
+                  : 'Présentation, brief, études de cas... baakalai en a besoin pour personnaliser vos campagnes. Au moins 1 document requis.'}
+              </div>
+              <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.txt,.csv,.xlsx,.png,.jpg" style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files?.length > 0) { handleDocUpload(e.target.files); e.target.value = ''; } }} />
+              <button className="btn btn-primary" style={{ fontSize: 12, padding: '8px 16px' }}
+                onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                {uploading ? (en ? 'Uploading...' : 'Upload en cours...') : (en ? '+ Upload documents' : '+ Uploader des documents')}
+              </button>
+              {uploadedDocs.length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {uploadedDocs.map((d, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      ✅ {d.original_name || d.name || 'Document'}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {uploadedDocs.length === 0 && (
+                <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 8 }}>
+                  ⚠️ {en ? 'You must upload at least 1 document to continue' : 'Vous devez uploader au moins 1 document pour continuer'}
+                </div>
+              )}
+            </div>
           </>
         );
 
@@ -538,8 +600,10 @@ export default function OnboardingWizard({ onComplete }) {
             {saving ? t('wizard.saving') : t('wizard.continue')}
           </button>
         ) : (
-          <button className="btn btn-primary" onClick={next}>
-            {t('wizard.continue')}
+          <button className="btn btn-primary" onClick={next} disabled={step === 0 && uploadedDocs.length === 0}>
+            {step === 0 && uploadedDocs.length === 0
+              ? (en ? 'Upload docs to continue' : 'Uploadez des docs pour continuer')
+              : t('wizard.continue')}
           </button>
         )}
       </div>
