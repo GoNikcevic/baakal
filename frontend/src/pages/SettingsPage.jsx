@@ -52,6 +52,10 @@ const EXTENDED_TOOLS = [
     { field: 'lushaKey', label: 'Lusha', desc: 'Coordonnées professionnelles', placeholder: 'Votre clé API Lusha', color: '#00CEC9', icon: 'Lu' },
     { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre clé API Snov', color: '#E17055', icon: 'S' },
   ]},
+  { label: 'Newsletter / Marketing', keys: [
+    { field: 'informzKey', label: 'Informz', desc: 'Newsletter campaigns for associations (Higher Logic)', placeholder: 'username:password:brandId', color: '#2D3436', icon: 'Iz',
+      helpSteps: ['Get your API credentials from your Informz admin', 'Format: username:password:brandId', 'Your server IP must be whitelisted by Informz'] },
+  ]},
   { label: 'LinkedIn / Scraping', keys: [
     { field: 'linkedinKey', label: 'LinkedIn', desc: 'Cookie li_at — enrichissement + outreach automatisé', placeholder: 'Votre cookie li_at (depuis le navigateur)', color: '#0A66C2', icon: 'in', category: 'LinkedIn',
       helpSteps: ['Connectez-vous à linkedin.com', 'Ouvrez les DevTools (F12) → Application → Cookies', 'Copiez la valeur du cookie "li_at"', 'Collez-la ici'] },

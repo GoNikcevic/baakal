@@ -29,6 +29,8 @@ const PROVIDER_MAP = {
   smartleadKey: 'smartlead',
   lgmKey: 'lgm',
   waalaxyKey: 'waalaxy',
+  // ── Newsletter / Marketing ──
+  informzKey: 'informz',
   // ── LinkedIn / Scraping ──
   linkedinKey: 'linkedin',
   phantombusterKey: 'phantombuster',
