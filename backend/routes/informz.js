@@ -149,6 +149,91 @@ router.get('/analytics/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/informz/templates — List available newsletter templates from Informz
+router.get('/templates', async (req, res, next) => {
+  try {
+    const creds = await getInformzCreds(req.user.id);
+    if (!creds) return res.status(400).json({ error: 'Informz not connected' });
+
+    const result = await informz.getTemplates(creds);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// GET /api/informz/target-groups — List subscriber segments/lists
+router.get('/target-groups', async (req, res, next) => {
+  try {
+    const creds = await getInformzCreds(req.user.id);
+    if (!creds) return res.status(400).json({ error: 'Informz not connected' });
+
+    const result = await informz.getTargetGroups(creds);
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// POST /api/informz/send-from-template — Send newsletter using Informz template + AI content
+router.post('/send-from-template', async (req, res, next) => {
+  try {
+    const creds = await getInformzCreds(req.user.id);
+    if (!creds) return res.status(400).json({ error: 'Informz not connected' });
+
+    const { templateId, subject, listId, scheduledDate, prompt } = req.body;
+    if (!templateId) return res.status(400).json({ error: 'templateId is required' });
+
+    let finalSubject = subject;
+    let contentOverrides = {};
+
+    // If prompt provided, generate content with AI
+    if (prompt) {
+      const profile = await db.profiles.get(req.user.id);
+      const patterns = await db.memoryPatterns.listForPrompt(5);
+      const patternCtx = patterns.length > 0 ? `\nInsights: ${patterns.map(p => p.pattern).join('; ')}` : '';
+
+      const aiPrompt = `Generate newsletter content for an association/membership organization.
+Company: ${profile?.company || 'N/A'}
+Sector: ${profile?.sector || 'N/A'}
+Topic: ${prompt}${patternCtx}
+
+Generate engaging content sections. Return JSON:
+{
+  "subject": "compelling subject line",
+  "headline": "main headline",
+  "intro": "opening paragraph (2-3 sentences)",
+  "body": "main content (3-4 paragraphs with key points)",
+  "cta": "call to action text"
+}`;
+
+      const result = await claude.callClaude('Return only valid JSON.', aiPrompt, 1200, 'newsletter_content');
+      let parsed = result.parsed;
+      if (!parsed) {
+        const m = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*\}/);
+        if (m) parsed = JSON.parse(m[0]);
+      }
+
+      if (parsed) {
+        finalSubject = finalSubject || parsed.subject;
+        contentOverrides = {
+          Headline: parsed.headline || '',
+          IntroText: parsed.intro || '',
+          BodyContent: parsed.body || '',
+          CTAText: parsed.cta || '',
+        };
+      }
+    }
+
+    const result = await informz.createMailingFromTemplate(creds, {
+      templateId,
+      subject: finalSubject || 'Newsletter',
+      listId,
+      scheduledDate,
+      contentOverrides,
+    });
+
+    logger.info('informz', `Newsletter from template ${templateId}: ${finalSubject}`);
+    res.json({ ok: true, result });
+  } catch (err) { next(err); }
+});
+
 // GET /api/informz/engagement — Get engagement scores
 router.get('/engagement', async (req, res, next) => {
   try {

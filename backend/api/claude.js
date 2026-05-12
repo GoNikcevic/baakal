@@ -468,6 +468,14 @@ RÈGLES send_email :
 Rechercher des signaux d'achat :
 { "action": "search_signals", "sectors": ["crypto", "DeFi"], "keywords": ["funding", "hiring"], "titles": ["CEO", "CMO"] }
 
+Envoyer une newsletter aux membres (Informz) :
+{ "action": "send_newsletter", "topic": "description du sujet", "segment": "all|active|specific" }
+
+RÈGLES send_newsletter :
+- send_newsletter : quand l'utilisateur demande "envoie une newsletter", "email marketing aux membres", "communication aux adhérents".
+- Génère un résumé du contenu proposé AVANT d'envoyer. Demande confirmation.
+- Si Informz n'est pas connecté, dis-le et redirige vers Settings.
+
 RÈGLES scan_crm / run_nurture / import_crm :
 - scan_crm : quand l'utilisateur demande "nettoie mon CRM", "vérifie mes données", "doublons".
 - run_nurture : quand l'utilisateur demande "relance les deals stagnants", "réengage les contacts inactifs", "envoie un suivi".

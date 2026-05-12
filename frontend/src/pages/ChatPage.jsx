@@ -265,6 +265,9 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
   if (action === 'search_signals') {
     return <SignalSearchCard metadata={metadata} />;
   }
+  if (action === 'send_newsletter') {
+    return <NewsletterCard metadata={metadata} />;
+  }
 
   return null;
 }
@@ -996,6 +999,76 @@ function SignalSearchCard({ metadata }) {
             {en ? 'View signals →' : 'Voir les signaux →'}
           </a>
         </div>
+      )}
+    </div>
+  );
+}
+
+function NewsletterCard({ metadata }) {
+  const [templates, setTemplates] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+  const { lang } = useI18n();
+  const en = lang === 'en';
+
+  useEffect(() => {
+    request('/informz/templates').then(d => setTemplates(d.rows || [])).catch(() => setTemplates([]));
+  }, []);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      const data = await request('/informz/send-from-template', {
+        method: 'POST',
+        body: JSON.stringify({
+          templateId: selectedTemplate,
+          prompt: metadata.topic || '',
+        }),
+      });
+      setResult(data);
+    } catch (err) { setResult({ error: err.message }); }
+    setSending(false);
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: 12,
+      padding: 16, marginTop: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 18 }}>📨</span>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Newsletter</div>
+      </div>
+      {metadata.topic && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+          {en ? 'Topic' : 'Sujet'}: {metadata.topic}
+        </div>
+      )}
+      {templates === null ? (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{en ? 'Loading templates...' : 'Chargement des templates...'}</div>
+      ) : templates.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--warning)' }}>
+          {en ? 'No Informz templates found. Connect Informz in Settings or create templates in Informz first.' : 'Aucun template Informz trouvé. Connectez Informz dans les Settings ou créez des templates dans Informz.'}
+        </div>
+      ) : !result ? (
+        <>
+          <select className="form-input" style={{ fontSize: 12, marginBottom: 8 }}
+            value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}>
+            <option value="">{en ? '— Select a template —' : '— Choisir un template —'}</option>
+            {templates.map((t, i) => (
+              <option key={t.Id || i} value={t.Id || t.id || i}>{t.Name || t.name || `Template ${i + 1}`}</option>
+            ))}
+          </select>
+          <button className="btn btn-primary" style={{ fontSize: 12, width: '100%', justifyContent: 'center' }}
+            onClick={handleSend} disabled={sending || !selectedTemplate}>
+            {sending ? '...' : (en ? '📨 Generate & send newsletter' : '📨 Générer et envoyer')}
+          </button>
+        </>
+      ) : result.error ? (
+        <div style={{ fontSize: 12, color: 'var(--danger)' }}>{result.error}</div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--success)' }}>✅ {en ? 'Newsletter sent!' : 'Newsletter envoyée !'}</div>
       )}
     </div>
   );

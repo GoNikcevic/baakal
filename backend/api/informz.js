@@ -254,6 +254,46 @@ async function getMailings(creds) {
 }
 
 /**
+ * Get message templates (MD2) from Informz.
+ */
+async function getTemplates(creds) {
+  const xml = `<Grid>Messages</Grid>
+<Parameters></Parameters>`;
+
+  return gridRequest(creds, xml);
+}
+
+/**
+ * Create a mailing using an existing template.
+ */
+async function createMailingFromTemplate(creds, { templateId, subject, listId, scheduledDate, contentOverrides }) {
+  const overridesXml = contentOverrides
+    ? Object.entries(contentOverrides).map(([key, val]) => `<${key}>${escapeXml(val)}</${key}>`).join('\n')
+    : '';
+
+  const xml = `<Action>CreateMailingFromTemplate</Action>
+<Parameters>
+  <TemplateId>${templateId}</TemplateId>
+  <Subject>${escapeXml(subject)}</Subject>
+  <TargetId>${listId || ''}</TargetId>
+  <ScheduleDate>${scheduledDate || new Date().toISOString()}</ScheduleDate>
+  ${overridesXml}
+</Parameters>`;
+
+  return actionRequest(creds, xml);
+}
+
+/**
+ * Get subscriber lists/target groups.
+ */
+async function getTargetGroups(creds) {
+  const xml = `<Grid>InterestTargetGroup</Grid>
+<Parameters></Parameters>`;
+
+  return gridRequest(creds, xml);
+}
+
+/**
  * Test connection.
  */
 async function testConnection(creds) {
@@ -320,6 +360,7 @@ function parseResponse(xml) {
 
 module.exports = {
   createMailing,
+  createMailingFromTemplate,
   createMessage,
   bulkUpload,
   subscribe,
@@ -331,5 +372,7 @@ module.exports = {
   getEngagementScores,
   getCampaigns,
   getMailings,
+  getTemplates,
+  getTargetGroups,
   testConnection,
 };
