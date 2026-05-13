@@ -240,10 +240,10 @@ router.get('/linkedin/status', async (req, res, next) => {
     if (!cookie) return res.json({ connected: false });
 
     const linkedin = require('../api/linkedin');
-    const test = await linkedin.testCookie(cookie);
     const counts = linkedin.getDailyCounts(req.user.id);
 
-    res.json({ connected: test.valid, name: test.name, counts });
+    // Cookie exists = connected (skip live test — LinkedIn blocks datacenter IPs)
+    res.json({ connected: true, name: 'LinkedIn', counts });
   } catch (err) { next(err); }
 });
 
