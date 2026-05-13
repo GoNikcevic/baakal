@@ -118,7 +118,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-muted)',
         fontFamily: 'var(--font)',
-      }}>Chargement...</div>}>
+      }}>Loading...</div>}>
         <Routes>
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/legal" element={<LegalPage />} />
@@ -137,7 +137,7 @@ export default function App() {
         height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-muted)',
         fontFamily: 'var(--font)',
       }}>
-        Chargement...
+        Loading...
       </div>
     )
   }

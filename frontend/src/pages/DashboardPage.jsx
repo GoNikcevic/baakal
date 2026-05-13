@@ -7,7 +7,7 @@
 import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
-import { useT } from '../i18n';
+import { useT, useI18n } from '../i18n';
 import { useSocket } from '../context/SocketContext';
 import { DEMO_DATA } from '../data/demo-data';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
@@ -487,42 +487,42 @@ function CampaignTableRow({ campaign: c }) {
 
 function WelcomeBanner({ onCreateCampaign }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   return (
     <div className="welcome-banner">
       <div className="welcome-title">{t('dashboard.welcomeTitle')}</div>
       <div className="welcome-subtitle">
-        Votre plateforme de prospection intelligente est prête. Suivez ces étapes
-        pour lancer votre première campagne et commencer à générer des RDV
-        qualifiés.
+        {en ? 'Your intelligent prospecting platform is ready. Follow these steps to launch your first campaign and start generating qualified meetings.'
+          : 'Votre plateforme de prospection intelligente est pr\u00eate. Suivez ces \u00e9tapes pour lancer votre premi\u00e8re campagne et commencer \u00e0 g\u00e9n\u00e9rer des RDV qualifi\u00e9s.'}
       </div>
       <div className="onboarding-steps">
         <div className="onboarding-step step-active">
           <div className="onboarding-step-number">1</div>
-          <div className="onboarding-step-title">Créez votre campagne</div>
+          <div className="onboarding-step-title">{en ? 'Create your campaign' : 'Cr\u00e9ez votre campagne'}</div>
           <div className="onboarding-step-desc">
-            Définissez votre cible, votre canal (Email, LinkedIn ou les deux) et
-            votre angle d'approche.
+            {en ? 'Define your target, channel (Email, LinkedIn or both), and approach angle.'
+              : 'D\u00e9finissez votre cible, votre canal (Email, LinkedIn ou les deux) et votre angle d\'approche.'}
           </div>
-          <button className="btn btn-primary" onClick={onCreateCampaign}>Créer ma campagne</button>
+          <button className="btn btn-primary" onClick={onCreateCampaign}>{en ? 'Create my campaign' : 'Cr\u00e9er ma campagne'}</button>
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">2</div>
           <div className="onboarding-step-title">
-            Baakalai génère vos séquences
+            {en ? 'baakalai generates your sequences' : 'Baakalai g\u00e9n\u00e8re vos s\u00e9quences'}
           </div>
           <div className="onboarding-step-desc">
-            L'IA rédige des messages personnalisés et adaptés à votre cible et
-            votre secteur.
+            {en ? 'AI writes personalized messages adapted to your target and sector.'
+              : 'L\'IA r\u00e9dige des messages personnalis\u00e9s et adapt\u00e9s \u00e0 votre cible et votre secteur.'}
           </div>
         </div>
         <div className="onboarding-step">
           <div className="onboarding-step-number">3</div>
           <div className="onboarding-step-title">
-            Importez vos prospects
+            {en ? 'Import your prospects' : 'Importez vos prospects'}
           </div>
           <div className="onboarding-step-desc">
-            Ajoutez votre liste de contacts ou laissez-nous la constituer pour
-            vous.
+            {en ? 'Add your contact list or let us build it for you.' : 'Ajoutez votre liste de contacts ou laissez-nous la constituer pour vous.'}
           </div>
         </div>
         <div className="onboarding-step">
@@ -539,12 +539,21 @@ function WelcomeBanner({ onCreateCampaign }) {
 
 function EmptyKpis() {
   const t = useT();
-  const items = [
+  const { lang } = useI18n();
+  const en = lang === 'en';
+  const items = en ? [
+    { label: '\u{1F4E4} Contacts reached' },
+    { label: '\u{1F4EC} Open rate' },
+    { label: '\u{1F4AC} Reply rate' },
+    { label: '\u{1F525} Interested prospects' },
+    { label: '\u{1F4C5} Qualified meetings' },
+    { label: '\u{1F6AB} Stops' },
+  ] : [
     { label: '\u{1F4E4} Contacts atteints' },
     { label: "\u{1F4EC} Taux d'ouverture" },
-    { label: '\u{1F4AC} Taux de réponse' },
-    { label: '\u{1F525} Prospects intéressés' },
-    { label: '\u{1F4C5} RDV qualifiés' },
+    { label: '\u{1F4AC} Taux de r\u00e9ponse' },
+    { label: '\u{1F525} Prospects int\u00e9ress\u00e9s' },
+    { label: '\u{1F4C5} RDV qualifi\u00e9s' },
     { label: '\u{1F6AB} Stops' },
   ];
 
@@ -567,50 +576,52 @@ function EmptyKpis() {
 
 function EmptyOverviewGrid({ onCreateCampaign }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   return (
     <div className="section-grid">
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F3AF}'} Campagnes actives</div>
+          <div className="card-title">{'\u{1F3AF}'} {en ? 'Active campaigns' : 'Campagnes actives'}</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F4ED}'}</div>
           <div className="empty-text">
-            Aucune campagne pour le moment. Créez votre première campagne pour
-            voir vos performances ici.
+            {en ? 'No campaigns yet. Create your first campaign to see your performance here.'
+              : 'Aucune campagne pour le moment. Cr\u00e9ez votre premi\u00e8re campagne pour voir vos performances ici.'}
           </div>
           <button
             className="btn btn-primary"
             style={{ marginTop: '16px', fontSize: '13px' }}
             onClick={onCreateCampaign}
           >
-            Créer une campagne
+            {en ? 'Create a campaign' : 'Cr\u00e9er une campagne'}
           </button>
         </div>
       </div>
 
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F4C8}'} Performance 4 semaines</div>
+          <div className="card-title">{'\u{1F4C8}'} {en ? '4-week performance' : 'Performance 4 semaines'}</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F4CA}'}</div>
           <div className="empty-text">
-            Les graphiques de performance apparaîtront dès que votre première
-            campagne sera active.
+            {en ? 'Performance charts will appear once your first campaign is active.'
+              : 'Les graphiques de performance appara\u00eetront d\u00e8s que votre premi\u00e8re campagne sera active.'}
           </div>
         </div>
       </div>
 
       <div className="card card-empty">
         <div className="card-header">
-          <div className="card-title">{'\u{1F525}'} Opportunités récentes</div>
+          <div className="card-title">{'\u{1F525}'} {en ? 'Recent opportunities' : 'Opportunit\u00e9s r\u00e9centes'}</div>
         </div>
         <div className="card-body">
           <div className="empty-icon">{'\u{1F48E}'}</div>
           <div className="empty-text">
-            Les prospects intéressés et les RDV planifiés s'afficheront ici au
-            fil des réponses.
+            {en ? 'Interested prospects and scheduled meetings will appear here as replies come in.'
+              : 'Les prospects int\u00e9ress\u00e9s et les RDV planifi\u00e9s s\'afficheront ici au fil des r\u00e9ponses.'}
           </div>
         </div>
       </div>
