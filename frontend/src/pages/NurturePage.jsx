@@ -62,7 +62,7 @@ export default function NurturePage() {
   const campaignsByTrigger = {};
   for (const e of sentEmails) {
     const key = e.trigger_id || 'manual';
-    if (!campaignsByTrigger[key]) campaignsByTrigger[key] = { trigger: e.trigger_name || 'Envoi manuel', emails: [] };
+    if (!campaignsByTrigger[key]) campaignsByTrigger[key] = { trigger: e.trigger_name || (lang === 'en' ? 'Manual send' : 'Envoi manuel'), emails: [] };
     campaignsByTrigger[key].emails.push(e);
   }
 
@@ -95,7 +95,7 @@ export default function NurturePage() {
                 const data = await request('/nurture/preview', { method: 'POST' });
                 setPreviews(data.previews || []);
               } catch (err) {
-                alert('Erreur: ' + err.message);
+                alert((lang === 'en' ? 'Error: ' : 'Erreur: ') + err.message);
               }
               setPreviewing(false);
             }}
@@ -142,7 +142,7 @@ export default function NurturePage() {
                 {previews.length > 0 ? t('activation.contactsToContact', { count: previews.reduce((s, p) => s + p.contactsCount, 0) }) : t('activation.noContactsToEmail')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--grey-500)', marginTop: 2 }}>
-                {previews.length} trigger{previews.length > 1 ? 's' : ''} actif{previews.length > 1 ? 's' : ''}
+                {previews.length} trigger{previews.length > 1 ? 's' : ''} {lang === 'en' ? 'active' : ('actif' + (previews.length > 1 ? 's' : ''))}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -158,7 +158,7 @@ export default function NurturePage() {
                       setPreviews(null);
                       loadData();
                     } catch (err) {
-                      alert('Erreur: ' + err.message);
+                      alert((lang === 'en' ? 'Error: ' : 'Erreur: ') + err.message);
                     }
                     setExecuting(false);
                   }}
@@ -180,7 +180,7 @@ export default function NurturePage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{p.triggerName}</div>
                 <span style={{ fontSize: 11, color: 'var(--grey-500)' }}>
-                  {p.contactsCount} contact{p.contactsCount > 1 ? 's' : ''} {'\u00B7'} mode {p.mode === 'auto' ? 'auto' : 'approbation'}
+                  {p.contactsCount} contact{p.contactsCount > 1 ? 's' : ''} {'\u00B7'} {lang === 'en' ? 'mode' : 'mode'} {p.mode === 'auto' ? 'auto' : (lang === 'en' ? 'approval' : 'approbation')}
                 </span>
               </div>
 
@@ -196,7 +196,7 @@ export default function NurturePage() {
                 ))}
                 {p.contactsCount > 5 && (
                   <span style={{ fontSize: 11, color: 'var(--grey-500)', padding: '3px 6px' }}>
-                    +{p.contactsCount - 5} autres
+                    +{p.contactsCount - 5} {lang === 'en' ? 'more' : 'autres'}
                   </span>
                 )}
               </div>
@@ -208,7 +208,7 @@ export default function NurturePage() {
                   borderLeft: '3px solid var(--lavender)',
                 }}>
                   <div style={{ fontSize: 11, color: 'var(--grey-500)', marginBottom: 4 }}>
-                    Exemple d'email pour {p.contacts[0]?.name || 'un contact'} :
+                    {lang === 'en' ? `Sample email for ${p.contacts[0]?.name || 'a contact'}:` : `Exemple d'email pour ${p.contacts[0]?.name || 'un contact'} :`}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{p.sampleEmail.subject}</div>
                   <div style={{ fontSize: 12, color: 'var(--grey-700)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
@@ -272,7 +272,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
       setForm({ name: '', triggerType: 'deal_stagnant', days: 30, mode: 'approval', tone: 'professionnel mais chaleureux' });
       onRefresh();
     } catch (err) {
-      alert('Erreur: ' + err.message);
+      alert((lang === 'en' ? 'Error: ' : 'Erreur: ') + err.message);
     }
     setSaving(false);
   };
@@ -284,7 +284,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
         body: JSON.stringify({ enabled: !enabled }),
       });
       onRefresh();
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Failed to update trigger' }); }
+    } catch { showToast({ type: 'error', title: lang === 'en' ? 'Error' : 'Erreur', message: lang === 'en' ? 'Failed to update trigger' : 'Échec de mise à jour du trigger' }); }
   };
 
   const handleDelete = async (id) => {
@@ -292,7 +292,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
     try {
       await request(`/nurture/triggers/${id}`, { method: 'DELETE' });
       onRefresh();
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Operation failed' }); }
+    } catch { showToast({ type: 'error', title: lang === 'en' ? 'Error' : 'Erreur', message: lang === 'en' ? 'Operation failed' : 'Opération échouée' }); }
   };
 
   return (
@@ -390,7 +390,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                       {typeConfig.desc} {conditions.days ? `(${conditions.days}j)` : ''}
                       {' \u00B7 '} {lang === 'en' ? 'Mode' : 'Mode'}: {trigger.mode === 'auto' ? (lang === 'en' ? 'automatic' : 'automatique') : (lang === 'en' ? 'approval' : 'approbation')}
-                      {trigger.last_run && ` \u00B7 Dernier run : ${new Date(trigger.last_run).toLocaleDateString('fr-FR')}`}
+                      {trigger.last_run && ` \u00B7 ${lang === 'en' ? 'Last run:' : 'Dernier run :'} ${new Date(trigger.last_run).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}`}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -406,7 +406,7 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
                         try {
                           await request(`/nurture/triggers/${trigger.id}`, { method: 'PATCH', body: JSON.stringify({ abEnabled: !trigger.ab_enabled }) });
                           onRefresh();
-                        } catch { showToast({ type: 'error', title: 'Erreur', message: 'Failed to toggle A/B' }); }
+                        } catch { showToast({ type: 'error', title: lang === 'en' ? 'Error' : 'Erreur', message: lang === 'en' ? 'Failed to toggle A/B' : 'Échec du basculement A/B' }); }
                       }}
                     >
                       A/B {trigger.ab_enabled ? 'ON' : 'OFF'}
@@ -440,12 +440,14 @@ function TriggersSection({ triggers, onRefresh, showCreate, setShowCreate }) {
 
 function EmailsSection({ emails, type, onRefresh }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const handleApprove = async (id) => {
     try {
       await request(`/nurture/emails/${id}/approve`, { method: 'POST' });
       onRefresh();
     } catch (err) {
-      alert('Erreur: ' + err.message);
+      alert((en ? 'Error: ' : 'Erreur: ') + err.message);
     }
   };
 
@@ -453,7 +455,7 @@ function EmailsSection({ emails, type, onRefresh }) {
     try {
       await request(`/nurture/emails/${id}/cancel`, { method: 'POST' });
       onRefresh();
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Operation failed' }); }
+    } catch { showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: en ? 'Operation failed' : 'Opération échouée' }); }
   };
 
   if (emails.length === 0) {
@@ -497,7 +499,7 @@ function EmailsSection({ emails, type, onRefresh }) {
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
                   {email.to_email}
-                  {email.sent_at && ` \u00B7 Envoy\u00E9 le ${new Date(email.sent_at).toLocaleString('fr-FR')}`}
+                  {email.sent_at && ` \u00B7 ${en ? 'Sent on' : 'Envoy\u00E9 le'} ${new Date(email.sent_at).toLocaleString(en ? 'en-US' : 'fr-FR')}`}
                   {email.error && <span style={{ color: 'var(--danger)' }}> \u00B7 {email.error}</span>}
                 </div>
               </div>
@@ -509,21 +511,21 @@ function EmailsSection({ emails, type, onRefresh }) {
                     style={{ fontSize: 11, padding: '4px 12px' }}
                     onClick={() => handleApprove(email.id)}
                   >
-                    Envoyer
+                    {en ? 'Send' : 'Envoyer'}
                   </button>
                   <button
                     className="btn btn-ghost"
                     style={{ fontSize: 11, padding: '4px 12px', color: 'var(--danger)' }}
                     onClick={() => handleCancel(email.id)}
                   >
-                    Annuler
+                    {en ? 'Cancel' : 'Annuler'}
                   </button>
                 </div>
               )}
 
               {type === 'sent' && (
                 <span style={{ fontSize: 11, color: 'var(--success)', whiteSpace: 'nowrap' }}>
-                  {'\u2705'} Envoy{'\u00E9'}
+                  {'\u2705'} {en ? 'Sent' : `Envoy${'\u00E9'}`}
                 </span>
               )}
             </div>
@@ -536,15 +538,21 @@ function EmailsSection({ emails, type, onRefresh }) {
 
 /* ═══ Activation Dashboard ═══ */
 
-const SEGMENT_CONFIG = [
-  { key: 'active', label: 'Actifs', color: 'var(--success)', icon: '\u2705' },
-  { key: 'won', label: 'Gagn\u00E9s', color: 'var(--purple)', icon: '\uD83C\uDFC6' },
-  { key: 'stagnant', label: 'Stagnants', color: 'var(--warning)', icon: '\u23F0' },
-  { key: 'churnRisk', label: 'Risque churn', color: 'var(--danger)', icon: '\u26A0\uFE0F' },
-];
+function getSegmentConfig(lang) {
+  const en = lang === 'en';
+  return [
+    { key: 'active', label: en ? 'Active' : 'Actifs', color: 'var(--success)', icon: '\u2705' },
+    { key: 'won', label: en ? 'Won' : 'Gagn\u00E9s', color: 'var(--purple)', icon: '\uD83C\uDFC6' },
+    { key: 'stagnant', label: en ? 'Stagnant' : 'Stagnants', color: 'var(--warning)', icon: '\u23F0' },
+    { key: 'churnRisk', label: en ? 'Churn risk' : 'Risque churn', color: 'var(--danger)', icon: '\u26A0\uFE0F' },
+  ];
+}
 
 function ActivationDashboard({ metrics }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
+  const SEGMENT_CONFIG = getSegmentConfig(lang);
   if (!metrics) {
     return (
       <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)', fontSize: 13 }}>
@@ -572,7 +580,7 @@ function ActivationDashboard({ metrics }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div className="card">
-          <div className="card-header"><div className="card-title">{'\u23F0'} Deals stagnants</div></div>
+          <div className="card-header"><div className="card-title">{'\u23F0'} {en ? 'Stagnant deals' : 'Deals stagnants'}</div></div>
           <div className="card-body">
             {(topStagnant || []).length === 0 ? (
               <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>{t('activation.noStagnant')}</div>
@@ -593,7 +601,7 @@ function ActivationDashboard({ metrics }) {
         </div>
 
         <div className="card">
-          <div className="card-header"><div className="card-title">{'\u26A0\uFE0F'} Risque de churn</div></div>
+          <div className="card-header"><div className="card-title">{'\u26A0\uFE0F'} {en ? 'Churn risk' : 'Risque de churn'}</div></div>
           <div className="card-body">
             {(topChurnRisk || []).length === 0 ? (
               <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: 16 }}>{t('activation.noRisk')}</div>
@@ -616,13 +624,13 @@ function ActivationDashboard({ metrics }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="card">
-          <div className="card-header"><div className="card-title">{'\u2709\uFE0F'} Emails (30j)</div></div>
+          <div className="card-header"><div className="card-title">{'\u2709\uFE0F'} {en ? 'Emails (30d)' : 'Emails (30j)'}</div></div>
           <div className="card-body">
             <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
               {[
-                { label: 'Envoy\u00E9s', value: emailsLast30d?.sent || 0, color: 'var(--success)' },
-                { label: 'En attente', value: emailsLast30d?.pending || 0, color: 'var(--warning)' },
-                { label: '\u00C9chou\u00E9s', value: emailsLast30d?.failed || 0, color: 'var(--danger)' },
+                { label: en ? 'Sent' : 'Envoy\u00E9s', value: emailsLast30d?.sent || 0, color: 'var(--success)' },
+                { label: en ? 'Pending' : 'En attente', value: emailsLast30d?.pending || 0, color: 'var(--warning)' },
+                { label: en ? 'Failed' : '\u00C9chou\u00E9s', value: emailsLast30d?.failed || 0, color: 'var(--danger)' },
               ].map(s => (
                 <div key={s.label} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
@@ -634,11 +642,11 @@ function ActivationDashboard({ metrics }) {
         </div>
 
         <div className="card">
-          <div className="card-header"><div className="card-title">{'\u26A1'} Triggers actifs</div></div>
+          <div className="card-header"><div className="card-title">{'\u26A1'} {en ? 'Active triggers' : 'Triggers actifs'}</div></div>
           <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--accent)' }}>{triggers?.active || 0}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>sur {triggers?.total || 0}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{en ? 'of' : 'sur'} {triggers?.total || 0}</div>
             </div>
           </div>
         </div>
@@ -651,6 +659,8 @@ function ActivationDashboard({ metrics }) {
 
 function CampaignsSection({ campaigns }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [expanded, setExpanded] = useState(null);
   const keys = Object.keys(campaigns);
 
@@ -695,9 +705,9 @@ function CampaignsSection({ campaigns }) {
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{campaign.trigger}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                  {total} email{total > 1 ? 's' : ''} envoy{'\u00E9'}{total > 1 ? 's' : ''}
+                  {total} email{total > 1 ? 's' : ''} {en ? 'sent' : (`envoy${'\u00E9'}${total > 1 ? 's' : ''}`)}
                   {' \u00B7 '}{uniqueContacts} contact{uniqueContacts > 1 ? 's' : ''}
-                  {firstSent && ` \u00B7 ${firstSent.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} \u2192 ${lastSent.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}
+                  {firstSent && ` \u00B7 ${firstSent.toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })} \u2192 ${lastSent.toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}`}
                 </div>
               </div>
               <span style={{ fontSize: 16, color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>
@@ -722,22 +732,22 @@ function CampaignsSection({ campaigns }) {
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                         {e.analyzed_at ? (
                           <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--success-soft)', color: 'var(--success)' }}>
-                            Analys{'\u00E9'}
+                            {en ? 'Analyzed' : `Analys${'\u00E9'}`}
                           </span>
                         ) : (
                           <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: 'var(--paper-3)', color: 'var(--grey-500)' }}>
-                            En attente
+                            {en ? 'Pending' : 'En attente'}
                           </span>
                         )}
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          {e.sent_at ? new Date(e.sent_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''}
+                          {e.sent_at ? new Date(e.sent_at).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' }) : ''}
                         </span>
                       </div>
                     </div>
                   ))}
                   {emailList.length > 20 && (
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-                      +{emailList.length - 20} autres
+                      +{emailList.length - 20} {en ? 'more' : 'autres'}
                     </div>
                   )}
                 </div>
@@ -798,7 +808,7 @@ function TeamCampaignsSection({ lang }) {
       setForm({ name: '', targetOwners: [], targetProductLines: [], emailPrompt: '', emailTone: 'professional' });
       setShowCreate(false);
       await load();
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Failed to create campaign' }); }
+    } catch { showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: en ? 'Failed to create campaign' : 'Échec de création de la campagne' }); }
   };
 
   const handlePreview = async (id) => {
@@ -808,7 +818,7 @@ function TeamCampaignsSection({ lang }) {
     try {
       const data = await request(`/team-campaigns/${id}/preview`, { method: 'POST' });
       setPreviewData(data);
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Preview failed' }); }
+    } catch { showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: en ? 'Preview failed' : 'Échec de l\'aperçu' }); }
     setPreviewing(null);
   };
 
@@ -818,7 +828,7 @@ function TeamCampaignsSection({ lang }) {
     try {
       await request(`/team-campaigns/${id}/launch`, { method: 'POST' });
       await load();
-    } catch { showToast({ type: 'error', title: 'Erreur', message: 'Launch failed' }); }
+    } catch { showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: en ? 'Launch failed' : 'Échec du lancement' }); }
     setLaunching(null);
   };
 

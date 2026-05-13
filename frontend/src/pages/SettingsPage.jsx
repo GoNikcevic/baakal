@@ -20,57 +20,63 @@ import FieldMappingSettings from '../components/FieldMappingSettings';
 /* ─── Unified tool list organized by category ─── */
 
 /* Main tools: Outreach + CRM in one block */
-const MAIN_TOOLS = [
-  { field: 'lemlistKey', label: 'Lemlist', desc: 'Campagnes email et LinkedIn', placeholder: 'Votre cl\u00E9 API Lemlist', color: '#6C5CE7', icon: 'L', category: 'Outreach',
-    guide: ['Allez dans app.lemlist.com', 'Settings \u2192 Integrations \u2192 API', 'Copiez la cl\u00E9'], link: 'https://app.lemlist.com/settings/integrations' },
-  { field: 'apolloKey', label: 'Apollo', desc: 'Base B2B + s\u00E9quences email', placeholder: 'Votre cl\u00E9 API Apollo', color: '#6C5CE7', icon: 'A', category: 'Outreach',
-    guide: ['Allez dans app.apollo.io', 'Avatar \u2192 Settings \u2192 API Keys', 'Cr\u00E9ez ou copiez une cl\u00E9'], link: 'https://app.apollo.io/#/settings/integrations/api-keys' },
-  { field: 'instantlyKey', label: 'Instantly', desc: 'Cold email \u00E0 grande \u00E9chelle', placeholder: 'Votre cl\u00E9 API Instantly', color: '#0984E3', icon: 'In', category: 'Outreach',
-    guide: ['Allez dans app.instantly.ai', 'Settings \u2192 Integrations \u2192 API Key'], link: 'https://app.instantly.ai/settings/integrations' },
-  { field: 'lgmKey', label: 'La Growth Machine', desc: 'S\u00E9quences multi-canal', placeholder: 'Votre cl\u00E9 API LGM', color: '#6C5CE7', icon: 'LG', category: 'Outreach',
-    guide: ['Allez dans app.lagrowthmachine.com', 'Settings \u2192 API'], link: 'https://app.lagrowthmachine.com/settings' },
-  { field: 'smartleadKey', label: 'Smartlead', desc: 'Cold email avec inbox rotation', placeholder: 'Votre cl\u00E9 API Smartlead', color: '#4F46E5', icon: 'Sm', category: 'Outreach',
-    guide: ['Allez dans app.smartlead.ai', 'Settings \u2192 API \u2192 Copiez la cl\u00E9'], link: 'https://app.smartlead.ai/settings' },
-  { field: 'waalaxyKey', label: 'Waalaxy', desc: 'Automatisation LinkedIn + email', placeholder: 'Votre cl\u00E9 API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach',
-    guide: ['Allez dans app.waalaxy.com', 'Settings \u2192 Integrations'], link: 'https://app.waalaxy.com/settings' },
-  { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM',
-    guide: ['Allez dans app.hubspot.com', 'Settings \u2192 Integrations \u2192 Private Apps', 'Cr\u00E9ez une app ou copiez le token (pat-)'], link: 'https://app.hubspot.com/settings/integrations' },
-  { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise', placeholder: 'Votre cl\u00E9 API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM',
-    guide: ['Connectez-vous sur votre instance', 'Setup \u2192 Apps \u2192 Connected Apps', 'Copiez le consumer key'] },
-  { field: 'pipedriveKey', label: 'Pipedrive', desc: 'CRM visuel orient\u00E9 vente', placeholder: 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM',
-    guide: ['Allez dans app.pipedrive.com', 'Settings \u2192 Personal preferences \u2192 API', 'Copiez le token personnel'], link: 'https://app.pipedrive.com/settings/api' },
-  { field: 'odooKey', label: 'Odoo', desc: 'ERP + CRM + Facturation', placeholder: 'Cliquez pour configurer', color: '#714B67', icon: 'Od', category: 'CRM', multiField: true,
-    guide: ['URL + nom de base + login + mot de passe'] },
-];
+function getMainTools(lang) {
+  const en = lang === 'en';
+  return [
+    { field: 'lemlistKey', label: 'Lemlist', desc: en ? 'Email and LinkedIn campaigns' : 'Campagnes email et LinkedIn', placeholder: en ? 'Your Lemlist API key' : 'Votre cl\u00E9 API Lemlist', color: '#6C5CE7', icon: 'L', category: 'Outreach',
+      guide: en ? ['Go to app.lemlist.com', 'Settings \u2192 Integrations \u2192 API', 'Copy the key'] : ['Allez dans app.lemlist.com', 'Settings \u2192 Integrations \u2192 API', 'Copiez la cl\u00E9'], link: 'https://app.lemlist.com/settings/integrations' },
+    { field: 'apolloKey', label: 'Apollo', desc: en ? 'B2B database + email sequences' : 'Base B2B + s\u00E9quences email', placeholder: en ? 'Your Apollo API key' : 'Votre cl\u00E9 API Apollo', color: '#6C5CE7', icon: 'A', category: 'Outreach',
+      guide: en ? ['Go to app.apollo.io', 'Avatar \u2192 Settings \u2192 API Keys', 'Create or copy a key'] : ['Allez dans app.apollo.io', 'Avatar \u2192 Settings \u2192 API Keys', 'Cr\u00E9ez ou copiez une cl\u00E9'], link: 'https://app.apollo.io/#/settings/integrations/api-keys' },
+    { field: 'instantlyKey', label: 'Instantly', desc: en ? 'Cold email at scale' : 'Cold email \u00E0 grande \u00E9chelle', placeholder: en ? 'Your Instantly API key' : 'Votre cl\u00E9 API Instantly', color: '#0984E3', icon: 'In', category: 'Outreach',
+      guide: en ? ['Go to app.instantly.ai', 'Settings \u2192 Integrations \u2192 API Key'] : ['Allez dans app.instantly.ai', 'Settings \u2192 Integrations \u2192 API Key'], link: 'https://app.instantly.ai/settings/integrations' },
+    { field: 'lgmKey', label: 'La Growth Machine', desc: en ? 'Multi-channel sequences' : 'S\u00E9quences multi-canal', placeholder: en ? 'Your LGM API key' : 'Votre cl\u00E9 API LGM', color: '#6C5CE7', icon: 'LG', category: 'Outreach',
+      guide: en ? ['Go to app.lagrowthmachine.com', 'Settings \u2192 API'] : ['Allez dans app.lagrowthmachine.com', 'Settings \u2192 API'], link: 'https://app.lagrowthmachine.com/settings' },
+    { field: 'smartleadKey', label: 'Smartlead', desc: en ? 'Cold email with inbox rotation' : 'Cold email avec inbox rotation', placeholder: en ? 'Your Smartlead API key' : 'Votre cl\u00E9 API Smartlead', color: '#4F46E5', icon: 'Sm', category: 'Outreach',
+      guide: en ? ['Go to app.smartlead.ai', 'Settings \u2192 API \u2192 Copy the key'] : ['Allez dans app.smartlead.ai', 'Settings \u2192 API \u2192 Copiez la cl\u00E9'], link: 'https://app.smartlead.ai/settings' },
+    { field: 'waalaxyKey', label: 'Waalaxy', desc: en ? 'LinkedIn + email automation' : 'Automatisation LinkedIn + email', placeholder: en ? 'Your Waalaxy API key' : 'Votre cl\u00E9 API Waalaxy', color: '#A29BFE', icon: 'W', category: 'Outreach',
+      guide: en ? ['Go to app.waalaxy.com', 'Settings \u2192 Integrations'] : ['Allez dans app.waalaxy.com', 'Settings \u2192 Integrations'], link: 'https://app.waalaxy.com/settings' },
+    { field: 'hubspotKey', label: 'HubSpot', desc: 'CRM + marketing automation', placeholder: 'pat-...', color: '#FF6B35', icon: 'H', category: 'CRM',
+      guide: en ? ['Go to app.hubspot.com', 'Settings \u2192 Integrations \u2192 Private Apps', 'Create an app or copy the token (pat-)'] : ['Allez dans app.hubspot.com', 'Settings \u2192 Integrations \u2192 Private Apps', 'Cr\u00E9ez une app ou copiez le token (pat-)'], link: 'https://app.hubspot.com/settings/integrations' },
+    { field: 'salesforceKey', label: 'Salesforce', desc: 'CRM enterprise', placeholder: en ? 'Your Salesforce API key' : 'Votre cl\u00E9 API Salesforce', color: '#00A1E0', icon: 'S', category: 'CRM',
+      guide: en ? ['Log in to your instance', 'Setup \u2192 Apps \u2192 Connected Apps', 'Copy the consumer key'] : ['Connectez-vous sur votre instance', 'Setup \u2192 Apps \u2192 Connected Apps', 'Copiez le consumer key'] },
+    { field: 'pipedriveKey', label: 'Pipedrive', desc: en ? 'Visual sales-oriented CRM' : 'CRM visuel orient\u00E9 vente', placeholder: en ? 'Your Pipedrive API key' : 'Votre cl\u00E9 API Pipedrive', color: '#017737', icon: 'P', category: 'CRM',
+      guide: en ? ['Go to app.pipedrive.com', 'Settings \u2192 Personal preferences \u2192 API', 'Copy the personal token'] : ['Allez dans app.pipedrive.com', 'Settings \u2192 Personal preferences \u2192 API', 'Copiez le token personnel'], link: 'https://app.pipedrive.com/settings/api' },
+    { field: 'odooKey', label: 'Odoo', desc: en ? 'ERP + CRM + Invoicing' : 'ERP + CRM + Facturation', placeholder: en ? 'Click to configure' : 'Cliquez pour configurer', color: '#714B67', icon: 'Od', category: 'CRM', multiField: true,
+      guide: en ? ['URL + database name + login + password'] : ['URL + nom de base + login + mot de passe'] },
+  ];
+}
 
 /* Extended tools in dropdown */
-const EXTENDED_TOOLS = [
-  { label: 'Enrichissement', keys: [
-    { field: 'dropcontactKey', label: 'DropContact', desc: 'Enrichissement email et téléphone', placeholder: 'Votre clé API DropContact', color: '#00B894', icon: 'D' },
-    { field: 'hunterKey', label: 'Hunter', desc: 'Recherche et vérification d\'emails', placeholder: 'Votre clé API Hunter', color: '#FF7675', icon: 'H' },
-    { field: 'kasprKey', label: 'Kaspr', desc: 'Données LinkedIn en temps réel', placeholder: 'Votre clé API Kaspr', color: '#0984E3', icon: 'K' },
-    { field: 'lushaKey', label: 'Lusha', desc: 'Coordonnées professionnelles', placeholder: 'Votre clé API Lusha', color: '#00CEC9', icon: 'Lu' },
-    { field: 'snovKey', label: 'Snov.io', desc: 'Email finder et drip campaigns', placeholder: 'Votre clé API Snov', color: '#E17055', icon: 'S' },
-  ]},
-  { label: 'Newsletter / Marketing', keys: [
-    { field: 'informzKey', label: 'Informz', desc: 'Newsletter campaigns for associations (Higher Logic)', placeholder: 'username:password:brandId', color: '#2D3436', icon: 'Iz',
-      helpSteps: ['Get your API credentials from your Informz admin', 'Format: username:password:brandId', 'Your server IP must be whitelisted by Informz'] },
-  ]},
-  { label: 'LinkedIn / Scraping', keys: [
-    { field: 'linkedinKey', label: 'LinkedIn', desc: 'Cookie li_at — enrichissement + outreach automatisé', placeholder: 'Votre cookie li_at (depuis le navigateur)', color: '#0A66C2', icon: 'in', category: 'LinkedIn',
-      helpSteps: ['Connectez-vous à linkedin.com', 'Ouvrez les DevTools (F12) → Application → Cookies', 'Copiez la valeur du cookie "li_at"', 'Collez-la ici'] },
-    { field: 'phantombusterKey', label: 'PhantomBuster', desc: 'Scraping et automatisation web', placeholder: 'Votre clé API PhantomBuster', color: '#636E72', icon: 'PB' },
-    { field: 'captaindataKey', label: 'Captain Data', desc: 'Extraction de données multi-sources', placeholder: 'Votre clé API CaptainData', color: '#0984E3', icon: 'CD' },
-  ]},
-  { label: 'Calendrier', keys: [
-    { field: 'calendlyKey', label: 'Calendly', desc: 'Planification de RDV automatisée', placeholder: 'Votre clé API Calendly', color: '#0069FF', icon: 'Ca' },
-    { field: 'calcomKey', label: 'Cal.com', desc: 'Alternative open-source à Calendly', placeholder: 'Votre clé API Cal.com', color: '#292929', icon: 'Cl' },
-  ]},
-  { label: 'Délivrabilité', keys: [
-    { field: 'mailreachKey', label: 'MailReach', desc: 'Warm-up et monitoring inbox', placeholder: 'Votre clé API MailReach', color: '#E17055', icon: 'MR' },
-    { field: 'warmboxKey', label: 'Warmbox', desc: 'Préchauffage email automatisé', placeholder: 'Votre clé API Warmbox', color: '#FDCB6E', icon: 'Wb' },
-  ]},
-];
+function getExtendedTools(lang) {
+  const en = lang === 'en';
+  return [
+    { label: en ? 'Enrichment' : 'Enrichissement', keys: [
+      { field: 'dropcontactKey', label: 'DropContact', desc: en ? 'Email and phone enrichment' : 'Enrichissement email et téléphone', placeholder: en ? 'Your DropContact API key' : 'Votre clé API DropContact', color: '#00B894', icon: 'D' },
+      { field: 'hunterKey', label: 'Hunter', desc: en ? 'Email search and verification' : 'Recherche et vérification d\'emails', placeholder: en ? 'Your Hunter API key' : 'Votre clé API Hunter', color: '#FF7675', icon: 'H' },
+      { field: 'kasprKey', label: 'Kaspr', desc: en ? 'Real-time LinkedIn data' : 'Données LinkedIn en temps réel', placeholder: en ? 'Your Kaspr API key' : 'Votre clé API Kaspr', color: '#0984E3', icon: 'K' },
+      { field: 'lushaKey', label: 'Lusha', desc: en ? 'Professional contact info' : 'Coordonnées professionnelles', placeholder: en ? 'Your Lusha API key' : 'Votre clé API Lusha', color: '#00CEC9', icon: 'Lu' },
+      { field: 'snovKey', label: 'Snov.io', desc: en ? 'Email finder and drip campaigns' : 'Email finder et drip campaigns', placeholder: en ? 'Your Snov API key' : 'Votre clé API Snov', color: '#E17055', icon: 'S' },
+    ]},
+    { label: 'Newsletter / Marketing', keys: [
+      { field: 'informzKey', label: 'Informz', desc: 'Newsletter campaigns for associations (Higher Logic)', placeholder: 'username:password:brandId', color: '#2D3436', icon: 'Iz',
+        helpSteps: ['Get your API credentials from your Informz admin', 'Format: username:password:brandId', 'Your server IP must be whitelisted by Informz'] },
+    ]},
+    { label: 'LinkedIn / Scraping', keys: [
+      { field: 'linkedinKey', label: 'LinkedIn', desc: en ? 'li_at cookie — enrichment + automated outreach' : 'Cookie li_at — enrichissement + outreach automatisé', placeholder: en ? 'Your li_at cookie (from browser)' : 'Votre cookie li_at (depuis le navigateur)', color: '#0A66C2', icon: 'in', category: 'LinkedIn',
+        helpSteps: en ? ['Log in to linkedin.com', 'Open DevTools (F12) → Application → Cookies', 'Copy the value of the "li_at" cookie', 'Paste it here'] : ['Connectez-vous à linkedin.com', 'Ouvrez les DevTools (F12) → Application → Cookies', 'Copiez la valeur du cookie "li_at"', 'Collez-la ici'] },
+      { field: 'phantombusterKey', label: 'PhantomBuster', desc: en ? 'Web scraping and automation' : 'Scraping et automatisation web', placeholder: en ? 'Your PhantomBuster API key' : 'Votre clé API PhantomBuster', color: '#636E72', icon: 'PB' },
+      { field: 'captaindataKey', label: 'Captain Data', desc: en ? 'Multi-source data extraction' : 'Extraction de données multi-sources', placeholder: en ? 'Your CaptainData API key' : 'Votre clé API CaptainData', color: '#0984E3', icon: 'CD' },
+    ]},
+    { label: en ? 'Calendar' : 'Calendrier', keys: [
+      { field: 'calendlyKey', label: 'Calendly', desc: en ? 'Automated meeting scheduling' : 'Planification de RDV automatisée', placeholder: en ? 'Your Calendly API key' : 'Votre clé API Calendly', color: '#0069FF', icon: 'Ca' },
+      { field: 'calcomKey', label: 'Cal.com', desc: en ? 'Open-source alternative to Calendly' : 'Alternative open-source à Calendly', placeholder: en ? 'Your Cal.com API key' : 'Votre clé API Cal.com', color: '#292929', icon: 'Cl' },
+    ]},
+    { label: en ? 'Deliverability' : 'Délivrabilité', keys: [
+      { field: 'mailreachKey', label: 'MailReach', desc: en ? 'Warm-up and inbox monitoring' : 'Warm-up et monitoring inbox', placeholder: en ? 'Your MailReach API key' : 'Votre clé API MailReach', color: '#E17055', icon: 'MR' },
+      { field: 'warmboxKey', label: 'Warmbox', desc: en ? 'Automated email warm-up' : 'Préchauffage email automatisé', placeholder: en ? 'Your Warmbox API key' : 'Votre clé API Warmbox', color: '#FDCB6E', icon: 'Wb' },
+    ]},
+  ];
+}
 
 const DEFAULT_PREFERENCES = {
   lemlistDailyLimit: '50',
@@ -82,15 +88,16 @@ const DEFAULT_PREFERENCES = {
 
 /* ─── Status badge helpers ─── */
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, lang }) {
   if (!status) return null;
+  const en = lang === 'en';
   const map = {
-    connected:      { text: null,       cls: 'settings-status-ok', i18nKey: 'settings.connected' },
-    saved:          { text: 'Sauvegardé',      cls: 'settings-status-ok' },
-    not_configured: { text: 'Non configuré',   cls: 'settings-status-none' },
-    invalid:        { text: 'Clé invalide',    cls: 'settings-status-err' },
-    error:          { text: 'Erreur',          cls: 'settings-status-err' },
-    testing:        { text: 'Test...',         cls: 'settings-status-testing' },
+    connected:      { text: null,       cls: 'settings-status-ok' },
+    saved:          { text: en ? 'Saved' : 'Sauvegardé',      cls: 'settings-status-ok' },
+    not_configured: { text: en ? 'Not configured' : 'Non configuré',   cls: 'settings-status-none' },
+    invalid:        { text: en ? 'Invalid key' : 'Clé invalide',    cls: 'settings-status-err' },
+    error:          { text: en ? 'Error' : 'Erreur',          cls: 'settings-status-err' },
+    testing:        { text: en ? 'Testing...' : 'Test...',         cls: 'settings-status-testing' },
   };
   const info = map[status.status] || { text: status.status, cls: 'settings-status-none' };
   return (
@@ -117,6 +124,9 @@ export default function SettingsPage() {
   const { socket } = useSocket();
   const { showToast: notifyToast } = useNotifications();
   const { lang, setLang, t } = useI18n();
+  const en = lang === 'en';
+  const MAIN_TOOLS = getMainTools(lang);
+  const EXTENDED_TOOLS = getExtendedTools(lang);
   const [preferences, setPreferences] = useState(() => {
     const saved = localStorage.getItem('bakal-preferences');
     return saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : { ...DEFAULT_PREFERENCES };
@@ -147,14 +157,14 @@ export default function SettingsPage() {
       if (data.status === 'done') {
         notifyToast({
           type: 'success',
-          title: 'Synchronisation Lemlist',
+          title: en ? 'Lemlist sync' : 'Synchronisation Lemlist',
           message: data.message,
           duration: 5000,
         });
       } else if (data.status === 'error') {
         notifyToast({
           type: 'danger',
-          title: 'Erreur Lemlist',
+          title: en ? 'Lemlist error' : 'Erreur Lemlist',
           message: data.message,
           duration: 5000,
         });
@@ -162,7 +172,7 @@ export default function SettingsPage() {
     };
     socket.on('lemlist:sync', onSync);
     return () => socket.off('lemlist:sync', onSync);
-  }, [socket, notifyToast]);
+  }, [socket, notifyToast, en]);
 
   /* ─── Socket listener for outreach sync progress (Apollo/Instantly/Smartlead) ─── */
 
@@ -173,14 +183,14 @@ export default function SettingsPage() {
       if (data.status === 'done') {
         notifyToast({
           type: 'success',
-          title: `Synchronisation ${data.provider || 'Outreach'}`,
+          title: en ? `${data.provider || 'Outreach'} sync` : `Synchronisation ${data.provider || 'Outreach'}`,
           message: data.message,
           duration: 5000,
         });
       } else if (data.status === 'error') {
         notifyToast({
           type: 'danger',
-          title: `Erreur ${data.provider || 'Outreach'}`,
+          title: en ? `${data.provider || 'Outreach'} error` : `Erreur ${data.provider || 'Outreach'}`,
           message: data.message,
           duration: 5000,
         });
@@ -188,7 +198,7 @@ export default function SettingsPage() {
     };
     socket.on('outreach:sync', onOutreachSync);
     return () => socket.off('outreach:sync', onOutreachSync);
-  }, [socket, notifyToast]);
+  }, [socket, notifyToast, en]);
 
   /* ─── Socket listener for CRM sync progress ─── */
 
@@ -199,14 +209,14 @@ export default function SettingsPage() {
       if (data.status === 'done') {
         notifyToast({
           type: 'success',
-          title: 'Analyse CRM',
+          title: en ? 'CRM analysis' : 'Analyse CRM',
           message: data.message,
           duration: 5000,
         });
       } else if (data.status === 'error') {
         notifyToast({
           type: 'danger',
-          title: 'Erreur CRM',
+          title: en ? 'CRM error' : 'Erreur CRM',
           message: data.message,
           duration: 5000,
         });
@@ -214,12 +224,12 @@ export default function SettingsPage() {
     };
     socket.on('crm:sync', onCrmSync);
     return () => socket.off('crm:sync', onCrmSync);
-  }, [socket, notifyToast]);
+  }, [socket, notifyToast, en]);
 
   /* ─── Outreach sync handler ─── */
 
   async function handleSyncOutreach() {
-    setSyncStatus({ status: 'starting', progress: 0, message: 'Lancement...' });
+    setSyncStatus({ status: 'starting', progress: 0, message: en ? 'Starting...' : 'Lancement...' });
     try {
       if (connectedOutreach && connectedOutreach.provider !== 'lemlist') {
         await syncOutreach(connectedOutreach.provider);
@@ -234,7 +244,7 @@ export default function SettingsPage() {
   /* ─── CRM sync handler ─── */
 
   async function handleSyncCRM() {
-    setCrmSyncStatus({ status: 'starting', progress: 0, message: 'Lancement...' });
+    setCrmSyncStatus({ status: 'starting', progress: 0, message: en ? 'Starting...' : 'Lancement...' });
     try {
       await syncCRM();
     } catch (err) {
@@ -247,11 +257,11 @@ export default function SettingsPage() {
   const showToast = useCallback((msg, type = 'success') => {
     notifyToast({
       type: type === 'error' ? 'danger' : type,
-      title: type === 'error' ? 'Erreur' : 'Succès',
+      title: type === 'error' ? (en ? 'Error' : 'Erreur') : (en ? 'Success' : 'Succès'),
       message: msg,
       duration: 3000,
     });
-  }, [notifyToast]);
+  }, [notifyToast, en]);
 
   /* ─── Edit / cancel / save per-field ─── */
 
@@ -283,12 +293,12 @@ export default function SettingsPage() {
       if (res.errors && res.errors.length > 0) {
         showToast(res.errors[0], 'error');
       } else {
-        showToast('Clé sauvegardée');
+        showToast(en ? 'Key saved' : 'Clé sauvegardée');
         cancelEdit(field);
         await loadKeys();
       }
     } catch (err) {
-      showToast(err.message || 'Erreur de sauvegarde', 'error');
+      showToast(err.message || (en ? 'Save error' : 'Erreur de sauvegarde'), 'error');
     } finally {
       setSaving(false);
     }
@@ -298,7 +308,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await saveKeys({ [field]: '' });
-      showToast('Clé supprimée');
+      showToast(en ? 'Key deleted' : 'Clé supprimée');
       cancelEdit(field);
       setTestStatus(prev => {
         const next = { ...prev };
@@ -307,7 +317,7 @@ export default function SettingsPage() {
       });
       await loadKeys();
     } catch (err) {
-      showToast(err.message || 'Erreur', 'error');
+      showToast(err.message || (en ? 'Error' : 'Erreur'), 'error');
     } finally {
       setSaving(false);
     }
@@ -326,9 +336,9 @@ export default function SettingsPage() {
     try {
       const data = await testKeys();
       setTestStatus(data.results || {});
-      showToast('Tests de connexion terminés');
+      showToast(en ? 'Connection tests completed' : 'Tests de connexion terminés');
     } catch (err) {
-      showToast(err.message || 'Erreur lors des tests', 'error');
+      showToast(err.message || (en ? 'Error during tests' : 'Erreur lors des tests'), 'error');
     } finally {
       setTesting(false);
     }
@@ -356,12 +366,12 @@ export default function SettingsPage() {
   function resetPreferences() {
     setPreferences({ ...DEFAULT_PREFERENCES });
     localStorage.removeItem('bakal-preferences');
-    showToast('Préférences réinitialisées');
+    showToast(en ? 'Preferences reset' : 'Préférences réinitialisées');
   }
 
   function handleSaveAll() {
     localStorage.setItem('bakal-preferences', JSON.stringify(preferences));
-    showToast('Paramètres enregistrés');
+    showToast(en ? 'Settings saved' : 'Paramètres enregistrés');
   }
 
   /* ─── Count configured keys ─── */
@@ -416,7 +426,7 @@ export default function SettingsPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
             <span style={{ fontWeight: 600, fontSize: 14 }}>{keyDef.label}</span>
-            {test && <StatusBadge status={test} />}
+            {test && <StatusBadge status={test} lang={lang} />}
           </div>
           {keyDef.desc && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, lineHeight: 1.4 }}>{keyDef.desc}</div>
@@ -443,7 +453,7 @@ export default function SettingsPage() {
               />
               <button className="btn btn-primary btn-sm" onClick={() => saveField(keyDef.field)}
                 disabled={saving || !(drafts[keyDef.field] || '').trim()}>{t('settings.save')}</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => cancelEdit(keyDef.field)}>Annuler</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => cancelEdit(keyDef.field)}>{en ? 'Cancel' : 'Annuler'}</button>
             </div>
           )}
         </div>
@@ -576,7 +586,7 @@ export default function SettingsPage() {
                           {tool.link && (
                             <a href={tool.link} target="_blank" rel="noopener noreferrer"
                               style={{ fontSize: 10, color: 'var(--primary)', display: 'inline-block', marginTop: 4 }}>
-                              Ouvrir {tool.label} {'\u2192'}
+                              {en ? 'Open' : 'Ouvrir'} {tool.label} {'\u2192'}
                             </a>
                           )}
                         </div>
@@ -625,7 +635,7 @@ export default function SettingsPage() {
             onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
           >
-            {showMore ? 'Voir moins' : 'Voir plus d\'intégrations'}
+            {showMore ? (en ? 'Show less' : 'Voir moins') : (en ? 'More integrations' : 'Voir plus d\'intégrations')}
             <span style={{
               transition: 'transform 0.3s ease',
               transform: showMore ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -668,7 +678,7 @@ export default function SettingsPage() {
           <div>
             <div className="card-title">{t('settings.outreachSync')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Synchronise vos campagnes et analyse les patterns de performance avec Baakal
+              {en ? 'Sync your campaigns and analyze performance patterns with Baakal' : 'Synchronise vos campagnes et analyse les patterns de performance avec Baakal'}
             </div>
           </div>
           <button
@@ -677,8 +687,8 @@ export default function SettingsPage() {
             disabled={syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'}
           >
             {syncStatus && syncStatus.status !== 'done' && syncStatus.status !== 'error'
-              ? 'Synchronisation...'
-              : `Synchroniser ${connectedOutreach ? connectedOutreach.label : 'Outreach'}`}
+              ? (en ? 'Syncing...' : 'Synchronisation...')
+              : `${en ? 'Sync' : 'Synchroniser'} ${connectedOutreach ? connectedOutreach.label : 'Outreach'}`}
           </button>
         </div>
         {syncStatus && (
@@ -711,9 +721,13 @@ export default function SettingsPage() {
           <div>
             <div className="card-title">{t('settings.crmSync')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              {connectedCrm
-                ? `Synchronise vos deals ${connectedCrm.replace('Key', '')} et analyse les patterns de conversion avec Baakal`
-                : 'Synchronise vos deals CRM et analyse les patterns de conversion avec Baakal'}
+              {en
+                ? (connectedCrm
+                  ? `Sync your ${connectedCrm.replace('Key', '')} deals and analyze conversion patterns with Baakal`
+                  : 'Sync your CRM deals and analyze conversion patterns with Baakal')
+                : (connectedCrm
+                  ? `Synchronise vos deals ${connectedCrm.replace('Key', '')} et analyse les patterns de conversion avec Baakal`
+                  : 'Synchronise vos deals CRM et analyse les patterns de conversion avec Baakal')}
             </div>
           </div>
           <button
@@ -722,8 +736,8 @@ export default function SettingsPage() {
             disabled={crmSyncStatus && crmSyncStatus.status !== 'done' && crmSyncStatus.status !== 'error'}
           >
             {crmSyncStatus && crmSyncStatus.status !== 'done' && crmSyncStatus.status !== 'error'
-              ? 'Synchronisation...'
-              : 'Synchroniser CRM'}
+              ? (en ? 'Syncing...' : 'Synchronisation...')
+              : (en ? 'Sync CRM' : 'Synchroniser CRM')}
           </button>
         </div>
         {crmSyncStatus && (
@@ -776,10 +790,10 @@ export default function SettingsPage() {
                 value={preferences.lemlistDailyLimit}
                 onChange={e => updatePreference('lemlistDailyLimit', e.target.value)}
               >
-                <option value="25">25 emails/jour</option>
-                <option value="50">50 emails/jour</option>
-                <option value="100">100 emails/jour</option>
-                <option value="200">200 emails/jour</option>
+                <option value="25">25 emails/{en ? 'day' : 'jour'}</option>
+                <option value="50">50 emails/{en ? 'day' : 'jour'}</option>
+                <option value="100">100 emails/{en ? 'day' : 'jour'}</option>
+                <option value="200">200 emails/{en ? 'day' : 'jour'}</option>
               </select>
             </div>
             <div className="settings-pref-row">
@@ -801,9 +815,9 @@ export default function SettingsPage() {
                 value={preferences.sendingDays}
                 onChange={e => updatePreference('sendingDays', e.target.value)}
               >
-                <option value="Lun-Ven">Lun-Ven</option>
-                <option value="Lun-Sam">Lun-Sam</option>
-                <option value="Tous les jours">Tous les jours</option>
+                <option value="Lun-Ven">{en ? 'Mon-Fri' : 'Lun-Ven'}</option>
+                <option value="Lun-Sam">{en ? 'Mon-Sat' : 'Lun-Sam'}</option>
+                <option value="Tous les jours">{en ? 'Every day' : 'Tous les jours'}</option>
               </select>
             </div>
             <div className="settings-pref-row">
@@ -826,7 +840,7 @@ export default function SettingsPage() {
       {/* Theme toggle */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <div className="card-title">Thème</div>
+          <div className="card-title">{en ? 'Theme' : 'Thème'}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={toggleTheme}
@@ -842,12 +856,12 @@ export default function SettingsPage() {
               {theme === 'dark' ? (
                 <>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                  Clair
+                  {en ? 'Light' : 'Clair'}
                 </>
               ) : (
                 <>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                  Sombre
+                  {en ? 'Dark' : 'Sombre'}
                 </>
               )}
             </button>
@@ -896,15 +910,15 @@ export default function SettingsPage() {
       {/* Notification email */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header">
-          <div className="card-title">Notifications</div>
+          <div className="card-title">{en ? 'Notifications' : 'Notifications'}</div>
         </div>
         <div className="card-body">
           <div className="settings-pref-row">
-            <label className="settings-pref-label">Email de notification</label>
+            <label className="settings-pref-label">{en ? 'Notification email' : 'Email de notification'}</label>
             <input
               className="form-input"
               type="email"
-              placeholder="votre@email.com"
+              placeholder={en ? "your@email.com" : "votre@email.com"}
               value={preferences.notificationEmail}
               onChange={e => updatePreference('notificationEmail', e.target.value)}
             />
@@ -920,7 +934,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger Zone */}
-      <DeleteAccountSection t={t} showToast={showToast} />
+      <DeleteAccountSection t={t} showToast={showToast} lang={lang} />
       </div>
       </div>
     </div>
@@ -929,7 +943,8 @@ export default function SettingsPage() {
 
 /* ═══ Delete Account Section ═══ */
 
-function DeleteAccountSection({ t, showToast }) {
+function DeleteAccountSection({ t, showToast, lang }) {
+  const en = lang === 'en';
   const [showConfirm, setShowConfirm] = useState(false);
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -1019,7 +1034,7 @@ function DeleteAccountSection({ t, showToast }) {
                 onClick={() => { setShowConfirm(false); setPassword(''); }}
                 disabled={deleting}
               >
-                {t('settings.configure') === 'Configure' ? 'Cancel' : 'Annuler'}
+                {en ? 'Cancel' : 'Annuler'}
               </button>
             </div>
           </div>
@@ -1032,7 +1047,8 @@ function DeleteAccountSection({ t, showToast }) {
 /* ═══ Odoo Config Form ═══ */
 
 function OdooConfigForm({ onSave, onCancel, saving, isConnected, onRemove }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const en = lang === 'en';
   const [url, setUrl] = useState('');
   const [dbName, setDbName] = useState('');
   const [username, setUsername] = useState('');
@@ -1052,25 +1068,25 @@ function OdooConfigForm({ onSave, onCancel, saving, isConnected, onRemove }) {
         fontSize: 11, color: 'var(--text-muted)', marginBottom: 8,
         background: 'var(--bg-elevated)', borderRadius: 6, padding: '8px 10px', lineHeight: 1.6,
       }}>
-        Trouvez ces infos dans Odoo : <b>Param{'\u00E8'}tres &gt; Technique &gt; Base de donn{'\u00E9'}es</b>
+        {en ? <>Find this info in Odoo: <b>Settings &gt; Technical &gt; Database</b></> : <>Trouvez ces infos dans Odoo : <b>Param{'\u00E8'}tres &gt; Technique &gt; Base de donn{'\u00E9'}es</b></>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <input className="form-input" type="text" placeholder="URL Odoo (ex: https://monsite.odoo.com)"
+        <input className="form-input" type="text" placeholder={en ? "Odoo URL (e.g., https://mysite.odoo.com)" : "URL Odoo (ex: https://monsite.odoo.com)"}
           value={url} onChange={e => setUrl(e.target.value)} autoFocus
           style={{ fontSize: 11, padding: '5px 8px' }} />
-        <input className="form-input" type="text" placeholder="Nom de la base (ex: mycompany)"
+        <input className="form-input" type="text" placeholder={en ? "Database name (e.g., mycompany)" : "Nom de la base (ex: mycompany)"}
           value={dbName} onChange={e => setDbName(e.target.value)}
           style={{ fontSize: 11, padding: '5px 8px' }} />
-        <input className="form-input" type="text" placeholder="Email / identifiant"
+        <input className="form-input" type="text" placeholder={en ? "Email / username" : "Email / identifiant"}
           value={username} onChange={e => setUsername(e.target.value)}
           style={{ fontSize: 11, padding: '5px 8px' }} />
-        <input className="form-input" type="password" placeholder="Mot de passe ou cl{'\u00E9'} API"
+        <input className="form-input" type="password" placeholder={en ? "Password or API key" : `Mot de passe ou cl${'\u00E9'} API`}
           value={password} onChange={e => setPassword(e.target.value)}
           style={{ fontSize: 11, padding: '5px 8px' }} />
       </div>
       <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
         <button className="btn btn-primary" style={{ fontSize: 10, padding: '3px 8px', flex: 1 }}
-          onClick={handleSave} disabled={saving || !isValid}>Connecter</button>
+          onClick={handleSave} disabled={saving || !isValid}>{en ? 'Connect' : 'Connecter'}</button>
         <button className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px' }}
           onClick={onCancel}>{'\u2715'}</button>
       </div>
