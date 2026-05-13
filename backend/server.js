@@ -53,6 +53,8 @@ app.use(cors({
   origin(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow Chrome extensions (origin starts with chrome-extension://)
+    if (origin?.startsWith('chrome-extension://')) return callback(null, true);
     console.error(`[${new Date().toISOString()}] Origin ${origin} not allowed by CORS. Allowed: ${allowedOrigins.join(', ')}`);
     callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
