@@ -105,6 +105,8 @@ function AiStatusBadge({ online }) {
 }
 
 function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   return (
     <div className="chat-thread-list" id="chatThreadList">
       <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
@@ -113,12 +115,12 @@ function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
           style={{ width: '100%', fontSize: '12px', padding: '8px 12px' }}
           onClick={onNew}
         >
-          + Nouvelle conversation
+          + {en ? 'New conversation' : 'Nouvelle conversation'}
         </button>
       </div>
       {threads.length === 0 ? (
         <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-          Aucune conversation
+          {en ? 'No conversations' : 'Aucune conversation'}
         </div>
       ) : (
         threads.map((t) => {
@@ -136,7 +138,7 @@ function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
               <button
                 className="chat-thread-delete"
                 onClick={(e) => onDelete(t.id, e)}
-                title="Supprimer"
+                title={en ? 'Delete' : 'Supprimer'}
               >
                 x
               </button>
@@ -149,6 +151,8 @@ function ThreadList({ threads, currentThreadId, onSelect, onDelete, onNew }) {
 }
 
 function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onPreview }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const action = metadata?.action;
 
   // Create campaign card
@@ -162,16 +166,16 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
     const changeList = Object.entries(changes).map(([k, v]) => `${k}: ${v}`);
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Modifier : {metadata.campaignName || ''}</div>
+        <div className="chat-action-title">{en ? 'Edit: ' : 'Modifier : '}{metadata.campaignName || ''}</div>
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0' }}>
           {changeList.map((c, i) => <div key={i}>{c}</div>)}
         </div>
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
-            Appliquer les modifications
+            {en ? 'Apply changes' : 'Appliquer les modifications'}
           </button>
           <button className="chat-action-btn ghost" onClick={onModify}>
-            Modifier
+            {en ? 'Edit' : 'Modifier'}
           </button>
         </div>
       </div>
@@ -182,10 +186,10 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
   if (action === 'analyze_campaign') {
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Analyser : {metadata.campaignName || ''}</div>
+        <div className="chat-action-title">{en ? 'Analyze: ' : 'Analyser : '}{metadata.campaignName || ''}</div>
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
-            Lancer l'analyse
+            {en ? 'Run analysis' : 'Lancer l\'analyse'}
           </button>
         </div>
       </div>
@@ -196,16 +200,16 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
   if (action === 'regenerate_touchpoints') {
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Régénérer : {metadata.campaignName || ''}</div>
+        <div className="chat-action-title">{en ? 'Regenerate: ' : 'Régénérer : '}{metadata.campaignName || ''}</div>
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0' }}>
-          Touchpoints : {(metadata.steps || []).join(', ')}
+          Touchpoints: {(metadata.steps || []).join(', ')}
         </div>
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
-            Régénérer les touchpoints
+            {en ? 'Regenerate touchpoints' : 'Régénérer les touchpoints'}
           </button>
           <button className="chat-action-btn ghost" onClick={onModify}>
-            Modifier
+            {en ? 'Edit' : 'Modifier'}
           </button>
         </div>
       </div>
@@ -216,10 +220,10 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
   if (action === 'show_diagnostic') {
     return (
       <div className="chat-action-card">
-        <div className="chat-action-title">Diagnostic : {metadata.campaignName || ''}</div>
+        <div className="chat-action-title">{en ? 'Diagnostic: ' : 'Diagnostic : '}{metadata.campaignName || ''}</div>
         <div className="chat-action-buttons">
           <button className="chat-action-btn primary" onClick={() => onActionExecute && onActionExecute(metadata)}>
-            Voir le diagnostic complet
+            {en ? 'View full diagnostic' : 'Voir le diagnostic complet'}
           </button>
         </div>
       </div>
@@ -251,13 +255,13 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
     return <SendEmailCard metadata={metadata} />;
   }
   if (action === 'scan_crm') {
-    return <CrmActionCard metadata={metadata} actionType="scan_crm" label="Scanner le CRM" icon={'\uD83D\uDD0D'} />;
+    return <CrmActionCard metadata={metadata} actionType="scan_crm" label={en ? 'Scan CRM' : 'Scanner le CRM'} icon={'\uD83D\uDD0D'} />;
   }
   if (action === 'run_nurture') {
-    return <CrmActionCard metadata={metadata} actionType="run_nurture" label="Lancer l'activation" icon={'\u26A1'} />;
+    return <CrmActionCard metadata={metadata} actionType="run_nurture" label={en ? 'Run activation' : 'Lancer l\'activation'} icon={'\u26A1'} />;
   }
   if (action === 'import_crm') {
-    return <CrmActionCard metadata={metadata} actionType="import_crm" label="Importer depuis le CRM" icon={'\u2B07\uFE0F'} />;
+    return <CrmActionCard metadata={metadata} actionType="import_crm" label={en ? 'Import from CRM' : 'Importer depuis le CRM'} icon={'\u2B07\uFE0F'} />;
   }
   if (action === 'list_clients') {
     return <ListClientsCard metadata={metadata} />;
@@ -275,6 +279,8 @@ function ActionCard({ metadata, onCreateCampaign, onModify, onActionExecute, onP
 function WebSearchProspectsCard({ metadata, onActionExecute }) {
   const { campaigns } = useApp();
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [searching, setSearching] = useState(false);
   const [contacts, setContacts] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -347,7 +353,7 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
     <div className="chat-action-card">
       <div className="chat-action-title">{'\uD83C\uDF10'} {t('chat.webSearch')}</div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 8px' }}>
-        {companies.length} entreprise{companies.length > 1 ? 's' : ''} :&nbsp;
+        {companies.length} {en ? (companies.length > 1 ? 'companies' : 'company') : `entreprise${companies.length > 1 ? 's' : ''}`} :&nbsp;
         {companies.slice(0, 5).join(', ')}{companies.length > 5 ? `, +${companies.length - 5}...` : ''}
       </div>
       <div className="chat-action-params">
@@ -491,12 +497,14 @@ function WebSearchProspectsCard({ metadata, onActionExecute }) {
 }
 
 function ChooseSourceCard({ metadata, onActionExecute }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const sources = metadata.sources || [];
   return (
     <div className="chat-action-card">
-      <div className="chat-action-title">🎯 Quel outil utiliser pour générer la liste ?</div>
+      <div className="chat-action-title">{en ? '🎯 Which tool to use for the list?' : '🎯 Quel outil utiliser pour générer la liste ?'}</div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 12px' }}>
-        Tu as plusieurs outils d'outreach connectés. Lequel doit générer la liste de prospects ?
+        {en ? 'You have multiple outreach tools connected. Which one should generate the prospect list?' : 'Tu as plusieurs outils d\'outreach connectés. Lequel doit générer la liste de prospects ?'}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {sources.map(s => (
@@ -777,6 +785,8 @@ function CreateCampaignCard({ campaign, onCreateCampaign, onModify, onPreview })
 /* ═══ CRM / Activation Action Cards ═══ */
 
 function SendEmailCard({ metadata }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [status, setStatus] = useState('ready'); // ready, sending, sent, error
   const [error, setError] = useState(null);
 
@@ -808,7 +818,7 @@ function SendEmailCard({ metadata }) {
         {'\u2709\uFE0F'} Email {'\u2192'} {metadata.toName || metadata.to}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
-        <strong>Objet :</strong> {metadata.subject}
+        <strong>{en ? 'Subject:' : 'Objet :'}</strong> {metadata.subject}
       </div>
       <div style={{
         fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap',
@@ -819,17 +829,19 @@ function SendEmailCard({ metadata }) {
       </div>
       {status === 'ready' && (
         <button className="btn btn-primary" style={{ fontSize: 12, padding: '6px 16px' }} onClick={handleSend}>
-          Envoyer
+          {en ? 'Send' : 'Envoyer'}
         </button>
       )}
-      {status === 'sending' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{'\u23F3'} Envoi...</span>}
-      {status === 'sent' && <span style={{ fontSize: 12, color: 'var(--success)' }}>{'\u2705'} Email envoy{'\u00E9'} !</span>}
+      {status === 'sending' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{'\u23F3'} {en ? 'Sending...' : 'Envoi...'}</span>}
+      {status === 'sent' && <span style={{ fontSize: 12, color: 'var(--success)' }}>{'\u2705'} {en ? 'Email sent!' : 'Email envoy\u00E9 !'}</span>}
       {status === 'error' && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{'\u274C'} {error}</span>}
     </div>
   );
 }
 
 function CrmActionCard({ metadata, actionType, label, icon }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [status, setStatus] = useState('ready');
   const [result, setResult] = useState(null);
 
@@ -867,17 +879,17 @@ function CrmActionCard({ metadata, actionType, label, icon }) {
       </div>
       {status === 'ready' && (
         <button className="btn btn-primary" style={{ fontSize: 12, padding: '6px 16px' }} onClick={handleRun}>
-          Ex{'\u00E9'}cuter
+          {en ? 'Execute' : 'Ex\u00E9cuter'}
         </button>
       )}
-      {status === 'running' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{'\u23F3'} En cours...</span>}
+      {status === 'running' && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{'\u23F3'} {en ? 'In progress...' : 'En cours...'}</span>}
       {status === 'done' && (
         <div style={{ fontSize: 12, color: 'var(--success)' }}>
-          {'\u2705'} Termin{'\u00E9'}
-          {result?.score != null && ` — Score CRM : ${result.score}/100`}
-          {result?.imported != null && ` — ${result.imported} contact(s) import\u00E9(s)`}
-          {result?.sent != null && ` — ${result.sent} email(s) envoy\u00E9(s), ${result.queued || 0} en attente`}
-          {result?.triggered != null && ` — ${result.triggered} trigger(s), ${result.sent || 0} envoy\u00E9(s), ${result.queued || 0} en attente`}
+          {'\u2705'} {en ? 'Done' : 'Termin\u00E9'}
+          {result?.score != null && ` — ${en ? 'CRM Score' : 'Score CRM'}: ${result.score}/100`}
+          {result?.imported != null && ` — ${result.imported} ${en ? 'contact(s) imported' : 'contact(s) import\u00E9(s)'}`}
+          {result?.sent != null && ` — ${result.sent} ${en ? 'email(s) sent' : 'email(s) envoy\u00E9(s)'}, ${result.queued || 0} ${en ? 'pending' : 'en attente'}`}
+          {result?.triggered != null && ` — ${result.triggered} trigger(s), ${result.sent || 0} ${en ? 'sent' : 'envoy\u00E9(s)'}, ${result.queued || 0} ${en ? 'pending' : 'en attente'}`}
         </div>
       )}
       {status === 'error' && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{'\u274C'} {result?.error}</span>}
@@ -886,6 +898,8 @@ function CrmActionCard({ metadata, actionType, label, icon }) {
 }
 
 function ListClientsCard({ metadata }) {
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [clients, setClients] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -906,9 +920,9 @@ function ListClientsCard({ metadata }) {
       .finally(() => setLoading(false));
   }, [metadata.filter, metadata.days]);
 
-  if (loading) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{'\u23F3'} Chargement...</div>;
+  if (loading) return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{'\u23F3'} {en ? 'Loading...' : 'Chargement...'}</div>;
   if (!clients || clients.length === 0) {
-    return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>Aucun client trouv{'\u00E9'} avec ce filtre.</div>;
+    return <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>{en ? 'No clients found with this filter.' : 'Aucun client trouv\u00E9 avec ce filtre.'}</div>;
   }
 
   return (
@@ -917,7 +931,7 @@ function ListClientsCard({ metadata }) {
       padding: 16, marginTop: 8,
     }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-        {'\uD83D\uDC65'} {clients.length} client(s) trouv{'\u00E9'}(s)
+        {'\uD83D\uDC65'} {clients.length} {en ? 'client(s) found' : 'client(s) trouv\u00E9(s)'}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
         {clients.slice(0, 10).map(c => (
@@ -934,7 +948,7 @@ function ListClientsCard({ metadata }) {
         ))}
         {clients.length > 10 && (
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-            +{clients.length - 10} autres
+            +{clients.length - 10} {en ? 'more' : 'autres'}
           </div>
         )}
       </div>
@@ -1077,6 +1091,8 @@ function NewsletterCard({ metadata }) {
 function ProspectSearchCard({ metadata, onActionExecute }) {
   const { campaigns } = useApp();
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [searching, setSearching] = useState(false);
   const [contacts, setContacts] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -1089,7 +1105,7 @@ function ProspectSearchCard({ metadata, onActionExecute }) {
 
   const criteriaSummary = [
     metadata.titles?.join(', '),
-    metadata.companies?.length ? `Entreprises: ${metadata.companies.join(', ')}` : null,
+    metadata.companies?.length ? `${en ? 'Companies' : 'Entreprises'}: ${metadata.companies.join(', ')}` : null,
     metadata.sectors?.join(', '),
     metadata.companySizes?.join(', '),
     metadata.locations?.join(', '),
@@ -1364,6 +1380,7 @@ function TypingIndicator() {
 }
 
 function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaign, onSendMessage, onActionExecute, onPreview }) {
+  const { lang } = useI18n();
   const avatar = role === 'assistant' ? 'b' : '~';
   const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
@@ -1396,7 +1413,7 @@ function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaig
           <ActionCard
             metadata={metadata}
             onCreateCampaign={onCreateCampaign}
-            onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
+            onModify={() => onSendMessage(lang === 'en' ? 'Can you adjust this campaign?' : 'Peux-tu ajuster cette campagne ?')}
             onActionExecute={onActionExecute}
             onPreview={onPreview}
           />
@@ -1411,6 +1428,7 @@ function ChatMessage({ role, content, metadata, animate, isLast, onCreateCampaig
 }
 
 function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage, onActionExecute }) {
+  const { lang } = useI18n();
   const [displayedContent, setDisplayedContent] = useState('');
   const [showAction, setShowAction] = useState(false);
   const contentRef = useRef(content);
@@ -1456,7 +1474,7 @@ function StreamingMessage({ content, metadata, onCreateCampaign, onSendMessage, 
           <ActionCard
             metadata={metadata}
             onCreateCampaign={onCreateCampaign}
-            onModify={() => onSendMessage('Peux-tu ajuster cette campagne ?')}
+            onModify={() => onSendMessage(lang === 'en' ? 'Can you adjust this campaign?' : 'Peux-tu ajuster cette campagne ?')}
             onActionExecute={onActionExecute}
             onPreview={onPreview}
           />
@@ -1947,7 +1965,9 @@ export default function ChatPage() {
           {
             id: Date.now(),
             role: 'assistant',
-            content: `Campagne **"${campaignData.name}"** créée avec succès ! Clique sur **Voir la campagne** ci-dessus pour ajouter des prospects et lancer la séquence vers Lemlist.`,
+            content: lang === 'en'
+              ? `Campaign **"${campaignData.name}"** created successfully! Click **View campaign** above to add prospects and launch the sequence to Lemlist.`
+              : `Campagne **"${campaignData.name}"** créée avec succès ! Clique sur **Voir la campagne** ci-dessus pour ajouter des prospects et lancer la séquence vers Lemlist.`,
             metadata: null,
             animate: true,
           },
@@ -1965,7 +1985,9 @@ export default function ChatPage() {
           {
             id: Date.now(),
             role: 'assistant',
-            content: 'Erreur lors de la création : `' + err.message + '`. Essayez de créer la campagne manuellement.',
+            content: lang === 'en'
+              ? 'Error creating campaign: `' + err.message + '`. Try creating it manually.'
+              : 'Erreur lors de la création : `' + err.message + '`. Essayez de créer la campagne manuellement.',
             metadata: null,
             animate: true,
           },
@@ -1979,7 +2001,9 @@ export default function ChatPage() {
         {
           id: Date.now(),
           role: 'assistant',
-          content: 'Le backend n\'est pas connecté. Vous pouvez créer cette campagne manuellement via le bouton **+ Nouvelle campagne** du dashboard.',
+          content: lang === 'en'
+            ? 'The backend is not connected. You can create this campaign manually via the **+ New campaign** button on the dashboard.'
+            : 'Le backend n\'est pas connecté. Vous pouvez créer cette campagne manuellement via le bouton **+ Nouvelle campagne** du dashboard.',
           metadata: null,
           animate: true,
         },
@@ -2014,7 +2038,7 @@ export default function ChatPage() {
     let messageText = text || '';
     if (uploadedFiles.length > 0) {
       const fileNames = uploadedFiles.map(f => f.originalName).join(', ');
-      const fileNote = `\n\n[Fichiers joints : ${fileNames}]`;
+      const fileNote = lang === 'en' ? `\n\n[Attached files: ${fileNames}]` : `\n\n[Fichiers joints : ${fileNames}]`;
       messageText = (messageText + fileNote).trim();
     }
 
@@ -2101,7 +2125,9 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Baakalai est configurée.\n\n`' + err.message + '`',
+            content: lang === 'en'
+              ? 'Sorry, I can\'t respond right now. Check that the backend is running and the Baakalai API key is configured.\n\n`' + err.message + '`'
+              : 'Désolé, je ne peux pas répondre pour le moment. Vérifiez que le backend est démarré et que la clé API Baakalai est configurée.\n\n`' + err.message + '`',
             metadata: null,
             animate: true,
           },
@@ -2117,7 +2143,9 @@ export default function ChatPage() {
           {
             id: Date.now() + 1,
             role: 'assistant',
-            content: 'Le backend n\'est pas connecté. Démarrez le serveur avec `cd backend && node server.js` pour activer l\'assistant IA.\n\nEn attendant, vous pouvez explorer le dashboard et les autres pages.',
+            content: lang === 'en'
+              ? 'The backend is not connected. Start the server with `cd backend && node server.js` to enable the AI assistant.\n\nIn the meantime, you can explore the dashboard and other pages.'
+              : 'Le backend n\'est pas connecté. Démarrez le serveur avec `cd backend && node server.js` pour activer l\'assistant IA.\n\nEn attendant, vous pouvez explorer le dashboard et les autres pages.',
             metadata: null,
             animate: true,
           },
@@ -2139,23 +2167,23 @@ export default function ChatPage() {
       const campName = metadata.campaignName || '';
       const changes = metadata.changes || {};
       const changeDesc = Object.entries(changes).map(([k, v]) => `${k}: ${v}`).join(', ');
-      sendMessage(`Applique les modifications sur "${campName}" : ${changeDesc}`);
+      sendMessage(lang === 'en' ? `Apply changes to "${campName}": ${changeDesc}` : `Applique les modifications sur "${campName}" : ${changeDesc}`);
       return;
     }
 
     if (action === 'analyze_campaign') {
-      sendMessage(`Lance l'analyse de performance de la campagne "${metadata.campaignName || ''}"`);
+      sendMessage(lang === 'en' ? `Run performance analysis on campaign "${metadata.campaignName || ''}"` : `Lance l'analyse de performance de la campagne "${metadata.campaignName || ''}"`);
       return;
     }
 
     if (action === 'regenerate_touchpoints') {
       const steps = (metadata.steps || []).join(', ');
-      sendMessage(`Régénère les touchpoints ${steps} de la campagne "${metadata.campaignName || ''}"`);
+      sendMessage(lang === 'en' ? `Regenerate touchpoints ${steps} of campaign "${metadata.campaignName || ''}"` : `Régénère les touchpoints ${steps} de la campagne "${metadata.campaignName || ''}"`);
       return;
     }
 
     if (action === 'show_diagnostic') {
-      sendMessage(`Montre le diagnostic complet de la campagne "${metadata.campaignName || ''}"`);
+      sendMessage(lang === 'en' ? `Show the full diagnostic of campaign "${metadata.campaignName || ''}"` : `Montre le diagnostic complet de la campagne "${metadata.campaignName || ''}"`);
       return;
     }
 
@@ -2167,7 +2195,7 @@ export default function ChatPage() {
         {
           id: Date.now(),
           role: 'assistant',
-          content: `Parfait, j'utilise **${sourceName}** pour la recherche.`,
+          content: lang === 'en' ? `Great, I'm using **${sourceName}** for the search.` : `Parfait, j'utilise **${sourceName}** pour la recherche.`,
           metadata: { action: 'search_prospects', ...metadata },
           animate: true,
         },
@@ -2297,7 +2325,7 @@ export default function ChatPage() {
           className="chat-sidebar-toggle"
           onClick={() => setChatSidebarOpen(true)}
           style={{ position: 'absolute', left: 8, top: 8, zIndex: 10 }}
-          title="Ouvrir les conversations"
+          title={lang === 'en' ? 'Open conversations' : 'Ouvrir les conversations'}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
@@ -2312,7 +2340,7 @@ export default function ChatPage() {
             <button
               className="chat-sidebar-toggle"
               onClick={() => setChatSidebarOpen(false)}
-              title="Masquer les conversations"
+              title={lang === 'en' ? 'Hide conversations' : 'Masquer les conversations'}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="15 18 9 12 15 6" />
@@ -2352,9 +2380,9 @@ export default function ChatPage() {
               fontSize: '15px', fontWeight: 600,
             }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>+</div>
-              Déposez vos fichiers ici
+              {lang === 'en' ? 'Drop your files here' : 'Déposez vos fichiers ici'}
               <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)', marginTop: '4px' }}>
-                CSV, Excel, PDF, DOCX — max 20 Mo
+                {lang === 'en' ? 'CSV, Excel, PDF, DOCX — max 20 MB' : 'CSV, Excel, PDF, DOCX — max 20 Mo'}
               </div>
             </div>
           </div>
@@ -2477,7 +2505,7 @@ export default function ChatPage() {
           {/* File picker button */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            title="Joindre un fichier"
+            title={lang === 'en' ? 'Attach a file' : 'Joindre un fichier'}
             style={{
               background: 'none', border: '1px solid var(--border)',
               borderRadius: '10px', padding: '10px 12px',
@@ -2494,7 +2522,7 @@ export default function ChatPage() {
             ref={inputRef}
             id="chatInput"
             className="chat-input"
-            placeholder={attachedFiles.length > 0 ? 'Ajoutez un message pour accompagner vos fichiers...' : 'Écrivez votre message...'}
+            placeholder={attachedFiles.length > 0 ? (lang === 'en' ? 'Add a message with your files...' : 'Ajoutez un message pour accompagner vos fichiers...') : (lang === 'en' ? 'Type your message...' : 'Écrivez votre message...')}
             rows={1}
             value={inputValue}
             onChange={handleInputChange}

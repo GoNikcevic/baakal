@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { login, register, resendVerification } from '../services/auth';
-import { useT } from '../i18n';
+import { useT, useI18n } from '../i18n';
 
 /* ─── Inline styles matching the vanilla app's auth overlay ─── */
 const styles = {
@@ -129,6 +129,8 @@ const styles = {
 
 export default function AuthGate({ onAuth, error: externalError }) {
   const t = useT();
+  const { lang } = useI18n();
+  const en = lang === 'en';
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(externalError || '');
@@ -160,7 +162,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
       // Clean the URL so the banner doesn't reappear on refresh
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('error') === 'invalid_token') {
-      setError('Lien de vérification invalide ou expiré. Demande un nouveau lien ci-dessous.');
+      setError(en ? 'Verification link invalid or expired. Request a new link below.' : 'Lien de vérification invalide ou expiré. Demande un nouveau lien ci-dessous.');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -185,10 +187,10 @@ export default function AuthGate({ onAuth, error: externalError }) {
     setResendMessage('');
     try {
       await resendVerification(registeredEmail);
-      setResendMessage('Email renvoyé — vérifie ta boîte de réception (et les spams).');
+      setResendMessage(en ? 'Email sent — check your inbox (and spam folder).' : 'Email renvoyé — vérifie ta boîte de réception (et les spams).');
       setResendCooldown(30);
     } catch (err) {
-      setResendMessage(err.message || 'Erreur lors de l\'envoi');
+      setResendMessage(err.message || (en ? 'Error sending email' : 'Erreur lors de l\'envoi'));
     }
   }
 
@@ -204,7 +206,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
 
   async function handleForgotPassword(e) {
     e.preventDefault();
-    if (!forgotEmail) { setError('Entrez votre email'); return; }
+    if (!forgotEmail) { setError(en ? 'Enter your email' : 'Entrez votre email'); return; }
     setLoading(true);
     setError('');
     try {
@@ -214,10 +216,10 @@ export default function AuthGate({ onAuth, error: externalError }) {
         body: JSON.stringify({ email: forgotEmail }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Erreur'); return; }
+      if (!res.ok) { setError(data.error || (en ? 'Error' : 'Erreur')); return; }
       setForgotSent(true);
     } catch {
-      setError('Erreur réseau');
+      setError(en ? 'Network error' : 'Erreur réseau');
     } finally {
       setLoading(false);
     }
@@ -244,7 +246,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
         if (onAuth) onAuth(user);
       }
     } catch (err) {
-      setError(err.message || 'Une erreur est survenue');
+      setError(err.message || (en ? 'An error occurred' : 'Une erreur est survenue'));
     } finally {
       setLoading(false);
     }
@@ -295,7 +297,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
             {resendMessage && (
               <div style={{
                 fontSize: 12,
-                color: resendMessage.startsWith('Email renvoyé') ? 'var(--success, #16a34a)' : 'var(--danger)',
+                color: (resendMessage.startsWith('Email renvoyé') || resendMessage.startsWith('Email sent')) ? 'var(--success, #16a34a)' : 'var(--danger)',
                 marginBottom: 12,
                 textAlign: 'center',
               }}>
@@ -344,20 +346,20 @@ export default function AuthGate({ onAuth, error: externalError }) {
             {forgotSent ? (
               <div>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
-                  Si cette adresse est associée à un compte, un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.
+                  {en ? 'If this address is associated with an account, a reset email has been sent. Check your inbox.' : 'Si cette adresse est associée à un compte, un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.'}
                 </p>
                 <button
                   type="button"
                   onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(''); setError(''); }}
                   style={styles.submitBtn}
                 >
-                  Retour à la connexion
+                  {en ? 'Back to login' : 'Retour à la connexion'}
                 </button>
               </div>
             ) : (
               <form onSubmit={handleForgotPassword}>
                 <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
-                  Entrez votre email et nous vous enverrons un lien de réinitialisation.
+                  {en ? 'Enter your email and we\'ll send you a reset link.' : 'Entrez votre email et nous vous enverrons un lien de réinitialisation.'}
                 </p>
                 <div style={styles.fieldGroupLast}>
                   <label style={styles.label} htmlFor="forgot-email">Email</label>
@@ -368,7 +370,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
                     required
                     autoComplete="email"
                     style={styles.input}
-                    placeholder="votre@email.com"
+                    placeholder={en ? 'your@email.com' : 'votre@email.com'}
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                   />
@@ -382,7 +384,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
                     ...(loading ? styles.submitBtnDisabled : {}),
                   }}
                 >
-                  {loading ? 'Envoi...' : 'Envoyer le lien'}
+                  {loading ? (en ? 'Sending...' : 'Envoi...') : (en ? 'Send reset link' : 'Envoyer le lien')}
                 </button>
                 <p style={styles.toggleText}>
                   <button
@@ -390,7 +392,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
                     style={styles.toggleLink}
                     onClick={() => { setShowForgot(false); setError(''); }}
                   >
-                    Retour
+                    {en ? 'Back' : 'Retour'}
                   </button>
                 </p>
               </form>
@@ -425,7 +427,7 @@ export default function AuthGate({ onAuth, error: externalError }) {
             {t('auth.googleLogin')}
           </button>
 
-          <div style={{ textAlign: 'center', margin: '12px 0', fontSize: 12, color: 'var(--text-muted)' }}>ou</div>
+          <div style={{ textAlign: 'center', margin: '12px 0', fontSize: 12, color: 'var(--text-muted)' }}>{en ? 'or' : 'ou'}</div>
         </div>
 
         {verifiedBanner && !isRegister && (
@@ -520,8 +522,8 @@ export default function AuthGate({ onAuth, error: externalError }) {
               style={styles.input}
               placeholder={
                 isRegister
-                  ? 'Min. 8 car., majuscule, chiffre'
-                  : 'Votre mot de passe'
+                  ? (en ? 'Min. 8 chars, uppercase, number' : 'Min. 8 car., majuscule, chiffre')
+                  : (en ? 'Your password' : 'Votre mot de passe')
               }
               minLength={8}
               value={password}

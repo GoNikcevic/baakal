@@ -36,6 +36,8 @@ const EMPTY_PROFILE = {
 
 export default function ProfilePage() {
   useApp();
+  const { lang } = useI18n();
+  const en = lang === 'en';
 
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [saving, setSaving] = useState(false);
@@ -197,7 +199,7 @@ export default function ProfilePage() {
       const count = files.length;
       setFiles([]);
       setFileTypes({});
-      setUploadSuccess(`${count} fichier${count > 1 ? 's' : ''} envoyé${count > 1 ? 's' : ''}`);
+      setUploadSuccess(en ? `${count} file${count > 1 ? 's' : ''} uploaded` : `${count} fichier${count > 1 ? 's' : ''} envoyé${count > 1 ? 's' : ''}`);
       setTimeout(() => setUploadSuccess(null), 4000);
       request('/documents').then(data => {
         if (data && data.documents) setUploadedDocs(data.documents.filter(d => d.doc_type !== 'chat_attachment'));
@@ -251,11 +253,11 @@ export default function ProfilePage() {
             const details = (reparseData.results || [])
               .map(r => `• ${r.name}: ${r.status}${r.message ? ' (' + r.message + ')' : ''}${r.chars ? ' — ' + r.chars + ' chars' : ''}`)
               .join('\n');
-            alert('Reparse a échoué pour tous les docs:\n\n' + details);
+            alert((en ? 'Reparse failed for all docs:\n\n' : 'Reparse a échoué pour tous les docs:\n\n') + details);
           }
         } catch (retryErr) {
           console.warn('Reparse failed:', retryErr.message);
-          alert('Erreur: ' + err.message);
+          alert((en ? 'Error: ' : 'Erreur: ') + err.message);
         }
       } else {
         alert('Auto-fill: ' + err.message);
@@ -313,7 +315,7 @@ export default function ProfilePage() {
           value={profile[field] || ''}
           onChange={(e) => handleChange(field, e.target.value)}
         >
-          <option value="">-- Sélectionner --</option>
+          <option value="">{en ? '-- Select --' : '-- Sélectionner --'}</option>
           {options.map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
@@ -328,8 +330,8 @@ export default function ProfilePage() {
     <div id="page-profil" className="page-content">
       <div className="page-header">
         <div>
-          <div className="page-title">Profil Entreprise</div>
-          <div className="page-subtitle">Ces informations sont utilisées par Baakalai pour personnaliser vos campagnes</div>
+          <div className="page-title">{en ? 'Company Profile' : 'Profil Entreprise'}</div>
+          <div className="page-subtitle">{en ? 'This information is used by Baakalai to personalize your campaigns' : 'Ces informations sont utilisées par Baakalai pour personnaliser vos campagnes'}</div>
         </div>
         <div className="header-actions">
           <button
@@ -338,7 +340,7 @@ export default function ProfilePage() {
             disabled={saving}
             style={saveStatus === 'saved' ? { background: 'var(--success)' } : undefined}
           >
-            {saving ? 'Enregistrement...' : saveStatus === 'saved' ? 'Enregistré' : 'Sauvegarder le profil'}
+            {saving ? (en ? 'Saving...' : 'Enregistrement...') : saveStatus === 'saved' ? (en ? 'Saved' : 'Enregistré') : (en ? 'Save profile' : 'Sauvegarder le profil')}
           </button>
         </div>
       </div>
@@ -349,10 +351,10 @@ export default function ProfilePage() {
 
       {/* Documents moved inside ProductLinesSection */}
       {false && <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-header"><div className="card-title">Documents entreprise</div></div>
+        <div className="card-header"><div className="card-title">{en ? 'Company documents' : 'Documents entreprise'}</div></div>
         <div className="card-body">
           <div className="page-subtitle" style={{ marginBottom: 16 }}>
-            Briefs, guidelines, personas PDF, exemples de campagnes — Baakalai les utilisera pour personnaliser vos séquences.
+            {en ? 'Briefs, guidelines, personas PDF, campaign examples — Baakalai will use them to personalize your sequences.' : 'Briefs, guidelines, personas PDF, exemples de campagnes — Baakalai les utilisera pour personnaliser vos séquences.'}
           </div>
           <div
             onDragEnter={handleDragEnter}
@@ -380,10 +382,10 @@ export default function ProfilePage() {
             />
             <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-              {isDragging ? 'Déposez vos fichiers ici' : 'Glissez vos fichiers ici ou cliquez pour parcourir'}
+              {isDragging ? (en ? 'Drop your files here' : 'Déposez vos fichiers ici') : (en ? 'Drag your files here or click to browse' : 'Glissez vos fichiers ici ou cliquez pour parcourir')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-              PDF, DOCX, CSV, Excel, images — max 20 Mo par fichier
+              {en ? 'PDF, DOCX, CSV, Excel, images — max 20 MB per file' : 'PDF, DOCX, CSV, Excel, images — max 20 Mo par fichier'}
             </div>
           </div>
 
@@ -402,10 +404,10 @@ export default function ProfilePage() {
                     onClick={e => e.stopPropagation()}
                     style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
                   >
-                    <option value="company">Présentation entreprise</option>
-                    <option value="prospects">Liste prospects</option>
-                    <option value="brief">Brief campagne</option>
-                    <option value="other">Autre</option>
+                    <option value="company">{en ? 'Company overview' : 'Présentation entreprise'}</option>
+                    <option value="prospects">{en ? 'Prospect list' : 'Liste prospects'}</option>
+                    <option value="brief">{en ? 'Campaign brief' : 'Brief campagne'}</option>
+                    <option value="other">{en ? 'Other' : 'Autre'}</option>
                   </select>
                   <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>{formatSize(f.size)}</span>
                   <button onClick={() => removeFile(i)} style={{
@@ -420,7 +422,7 @@ export default function ProfilePage() {
                 disabled={uploading}
                 style={{ alignSelf: 'flex-start', marginTop: 8 }}
               >
-                {uploading ? 'Upload en cours...' : `Envoyer ${files.length} fichier${files.length > 1 ? 's' : ''}`}
+                {uploading ? (en ? 'Uploading...' : 'Upload en cours...') : (en ? `Upload ${files.length} file${files.length > 1 ? 's' : ''}` : `Envoyer ${files.length} fichier${files.length > 1 ? 's' : ''}`)}
               </button>
             </div>
           )}
@@ -441,7 +443,7 @@ export default function ProfilePage() {
           {uploadedDocs.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Documents envoyés
+                {en ? 'Uploaded documents' : 'Documents envoyés'}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {uploadedDocs.map((doc, i) => (
@@ -461,7 +463,7 @@ export default function ProfilePage() {
                       color: doc.doc_type === 'company' ? 'var(--success)' : 'var(--text-muted)',
                       border: `1px solid ${doc.doc_type === 'company' ? 'rgba(0,214,143,0.2)' : 'var(--border)'}`,
                     }}>
-                      {doc.doc_type === 'company' ? 'Entreprise' : doc.doc_type === 'prospects' ? 'Prospects' : doc.doc_type === 'brief' ? 'Brief' : 'Autre'}
+                      {doc.doc_type === 'company' ? (en ? 'Company' : 'Entreprise') : doc.doc_type === 'prospects' ? 'Prospects' : doc.doc_type === 'brief' ? 'Brief' : (en ? 'Other' : 'Autre')}
                     </span>
                     <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>
                       {new Date(doc.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
@@ -480,7 +482,7 @@ export default function ProfilePage() {
                       }}
                       onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
                       onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-                      title="Supprimer"
+                      title={en ? 'Delete' : 'Supprimer'}
                     >×</button>
                   </div>
                 ))}
@@ -491,7 +493,7 @@ export default function ProfilePage() {
                 disabled={autoFilling}
                 style={{ marginTop: 12, width: 'auto', alignSelf: 'flex-start' }}
               >
-                {autoFilling ? 'Analyse en cours...' : '\uD83E\uDDE0 Auto-remplir avec mes documents entreprise'}
+                {autoFilling ? (en ? 'Analyzing...' : 'Analyse en cours...') : (en ? '\uD83E\uDDE0 Auto-fill from company documents' : '\uD83E\uDDE0 Auto-remplir avec mes documents entreprise')}
               </button>
             </div>
           )}
@@ -571,7 +573,7 @@ function ProductLinesSection({ profile, renderInput, renderTextarea, renderSelec
         await request(`/crm/product-lines/${activeTab}`, { method: 'PATCH', body: JSON.stringify(form) });
         await load();
       }
-    } catch { import('../services/notifications').then(m => m.showToast({ type: 'error', title: 'Erreur', message: 'Failed to save project' })); }
+    } catch { import('../services/notifications').then(m => m.showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: 'Failed to save project' })); }
     setSaving(false);
   };
 
@@ -582,7 +584,7 @@ function ProductLinesSection({ profile, renderInput, renderTextarea, renderSelec
       const remaining = lines.filter(l => l.id !== id);
       setLines(remaining);
       setActiveTab(remaining.length > 0 ? remaining[0].id : null);
-    } catch { import('../services/notifications').then(m => m.showToast({ type: 'error', title: 'Erreur', message: 'Failed to delete project' })); }
+    } catch { import('../services/notifications').then(m => m.showToast({ type: 'error', title: en ? 'Error' : 'Erreur', message: 'Failed to delete project' })); }
   };
 
   if (loading) return null;
