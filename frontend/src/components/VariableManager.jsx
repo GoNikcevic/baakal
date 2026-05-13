@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { fetchVariables, createVariable, deleteVariable } from '../services/api-client';
+import { useI18n } from '../i18n';
 
 /* ─── Variable Registry (initial data) ─── */
 
@@ -87,6 +88,7 @@ function Toast({ message, onDone }) {
 /* ─── Custom Variable Modal ─── */
 
 function CreateVarModal({ onClose, onCreate, existingKeys }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [defaultVal, setDefaultVal] = useState('');
@@ -138,7 +140,7 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
-          Créer une variable personnalisée
+          {en ? 'Create a custom variable' : 'Créer une variable personnalisée'}
         </div>
 
         {/* Preview */}
@@ -264,14 +266,14 @@ function CreateVarModal({ onClose, onCreate, existingKeys }) {
             style={{ fontSize: 12, padding: '8px 14px' }}
             onClick={onClose}
           >
-            Annuler
+            {en ? 'Cancel' : 'Annuler'}
           </button>
           <button
             className="btn btn-primary"
             style={{ fontSize: 12, padding: '8px 14px' }}
             onClick={handleCreate}
           >
-            Créer la variable
+            {en ? 'Create variable' : 'Créer la variable'}
           </button>
         </div>
       </div>
@@ -313,7 +315,7 @@ function VarItem({ variable, isCustom, onInsert, onDelete }) {
           <button
             className="var-item-action-btn"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            title="Supprimer"
+            title="Delete"
           >
             ✕
           </button>
@@ -370,6 +372,7 @@ export default function VariableManager({
   defaultOpen = false,
   onRegistryChange,
 }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [panelOpen, setPanelOpen] = useState(defaultOpen);
   const [registry, setRegistry] = useState(() =>
     initialRegistry ? JSON.parse(JSON.stringify(initialRegistry)) : JSON.parse(JSON.stringify(INITIAL_REGISTRY))
@@ -530,7 +533,7 @@ export default function VariableManager({
                 </div>
                 {catKey === 'custom' && (
                   <button className="var-add-btn" onClick={() => setShowModal(true)}>
-                    + Créer une variable
+                    {en ? '+ Create a variable' : '+ Créer une variable'}
                   </button>
                 )}
               </div>

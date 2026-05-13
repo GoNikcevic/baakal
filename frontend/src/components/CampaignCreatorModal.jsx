@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/useApp';
 import { createCampaign, transformCampaign, campaignToBackend, fetchTemplates, fetchTemplate } from '../services/api-client';
 import Confetti from './Confetti';
+import { useI18n } from '../i18n';
 
 const SECTORS = [
   'Formation & Education',
@@ -50,6 +51,7 @@ function SummaryItem({ label, value }) {
 
 export default function CampaignCreatorModal({ onClose }) {
   const { projects, setCampaigns, backendAvailable } = useApp();
+  const { lang } = useI18n(); const en = lang === 'en';
 
   const [step, setStep] = useState(0);
 
@@ -110,7 +112,7 @@ export default function CampaignCreatorModal({ onClose }) {
   function next() {
     // Validate step 0: name is required
     if (step === 0 && !form.name.trim()) {
-      setError('Le nom de la campagne est requis.');
+      setError(en ? 'Campaign name is required.' : 'Le nom de la campagne est requis.');
       return;
     }
     setError(null);
@@ -124,7 +126,7 @@ export default function CampaignCreatorModal({ onClose }) {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) {
-      setError('Le nom de la campagne est requis.');
+      setError(en ? 'Campaign name is required.' : 'Le nom de la campagne est requis.');
       return;
     }
 
@@ -187,7 +189,7 @@ export default function CampaignCreatorModal({ onClose }) {
         onClose();
       }, 1500);
     } catch (err) {
-      setError(err.message || 'Erreur lors de la création.');
+      setError(err.message || (en ? 'Error during creation.' : 'Erreur lors de la création.'));
     } finally {
       setSubmitting(false);
     }
@@ -216,9 +218,9 @@ export default function CampaignCreatorModal({ onClose }) {
 
         {/* Template selector */}
         <div style={{ marginBottom: 20 }}>
-          <label className="form-label" style={{ marginBottom: 8, display: 'block', fontWeight: 600 }}>Partir d'un template</label>
+          <label className="form-label" style={{ marginBottom: 8, display: 'block', fontWeight: 600 }}>{en ? 'Start from a template' : "Partir d'un template"}</label>
           {loadingTemplates ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Chargement des templates...</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{en ? 'Loading templates...' : 'Chargement des templates...'}</div>
           ) : templates.length > 0 ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
@@ -226,7 +228,7 @@ export default function CampaignCreatorModal({ onClose }) {
                 style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6 }}
                 onClick={() => handleSelectTemplate(null)}
               >
-                Vierge
+                {en ? 'Blank' : 'Vierge'}
               </button>
               {templates.map((tpl) => (
                 <button
@@ -397,7 +399,7 @@ export default function CampaignCreatorModal({ onClose }) {
       <div className="creator-modal">
         {/* Header */}
         <div className="creator-header">
-          <h2>Nouvelle campagne</h2>
+          <h2>{en ? 'New campaign' : 'Nouvelle campagne'}</h2>
           <button className="creator-close" onClick={onClose}>&#x2715;</button>
         </div>
 
@@ -424,15 +426,15 @@ export default function CampaignCreatorModal({ onClose }) {
         {/* Footer: Retour / Suivant or Créer */}
         <div className="creator-footer" style={{ justifyContent: 'space-between' }}>
           {step > 0 ? (
-            <button className="btn btn-ghost" onClick={prev}>Retour</button>
+            <button className="btn btn-ghost" onClick={prev}>{en ? 'Back' : 'Retour'}</button>
           ) : (
-            <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
+            <button className="btn btn-ghost" onClick={onClose}>{en ? 'Cancel' : 'Annuler'}</button>
           )}
           {step < TOTAL_STEPS - 1 ? (
-            <button className="btn btn-primary" onClick={next}>Suivant</button>
+            <button className="btn btn-primary" onClick={next}>{en ? 'Next' : 'Suivant'}</button>
           ) : (
             <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Création...' : 'Créer la campagne'}
+              {submitting ? (en ? 'Creating...' : 'Création...') : (en ? 'Create campaign' : 'Créer la campagne')}
             </button>
           )}
         </div>

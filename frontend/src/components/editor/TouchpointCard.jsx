@@ -6,8 +6,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api-client';
 import { highlightVars, stripEditorHtml, getPlainTextLength } from './editor-helpers';
 import { sanitizeHtml } from '../../services/sanitize';
+import { useI18n } from '../../i18n';
 
 function TouchpointSuggestion({ suggestion, onApply, onDismiss }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [state, setState] = useState('visible'); // visible | applied | dismissed
 
   if (state === 'dismissed') return null;
@@ -16,7 +18,7 @@ function TouchpointSuggestion({ suggestion, onApply, onDismiss }) {
     return (
       <div className="tp-ai-suggestion" style={{ opacity: 1 }}>
         <div style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>
-          Suggestion appliquée -- vérifiez le résultat
+          {en ? 'Suggestion applied -- check the result' : 'Suggestion appliquée -- vérifiez le résultat'}
         </div>
       </div>
     );
@@ -32,14 +34,14 @@ function TouchpointSuggestion({ suggestion, onApply, onDismiss }) {
           style={{ fontSize: '11px' }}
           onClick={() => { setState('applied'); onApply(); }}
         >
-          Appliquer
+          {en ? 'Apply' : 'Appliquer'}
         </button>
         <button
           className="tp-action"
           style={{ fontSize: '11px' }}
           onClick={() => { setState('dismissed'); onDismiss(); }}
         >
-          Ignorer
+          {en ? 'Dismiss' : 'Ignorer'}
         </button>
       </div>
     </div>
@@ -81,6 +83,7 @@ export default function TouchpointCard({
   onDelete,
   onTouchpointUpdate,
 }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const isLinkedin = tp.type === 'linkedin';
   const [regenStatus, setRegenStatus] = useState(null); // null | 'loading' | 'done' | 'error' | 'offline'
   const [regenMsg, setRegenMsg] = useState('');
@@ -91,7 +94,7 @@ export default function TouchpointCard({
   /* ─── Regenerate single touchpoint ─── */
   const handleRegenerate = useCallback(async () => {
     setRegenStatus('loading');
-    setRegenMsg('Régénération en cours...');
+    setRegenMsg(en ? 'Regenerating...' : 'Régénération en cours...');
 
     if (backendAvailable) {
       const backendId = campaignData._backendId || activeCampaignKey;
@@ -116,15 +119,15 @@ export default function TouchpointCard({
           }
         }
         setRegenStatus('done');
-        setRegenMsg('Régénéré -- vérifiez le résultat avant de sauvegarder');
+        setRegenMsg(en ? 'Regenerated -- check the result before saving' : 'Régénéré -- vérifiez le résultat avant de sauvegarder');
       } catch (err) {
         setRegenStatus('error');
-        setRegenMsg('Erreur : ' + err.message);
+        setRegenMsg((en ? 'Error: ' : 'Erreur : ') + err.message);
       }
     } else {
       setTimeout(() => {
         setRegenStatus('offline');
-        setRegenMsg('Backend non disponible');
+        setRegenMsg(en ? 'Backend unavailable' : 'Backend non disponible');
       }, 500);
     }
 
@@ -173,13 +176,13 @@ export default function TouchpointCard({
         </div>
         <div className="tp-actions">
           <button className="tp-action ai" onClick={handleRegenerate}>
-            Régénérer
+            {en ? 'Regenerate' : 'Régénérer'}
           </button>
           <button className="tp-action" onClick={onDuplicate}>
-            Dupliquer
+            {en ? 'Duplicate' : 'Dupliquer'}
           </button>
           <button className="tp-action" onClick={onDelete}>
-            Supprimer
+            {en ? 'Delete' : 'Supprimer'}
           </button>
         </div>
       </div>

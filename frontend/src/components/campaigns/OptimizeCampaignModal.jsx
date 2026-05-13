@@ -7,8 +7,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api-client';
 import { sanitizeHtml } from '../../services/sanitize';
+import { useI18n } from '../../i18n';
 
 export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [step, setStep] = useState(1); // 1 = diagnostic, 2 = validation
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,7 +42,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
           setHypothesis(data.recommendations[0].reason || '');
         }
       } catch (err) {
-        if (!cancelled) setError(err.message || 'Erreur lors du diagnostic');
+        if (!cancelled) setError(err.message || (en ? 'Error during diagnostic' : 'Erreur lors du diagnostic'));
       }
       if (!cancelled) setLoading(false);
     }
@@ -76,9 +78,9 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
     } catch (err) {
       // If the error is about unresolved active test, offer force option
       if (err.message && err.message.includes('ACTIVE_TEST')) {
-        setError('Un test A/B est en cours et pas encore concluant. Active "Forcer la résolution" puis relance.');
+        setError(en ? 'An A/B test is running and not yet conclusive. Enable "Force resolution" then retry.' : 'Un test A/B est en cours et pas encore concluant. Active "Forcer la résolution" puis relance.');
       } else {
-        setError(err.message || 'Erreur lors de l\'optimisation');
+        setError(err.message || (en ? 'Error during optimization' : 'Erreur lors de l\'optimisation'));
       }
     }
     setOptimizing(false);
@@ -92,11 +94,11 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
 
   if (loading) {
     return (
-      <ModalShell onClose={onClose} title="Analyse en cours">
+      <ModalShell onClose={onClose} title={en ? 'Analyzing' : 'Analyse en cours'}>
         <div style={{ padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Baakalai analyse les performances de ta campagne...
+            {en ? 'Baakalai is analyzing your campaign performance...' : 'Baakalai analyse les performances de ta campagne...'}
           </div>
         </div>
       </ModalShell>
@@ -105,10 +107,10 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
 
   if (error && !result) {
     return (
-      <ModalShell onClose={onClose} title="Erreur">
+      <ModalShell onClose={onClose} title={en ? 'Error' : 'Erreur'}>
         <div style={{ padding: 24 }}>
           <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 16 }}>⚠️ {error}</div>
-          <button className="btn btn-ghost" onClick={onClose} style={{ fontSize: 12 }}>Fermer</button>
+          <button className="btn btn-ghost" onClick={onClose} style={{ fontSize: 12 }}>{en ? 'Close' : 'Fermer'}</button>
         </div>
       </ModalShell>
     );
@@ -117,12 +119,12 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
   // Guard: blocked by minimum data
   if (diagnostic && !diagnostic.guards.canOptimize) {
     return (
-      <ModalShell onClose={onClose} title="Optimisation indisponible">
+      <ModalShell onClose={onClose} title={en ? 'Optimization unavailable' : 'Optimisation indisponible'}>
         <div style={{ padding: 24 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
             {diagnostic.guards.blockedReason}
           </div>
-          <button className="btn btn-ghost" onClick={onClose} style={{ fontSize: 12 }}>Fermer</button>
+          <button className="btn btn-ghost" onClick={onClose} style={{ fontSize: 12 }}>{en ? 'Close' : 'Fermer'}</button>
         </div>
       </ModalShell>
     );
@@ -131,7 +133,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
   /* ── Step 2: Variant validation ── */
   if (step === 2 && result) {
     return (
-      <ModalShell onClose={onClose} title="Étape 2/2 — Valider la variante générée" wide>
+      <ModalShell onClose={onClose} title={en ? 'Step 2/2 — Validate generated variant' : 'Étape 2/2 — Valider la variante générée'} wide>
         <div style={{ padding: 24 }}>
           {result.abResolved && (
             <div
@@ -145,14 +147,14 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
                 color: 'var(--success)',
               }}
             >
-              ✅ Test A/B précédent résolu : variante {result.abResolved.winner} promue
-              {result.abResolved.improvement ? ` (+${result.abResolved.improvement}%)` : ''}
-              {result.abResolved.forced ? ' (forcé)' : ' (auto)'}.
+              {en
+                ? `Previous A/B test resolved: variant ${result.abResolved.winner} promoted${result.abResolved.improvement ? ` (+${result.abResolved.improvement}%)` : ''}${result.abResolved.forced ? ' (forced)' : ' (auto)'}.`
+                : `✅ Test A/B précédent résolu : variante ${result.abResolved.winner} promue${result.abResolved.improvement ? ` (+${result.abResolved.improvement}%)` : ''}${result.abResolved.forced ? ' (forcé)' : ' (auto)'}.`}
             </div>
           )}
 
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-            Baakalai a généré une nouvelle variante B pour les touchpoints sélectionnés. Vérifie avant de déployer vers Lemlist.
+            {en ? 'Baakalai generated a new variant B for the selected touchpoints. Review before deploying to Lemlist.' : 'Baakalai a généré une nouvelle variante B pour les touchpoints sélectionnés. Vérifie avant de déployer vers Lemlist.'}
           </div>
 
           {(result.variants || []).map(v => (
@@ -170,7 +172,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
             }}
           >
             <button className="btn btn-ghost" onClick={onClose} style={{ fontSize: 12, padding: '10px 18px' }}>
-              Fermer
+              {en ? 'Close' : 'Fermer'}
             </button>
             <button
               className="btn btn-success"
@@ -178,7 +180,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
               style={{ fontSize: 12, padding: '10px 18px' }}
               disabled={deploying}
             >
-              ✅ Variante déployée — Fermer
+              {en ? 'Variant deployed — Close' : '✅ Variante déployée — Fermer'}
             </button>
           </div>
         </div>
@@ -199,7 +201,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
   const canGenerate = selectedSteps.size > 0 && !selectedOverBudget && !blockedByCooldown && !blockedByActiveTest;
 
   return (
-    <ModalShell onClose={onClose} title="Étape 1/2 — Diagnostic et sélection" wide>
+    <ModalShell onClose={onClose} title={en ? 'Step 1/2 — Diagnostic and selection' : 'Étape 1/2 — Diagnostic et sélection'} wide>
       <div style={{ padding: 24 }}>
         {/* Warnings */}
         {guards.warningReason && (
@@ -241,7 +243,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
                   onChange={e => setForceCooldown(e.target.checked)}
                   style={{ marginRight: 6 }}
                 />
-                Optimiser quand même (override)
+                {en ? 'Optimize anyway (override)' : 'Optimiser quand même (override)'}
               </label>
             </div>
           </div>
@@ -260,9 +262,10 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
               lineHeight: 1.5,
             }}
           >
-            🧬 Un test A/B est actuellement en cours sur cette campagne mais n'a pas encore atteint son seuil de significativité
-            ({abTest.daysSinceStart}j, {abTest.audience} prospects).
-            Leader actuel : <strong>Variante {abTest.leader}</strong>
+            {en
+              ? `🧬 An A/B test is currently running on this campaign but hasn't reached significance yet (${abTest.daysSinceStart}d, ${abTest.audience} prospects). Current leader: `
+              : `🧬 Un test A/B est actuellement en cours sur cette campagne mais n'a pas encore atteint son seuil de significativité (${abTest.daysSinceStart}j, ${abTest.audience} prospects). Leader actuel : `}
+            <strong>{en ? 'Variant' : 'Variante'} {abTest.leader}</strong>
             {abTest.improvement ? ` (+${abTest.improvement}%)` : ''}.
             <div style={{ marginTop: 8 }}>
               <label style={{ fontSize: 11, cursor: 'pointer' }}>
@@ -272,7 +275,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
                   onChange={e => setForceResolve(e.target.checked)}
                   style={{ marginRight: 6 }}
                 />
-                Forcer la promotion du leader actuel pour lancer une nouvelle optimisation
+                {en ? 'Force promote current leader to launch a new optimization' : 'Forcer la promotion du leader actuel pour lancer une nouvelle optimisation'}
               </label>
             </div>
           </div>
@@ -292,10 +295,10 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
               lineHeight: 1.5,
             }}
           >
-            💡 <strong>Recommandation Baakalai :</strong>
+            💡 <strong>{en ? 'Baakalai recommendation:' : 'Recommandation Baakalai :'}</strong>
             {diagnostic.recommendations.map(r => (
               <div key={r.step} style={{ marginTop: 4 }}>
-                Régénérer <strong>{r.step}</strong> — {r.reason}
+                {en ? 'Regenerate' : 'Régénérer'} <strong>{r.step}</strong> — {r.reason}
               </div>
             ))}
           </div>
@@ -303,7 +306,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
 
         {/* Touchpoint list */}
         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-          Touchpoints à optimiser ({selectedSteps.size}/2 sélectionnés)
+          {en ? `Touchpoints to optimize (${selectedSteps.size}/2 selected)` : `Touchpoints à optimiser (${selectedSteps.size}/2 sélectionnés)`}
         </div>
         <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
           {touchpointList.map(tp => {
@@ -343,7 +346,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
                           fontWeight: 700,
                         }}
                       >
-                        RECOMMANDÉ
+                        {en ? 'RECOMMENDED' : 'RECOMMANDÉ'}
                       </span>
                     )}
                   </div>
@@ -366,7 +369,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
         {/* Hypothesis */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4, display: 'block' }}>
-            Hypothèse de test (optionnel)
+            {en ? 'Test hypothesis (optional)' : 'Hypothèse de test (optionnel)'}
           </label>
           <textarea
             className="form-input"
@@ -394,7 +397,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
           }}
         >
           <button className="btn btn-ghost" onClick={onClose} disabled={optimizing} style={{ fontSize: 12, padding: '10px 18px' }}>
-            Annuler
+            {en ? 'Cancel' : 'Annuler'}
           </button>
           <button
             className="btn btn-primary"
@@ -402,7 +405,7 @@ export default function OptimizeCampaignModal({ campaign, onClose, onSuccess }) 
             disabled={!canGenerate || optimizing}
             style={{ fontSize: 12, padding: '10px 18px' }}
           >
-            {optimizing ? '✨ Génération...' : 'Générer la variante →'}
+            {optimizing ? (en ? 'Generating...' : '✨ Génération...') : (en ? 'Generate variant →' : 'Générer la variante →')}
           </button>
         </div>
       </div>
@@ -501,7 +504,7 @@ function VariantDiff({ variant }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 4 }}>
-            ACTUEL (A)
+            {en ? 'CURRENT (A)' : 'ACTUEL (A)'}
           </div>
           {variant.a.subject && (
             <div style={{ fontSize: 11, fontStyle: 'italic', marginBottom: 4 }}>
@@ -524,7 +527,7 @@ function VariantDiff({ variant }) {
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600, marginBottom: 4 }}>
-            NOUVELLE VARIANTE (B) 🆕
+            {en ? 'NEW VARIANT (B)' : 'NOUVELLE VARIANTE (B)'} 🆕
           </div>
           {variant.b.subject && (
             <div style={{ fontSize: 11, fontStyle: 'italic', marginBottom: 4 }}>

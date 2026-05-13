@@ -10,6 +10,7 @@ import { useApp } from '../../../context/useApp';
 import api from '../../../services/api-client';
 import { sanitizeHtml } from '../../../services/sanitize';
 import SequenceTree from '../SequenceTree';
+import { useI18n } from '../../../i18n';
 
 /* ─── Helpers ─── */
 
@@ -30,9 +31,9 @@ function stripEditorHtml(html) {
 
 const TYPE_META = {
   email: { label: 'Email', icon: '📧', color: 'var(--blue)' },
-  linkedin_visit: { label: 'Visite profil', icon: '👁️', color: 'var(--purple)' },
-  linkedin_invite: { label: 'Note connexion', icon: '🤝', color: 'var(--purple)' },
-  linkedin_message: { label: 'Message LinkedIn', icon: '💬', color: 'var(--purple)' },
+  linkedin_visit: { label: 'Visite profil', labelEn: 'Profile visit', icon: '👁️', color: 'var(--purple)' },
+  linkedin_invite: { label: 'Note connexion', labelEn: 'Connection note', icon: '🤝', color: 'var(--purple)' },
+  linkedin_message: { label: 'Message LinkedIn', labelEn: 'LinkedIn message', icon: '💬', color: 'var(--purple)' },
   linkedin: { label: 'LinkedIn', icon: '💬', color: 'var(--purple)' },
 };
 
@@ -66,6 +67,7 @@ function CharCounter({ bodyRef, maxChars = 300 }) {
 /* ─── Touchpoint editor card ─── */
 
 function TouchpointEditCard({ tp, campaign, onChange }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [regenStatus, setRegenStatus] = useState(null);
   const [regenMsg, setRegenMsg] = useState('');
   const subjectRef = useRef(null);
@@ -88,7 +90,7 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
 
   const handleRegenerate = useCallback(async () => {
     setRegenStatus('loading');
-    setRegenMsg('Régénération en cours...');
+    setRegenMsg(en ? 'Regenerating...' : 'Régénération en cours...');
     try {
       const backendId = campaign._backendId || campaign.id;
       const currentBody = bodyRef.current ? stripEditorHtml(bodyRef.current.innerHTML) : tp.body;
@@ -119,10 +121,10 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
         });
       }
       setRegenStatus('done');
-      setRegenMsg('Régénéré — vérifie le résultat avant de sauvegarder');
+      setRegenMsg(en ? 'Regenerated — check the result before saving' : 'Régénéré — vérifie le résultat avant de sauvegarder');
     } catch (err) {
       setRegenStatus('error');
-      setRegenMsg('Erreur : ' + err.message);
+      setRegenMsg((en ? 'Error: ' : 'Erreur : ') + err.message);
     }
     setTimeout(() => {
       setRegenStatus(null);
@@ -165,7 +167,7 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>
-              {meta.icon} {meta.label} {tp.subType && `— ${tp.subType}`}
+              {meta.icon} {en && meta.labelEn ? meta.labelEn : meta.label} {tp.subType && `— ${tp.subType}`}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{tp.timing}</div>
           </div>
@@ -191,7 +193,7 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
             onClick={handleRegenerate}
             disabled={regenStatus === 'loading'}
           >
-            {regenStatus === 'loading' ? '⏳' : '🔄'} Régénérer
+            {regenStatus === 'loading' ? '⏳' : '🔄'} {en ? 'Regenerate' : 'Régénérer'}
           </button>
         )}
       </div>
@@ -215,7 +217,7 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
 
       {isLinkedinVisit ? (
         <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0' }}>
-          Visite automatique du profil — pas de message à éditer
+          {en ? 'Automatic profile visit — no message to edit' : 'Visite automatique du profil — pas de message à éditer'}
         </div>
       ) : (
         <>
@@ -278,6 +280,7 @@ function TouchpointEditCard({ tp, campaign, onChange }) {
 
 export default function CopyTab({ campaign: c, setCampaigns }) {
   const { backendAvailable } = useApp();
+  const { lang } = useI18n(); const en = lang === 'en';
   const [editingMode, setEditingMode] = useState(false);
   const [localTouchpoints, setLocalTouchpoints] = useState(c.sequence || []);
   const [isDirty, setIsDirty] = useState(false);
@@ -309,11 +312,11 @@ export default function CopyTab({ campaign: c, setCampaigns }) {
       }
       setIsDirty(false);
       setSaveStatus('saved');
-      setSaveMessage('✅ Séquences sauvegardées');
+      setSaveMessage(en ? 'Sequences saved' : '✅ Séquences sauvegardées');
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (err) {
       setSaveStatus('error');
-      setSaveMessage('❌ Erreur : ' + err.message);
+      setSaveMessage((en ? 'Error: ' : '❌ Erreur : ') + err.message);
       setTimeout(() => setSaveStatus(null), 4000);
     }
   }, [c, isDirty, localTouchpoints, backendAvailable, setCampaigns]);
@@ -339,7 +342,7 @@ export default function CopyTab({ campaign: c, setCampaigns }) {
       >
         <div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>
-            {editingMode ? '✏️ Édition des séquences' : '👁️ Aperçu des séquences'}
+            {editingMode ? (en ? 'Editing sequences' : '✏️ Édition des séquences') : (en ? 'Sequence preview' : '👁️ Aperçu des séquences')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             {(localTouchpoints || []).length} touchpoints · {emailCount} emails · {linkedinCount} LinkedIn
@@ -363,7 +366,7 @@ export default function CopyTab({ campaign: c, setCampaigns }) {
           )}
           {editingMode && isDirty && (
             <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={handleCancel}>
-              Annuler
+              {en ? 'Cancel' : 'Annuler'}
             </button>
           )}
           {editingMode && (
@@ -373,7 +376,7 @@ export default function CopyTab({ campaign: c, setCampaigns }) {
               onClick={handleSave}
               disabled={!isDirty || saveStatus === 'loading'}
             >
-              💾 Sauvegarder
+              {en ? 'Save' : '💾 Sauvegarder'}
             </button>
           )}
           <button
@@ -381,7 +384,7 @@ export default function CopyTab({ campaign: c, setCampaigns }) {
             style={{ fontSize: 12 }}
             onClick={() => setEditingMode((prev) => !prev)}
           >
-            {editingMode ? '👁️ Aperçu' : '✏️ Éditer'}
+            {editingMode ? (en ? 'Preview' : '👁️ Aperçu') : (en ? 'Edit' : '✏️ Éditer')}
           </button>
         </div>
       </div>

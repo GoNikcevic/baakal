@@ -10,15 +10,14 @@ import { InfoRow, CheckItem } from './shared';
 import api from '../../services/api-client';
 import { sanitizeHtml } from '../../services/sanitize';
 import LoadingOverlay from '../shared/LoadingOverlay';
-
-const LEMLIST_LAUNCH_STEPS = [
-  'Création de la campagne sur Lemlist…',
-  'Déploiement des séquences email & LinkedIn…',
-  'Ajout des prospects dans la liste…',
-  'Activation de la campagne…',
-];
+import { useI18n } from '../../i18n';
 
 export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }) {
+  const { lang } = useI18n(); const en = lang === 'en';
+
+  const LEMLIST_LAUNCH_STEPS = en
+    ? ['Creating campaign on Lemlist...', 'Deploying email & LinkedIn sequences...', 'Adding prospects to the list...', 'Activating campaign...']
+    : ['Création de la campagne sur Lemlist…', 'Déploiement des séquences email & LinkedIn…', 'Ajout des prospects dans la liste…', 'Activation de la campagne…'];
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [launchAlert, setLaunchAlert] = useState(null);
   const [recoApplied, setRecoApplied] = useState(false);
@@ -27,7 +26,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
   const [archiving, setArchiving] = useState(false);
 
   const handleArchive = async () => {
-    if (!window.confirm(`Archiver la campagne "${c.name}" ? Elle sortira de la liste principale mais reste consultable via le filtre "Archivées".`)) return;
+    if (!window.confirm(en ? `Archive campaign "${c.name}"? It will be removed from the main list but remain accessible via the "Archived" filter.` : `Archiver la campagne "${c.name}" ? Elle sortira de la liste principale mais reste consultable via le filtre "Archivées".`)) return;
     setArchiving(true);
     try {
       const backendId = c._backendId || c.id;
@@ -66,8 +65,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     if (!c.sequence || c.sequence.length === 0) {
       setLaunchAlert({
         type: 'error',
-        title: 'Impossible de lancer — séquences manquantes',
-        desc: "Générez d'abord les séquences via Baakalai depuis l'éditeur Copy & Séquences.",
+        title: en ? 'Cannot launch — missing sequences' : 'Impossible de lancer — séquences manquantes',
+        desc: en ? "Generate sequences first via Baakalai from the Copy & Sequences editor." : "Générez d'abord les séquences via Baakalai depuis l'éditeur Copy & Séquences.",
       });
       return;
     }
@@ -106,8 +105,8 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     } catch (err) {
       setLaunchAlert({
         type: 'error',
-        title: 'Échec du lancement Lemlist',
-        desc: err.message || 'Erreur inconnue — vérifiez votre clé API Lemlist dans Intégrations.',
+        title: en ? 'Lemlist launch failed' : 'Échec du lancement Lemlist',
+        desc: err.message || (en ? 'Unknown error — check your Lemlist API key in Integrations.' : 'Erreur inconnue — vérifiez votre clé API Lemlist dans Intégrations.'),
       });
     }
     setLaunching(false);
@@ -117,13 +116,13 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
     <div className="campaign-detail">
       <LoadingOverlay
         show={launching}
-        title="🚀 Déploiement vers Lemlist"
+        title={en ? 'Deploying to Lemlist' : '🚀 Déploiement vers Lemlist'}
         steps={LEMLIST_LAUNCH_STEPS}
       />
 
       {/* Back button */}
       <button className="campaign-detail-back" onClick={onBack}>
-        ← Retour aux campagnes
+        {en ? '← Back to campaigns' : '← Retour aux campagnes'}
       </button>
 
       {/* Header */}
@@ -143,7 +142,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
                 color: 'var(--warning)',
               }}
             >
-              En préparation
+              {en ? 'In preparation' : 'En préparation'}
             </span>
           </div>
         </div>
@@ -153,7 +152,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             style={{ fontSize: '12px', padding: '8px 14px' }}
             onClick={() => setShowEditPanel((prev) => !prev)}
           >
-            ✏️ Modifier
+            {en ? 'Edit' : '✏️ Modifier'}
           </button>
           <button
             className="btn btn-ghost"
@@ -161,7 +160,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             onClick={handleArchive}
             disabled={archiving}
           >
-            {archiving ? '...' : '📦 Archiver'}
+            {archiving ? '...' : (en ? '📦 Archive' : '📦 Archiver')}
           </button>
           <button
             className="btn btn-success"
@@ -169,7 +168,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             onClick={handleLaunch}
             disabled={launching}
           >
-            {launching ? '⏳ Déploiement Lemlist...' : '🚀 Lancer vers Lemlist'}
+            {launching ? (en ? '⏳ Deploying to Lemlist...' : '⏳ Déploiement Lemlist...') : (en ? '🚀 Launch to Lemlist' : '🚀 Lancer vers Lemlist')}
           </button>
         </div>
       </div>
@@ -259,7 +258,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
             gap: '8px',
           }}
         >
-          📋 Checklist de préparation
+          {en ? 'Preparation checklist' : '📋 Checklist de préparation'}
         </div>
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -277,7 +276,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
       <div className="sequence-card">
         <div className="sequence-header">
           <div className="sequence-title">
-            👁️ Aperçu des séquences — En attente de validation
+            {en ? 'Sequence preview — Awaiting validation' : '👁️ Aperçu des séquences — En attente de validation'}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {(c.sequence || []).length} touchpoints &middot; Email ({emailCount})
@@ -310,7 +309,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
               gap: '8px',
             }}
           >
-            🤖 Recommandation pré-lancement — Baakalai
+            {en ? 'Pre-launch recommendation — Baakalai' : '🤖 Recommandation pré-lancement — Baakalai'}
           </div>
           <div
             style={{
@@ -337,8 +336,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
                     fontWeight: 600,
                   }}
                 >
-                  ✅ Suggestion appliquée — sera intégrée dans la génération des
-                  séquences
+                  {en ? 'Suggestion applied — will be integrated in sequence generation' : '✅ Suggestion appliquée — sera intégrée dans la génération des séquences'}
                 </div>
               ) : (
                 <>
@@ -347,14 +345,14 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
                     style={{ fontSize: '12px', padding: '8px 14px' }}
                     onClick={() => setRecoApplied(true)}
                   >
-                    ✅ Appliquer la suggestion
+                    {en ? 'Apply suggestion' : '✅ Appliquer la suggestion'}
                   </button>
                   <button
                     className="btn btn-ghost"
                     style={{ fontSize: '12px', padding: '8px 14px' }}
                     onClick={() => setRecoDismissed(true)}
                   >
-                    ❌ Garder tel quel
+                    {en ? 'Keep as is' : '❌ Garder tel quel'}
                   </button>
                 </>
               )}
@@ -366,7 +364,7 @@ export default function PrepCampaignDetail({ campaign: c, onBack, setCampaigns }
       {/* Info panel */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">ℹ️ Informations campagne</div>
+          <div className="card-title">{en ? 'Campaign info' : 'ℹ️ Informations campagne'}</div>
         </div>
         <div className="card-body">
           <div

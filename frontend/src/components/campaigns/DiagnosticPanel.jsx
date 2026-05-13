@@ -5,8 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import { getDiagnostics } from '../../services/api-client';
+import { useI18n } from '../../i18n';
 
 export default function DiagnosticPanel({ campaignId, sequence }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [diagnostics, setDiagnostics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -70,9 +72,9 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (loading) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par étape — Baakalai</div>
+        <div className="diag-panel-header">{en ? 'Step-by-step diagnostic — Baakalai' : 'Diagnostic par étape — Baakalai'}</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-          Chargement des diagnostics...
+          {en ? 'Loading diagnostics...' : 'Chargement des diagnostics...'}
         </div>
       </div>
     );
@@ -81,9 +83,9 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (error) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par étape — Baakalai</div>
+        <div className="diag-panel-header">{en ? 'Step-by-step diagnostic — Baakalai' : 'Diagnostic par étape — Baakalai'}</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--danger)', fontSize: '13px' }}>
-          Erreur : {error}
+          {en ? 'Error: ' : 'Erreur : '}{error}
         </div>
       </div>
     );
@@ -92,9 +94,9 @@ export default function DiagnosticPanel({ campaignId, sequence }) {
   if (diagnostics.length === 0) {
     return (
       <div className="diag-panel">
-        <div className="diag-panel-header">Diagnostic par étape — Baakalai</div>
+        <div className="diag-panel-header">{en ? 'Step-by-step diagnostic — Baakalai' : 'Diagnostic par étape — Baakalai'}</div>
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-          Aucun diagnostic disponible pour cette campagne.
+          {en ? 'No diagnostic available for this campaign.' : 'Aucun diagnostic disponible pour cette campagne.'}
         </div>
       </div>
     );

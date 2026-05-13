@@ -5,6 +5,7 @@
    =============================================================================== */
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useI18n } from '../../i18n';
 
 const TOOLTIP_STYLE = {
   backgroundColor: 'var(--bg-card)',
@@ -15,6 +16,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function EngagementChart({ data }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   if (!data || data.length === 0) return null;
 
   return (
@@ -47,7 +49,7 @@ export default function EngagementChart({ data }) {
         <Line
           type="monotone"
           dataKey="open"
-          name="Ouverture"
+          name={en ? 'Open rate' : 'Ouverture'}
           stroke="var(--blue)"
           strokeWidth={2.5}
           dot={{ r: 3.5, fill: 'var(--blue)', strokeWidth: 2, stroke: 'var(--bg-card)' }}
@@ -56,7 +58,7 @@ export default function EngagementChart({ data }) {
         <Line
           type="monotone"
           dataKey="reply"
-          name="Reponse"
+          name={en ? 'Reply' : 'Reponse'}
           stroke="var(--success)"
           strokeWidth={2.5}
           dot={{ r: 3.5, fill: 'var(--success)', strokeWidth: 2, stroke: 'var(--bg-card)' }}

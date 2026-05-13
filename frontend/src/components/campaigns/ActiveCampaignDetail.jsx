@@ -9,8 +9,10 @@ import DiagnosticPanel from './DiagnosticPanel';
 import VersionDiff from './VersionDiff';
 import { DiagBlock, InfoRow } from './shared';
 import api from '../../services/api-client';
+import { useI18n } from '../../i18n';
 
 export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [paused, setPaused] = useState(false);
   const [showABPanel, setShowABPanel] = useState(false);
   const [abLaunched, setAbLaunched] = useState(null);
@@ -37,19 +39,19 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
 
     if (isLinkedin) {
       return [
-        { value: c.kpis?.contacts, label: 'Prospects contactés', pct: volumePct, color: 'var(--accent)' },
-        { value: (c.kpis?.acceptRate ?? 0) + '%', label: "Taux d'acceptation", pct: c.kpis?.acceptRate ?? 0, color: 'var(--success)' },
-        { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: c.kpis?.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)' },
-        { value: c.kpis?.interested ?? 0, label: 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
-        { value: c.kpis?.meetings ?? 0, label: 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
+        { value: c.kpis?.contacts, label: en ? 'Prospects contacted' : 'Prospects contactés', pct: volumePct, color: 'var(--accent)' },
+        { value: (c.kpis?.acceptRate ?? 0) + '%', label: en ? 'Acceptance rate' : "Taux d'acceptation", pct: c.kpis?.acceptRate ?? 0, color: 'var(--success)' },
+        { value: (c.kpis?.replyRate ?? 0) + '%', label: en ? 'Reply rate' : 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: c.kpis?.replyRate >= 8 ? 'var(--blue)' : 'var(--warning)' },
+        { value: c.kpis?.interested ?? 0, label: en ? 'Interested' : 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
+        { value: c.kpis?.meetings ?? 0, label: en ? 'Meetings booked' : 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
       ];
     }
     return [
-      { value: c.kpis?.contacts, label: 'Prospects contactes', pct: volumePct, color: 'var(--accent)' },
-      { value: (c.kpis?.openRate ?? 0) + '%', label: "Taux d'ouverture", pct: c.kpis?.openRate ?? 0, color: 'var(--success)' },
-      { value: (c.kpis?.replyRate ?? 0) + '%', label: 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: 'var(--blue)' },
-      { value: c.kpis?.interested ?? 0, label: 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
-      { value: c.kpis?.meetings ?? 0, label: 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
+      { value: c.kpis?.contacts, label: en ? 'Prospects contacted' : 'Prospects contactes', pct: volumePct, color: 'var(--accent)' },
+      { value: (c.kpis?.openRate ?? 0) + '%', label: en ? 'Open rate' : "Taux d'ouverture", pct: c.kpis?.openRate ?? 0, color: 'var(--success)' },
+      { value: (c.kpis?.replyRate ?? 0) + '%', label: en ? 'Reply rate' : 'Taux de réponse', pct: (c.kpis?.replyRate ?? 0) * 10, color: 'var(--blue)' },
+      { value: c.kpis?.interested ?? 0, label: en ? 'Interested' : 'Intéressés', pct: (c.kpis?.interested ?? 0) * 10, color: 'var(--warning)' },
+      { value: c.kpis?.meetings ?? 0, label: en ? 'Meetings booked' : 'RDV obtenus', pct: c.kpis?.meetings > 0 ? (c.kpis.meetings / 6) * 100 : 0, color: 'var(--text-secondary)' },
     ];
   }, [c, isLinkedin]);
 
@@ -92,7 +94,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
   };
 
   const handleArchive = async () => {
-    if (!window.confirm(`Archiver la campagne "${c.name}" ? Elle sortira de la liste principale mais reste consultable via le filtre "Archivées".`)) return;
+    if (!window.confirm(en ? `Archive campaign "${c.name}"? It will be removed from the main list but remain accessible via the "Archived" filter.` : `Archiver la campagne "${c.name}" ? Elle sortira de la liste principale mais reste consultable via le filtre "Archivées".`)) return;
     setDeleting(true);
     try {
       const backendId = c._backendId || c.id;
@@ -122,7 +124,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
     <div className="campaign-detail">
       {/* Back button */}
       <button className="campaign-detail-back" onClick={onBack}>
-        ← Retour aux campagnes
+        {en ? '← Back to campaigns' : '← Retour aux campagnes'}
       </button>
 
       {/* Header */}
@@ -155,21 +157,21 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
             }}
             onClick={handlePause}
           >
-            {paused ? '▶️ Reprendre' : '⏸ Pause'}
+            {paused ? (en ? '▶️ Resume' : '▶️ Reprendre') : '⏸ Pause'}
           </button>
           <button
             className="btn btn-ghost"
             style={{ fontSize: '12px', padding: '8px 14px' }}
             onClick={handleExport}
           >
-            📥 Exporter
+            {en ? '📥 Export' : '📥 Exporter'}
           </button>
           <button
             className="btn btn-primary"
             style={{ fontSize: '12px', padding: '8px 14px' }}
             onClick={handleLaunchAB}
           >
-            🧬 Lancer un test A/B
+            {en ? '🧬 Launch A/B test' : '🧬 Lancer un test A/B'}
           </button>
           <button
             className="btn btn-ghost"
@@ -177,7 +179,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
             onClick={handleArchive}
             disabled={deleting}
           >
-            {deleting ? '...' : '📦 Archiver'}
+            {deleting ? '...' : (en ? '📦 Archive' : '📦 Archiver')}
           </button>
         </div>
       </div>
@@ -241,7 +243,7 @@ export default function ActiveCampaignDetail({ campaign: c, onBack, setCampaigns
         {/* Info panel */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">ℹ️ Informations campagne</div>
+            <div className="card-title">{en ? 'Campaign info' : 'ℹ️ Informations campagne'}</div>
           </div>
           <div className="card-body">
             <div

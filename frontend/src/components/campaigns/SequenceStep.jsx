@@ -4,21 +4,24 @@
 
 import { StepStat } from './shared';
 import { sanitizeHtml } from '../../services/sanitize';
+import { useI18n } from '../../i18n';
 
 const TYPE_META = {
   email: { label: 'Email', color: 'var(--blue)', icon: '📧' },
-  linkedin_visit: { label: 'Visite profil', color: 'var(--purple)', icon: '👁️' },
-  linkedin_invite: { label: 'Note connexion', color: 'var(--purple)', icon: '🤝' },
-  linkedin_message: { label: 'Message LinkedIn', color: 'var(--purple)', icon: '💬' },
+  linkedin_visit: { label: 'Visite profil', labelEn: 'Profile visit', color: 'var(--purple)', icon: '👁️' },
+  linkedin_invite: { label: 'Note connexion', labelEn: 'Connection note', color: 'var(--purple)', icon: '🤝' },
+  linkedin_message: { label: 'Message LinkedIn', labelEn: 'LinkedIn message', color: 'var(--purple)', icon: '💬' },
   // Legacy fallback
   linkedin: { label: 'LinkedIn', color: 'var(--purple)', icon: '💬' },
 };
 
 export default function SequenceStep({ step: s, faded, depth = 0 }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const hasStats = s.stats !== null && s.stats !== undefined;
 
   const meta = TYPE_META[s.type] || TYPE_META.email;
-  const typeLabel = `${meta.icon} ${meta.label}${s.subType ? ' — ' + s.subType : ''}`;
+  const metaLabel = en && meta.labelEn ? meta.labelEn : meta.label;
+  const typeLabel = `${meta.icon} ${metaLabel}${s.subType ? ' — ' + s.subType : ''}`;
   const isLinkedinInvite = s.type === 'linkedin_invite';
   const isLinkedinVisit = s.type === 'linkedin_visit';
   const charCount = (s.body || '').length;
@@ -80,7 +83,7 @@ export default function SequenceStep({ step: s, faded, depth = 0 }) {
       <>
         <StepStat
           value={s.stats.open + '%'}
-          label="Ouverture"
+          label={en ? 'Open' : 'Ouverture'}
           color={s.stats.open >= 50 ? 'var(--success)' : 'var(--warning)'}
           pct={s.stats.open}
         />

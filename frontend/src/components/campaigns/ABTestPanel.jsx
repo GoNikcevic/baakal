@@ -3,8 +3,10 @@
    ═══════════════════════════════════════════════════ */
 
 import { useState } from 'react';
+import { useI18n } from '../../i18n';
 
 export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [selectedStep, setSelectedStep] = useState(
     sequence.length > 0 ? sequence[0].id : ''
   );
@@ -38,11 +40,10 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
                 color: 'var(--success)',
               }}
             >
-              Test A/B lancé sur {launched}
+              {en ? `A/B test launched on ${launched}` : `Test A/B lancé sur ${launched}`}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Régénération en cours par Baakalai &middot; Résultats estimés dans
-              5-7 jours
+              {en ? 'Regeneration in progress by Baakalai \u00B7 Estimated results in 5-7 days' : 'Régénération en cours par Baakalai \u00B7 Résultats estimés dans 5-7 jours'}
             </div>
           </div>
         </div>
@@ -70,14 +71,14 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
         }}
       >
         <div style={{ fontSize: '15px', fontWeight: 600 }}>
-          🧬 Configurer un test A/B
+          {en ? 'Configure an A/B test' : '🧬 Configurer un test A/B'}
         </div>
         <button
           className="btn btn-ghost"
           style={{ fontSize: '11px', padding: '6px 12px' }}
           onClick={onClose}
         >
-          ✕ Fermer
+          {en ? 'Close' : '✕ Fermer'}
         </button>
       </div>
 
@@ -98,7 +99,7 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
               textTransform: 'uppercase',
             }}
           >
-            Touchpoint a tester
+            {en ? 'Touchpoint to test' : 'Touchpoint a tester'}
           </div>
           <select
             className="form-select"
@@ -121,14 +122,14 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
               textTransform: 'uppercase',
             }}
           >
-            Répartition
+            {en ? 'Split' : 'Répartition'}
           </div>
           <select
             className="form-select"
             value={split}
             onChange={(e) => setSplit(e.target.value)}
           >
-            <option>50/50 (recommandé)</option>
+            <option>{en ? '50/50 (recommended)' : '50/50 (recommandé)'}</option>
             <option>70/30</option>
             <option>80/20</option>
           </select>
@@ -142,8 +143,7 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
           marginBottom: '16px',
         }}
       >
-        Baakalai va générer une variante B automatiquement basée sur les données
-        cross-campagne.
+        {en ? 'Baakalai will automatically generate a variant B based on cross-campaign data.' : 'Baakalai va générer une variante B automatiquement basée sur les données cross-campagne.'}
       </div>
 
       <div style={{ display: 'flex', gap: '8px' }}>
@@ -152,14 +152,14 @@ export default function ABTestPanel({ sequence, onConfirm, onClose, launched }) 
           style={{ fontSize: '12px', padding: '8px 14px' }}
           onClick={() => onConfirm(selectedStep)}
         >
-          🧬 Lancer le test
+          {en ? 'Launch test' : '🧬 Lancer le test'}
         </button>
         <button
           className="btn btn-ghost"
           style={{ fontSize: '12px', padding: '8px 14px' }}
           onClick={onClose}
         >
-          Annuler
+          {en ? 'Cancel' : 'Annuler'}
         </button>
       </div>
     </div>

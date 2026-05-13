@@ -6,6 +6,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { sanitizeHtml } from '../services/sanitize';
+import { useI18n } from '../i18n';
 
 /* ─── Scenario data ─── */
 
@@ -198,6 +199,7 @@ const VARGEN_SCENARIOS = {
 /* ─── Variable Card sub-component ─── */
 
 function VarCard({ variable, onAccept, onDismiss, onEdit, onRefreshPreview }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [status, setStatus] = useState('pending'); // pending | accepted | dismissed | editing
   const [refreshing, setRefreshing] = useState(false);
 
@@ -256,7 +258,7 @@ function VarCard({ variable, onAccept, onDismiss, onEdit, onRefreshPreview }) {
                 \u2705 Accepter
               </button>
               <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={handleEdit}>
-                \u270F\uFE0F Modifier
+                {en ? 'Edit' : '\u270F\uFE0F Modifier'}
               </button>
               <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={handleDismiss}>
                 \u2715
@@ -337,7 +339,7 @@ function VarCard({ variable, onAccept, onDismiss, onEdit, onRefreshPreview }) {
           <div className="vargen-preview-body">
             {refreshing ? (
               <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--text-muted)' }}>
-                {'🔄'} Régénération des exemples...
+                {'🔄'} {en ? 'Regenerating examples...' : 'Régénération des exemples...'}
               </div>
             ) : (
               variable.examples.map((ex, i) => (
@@ -381,6 +383,7 @@ export default function VarGenerator({
   scenarios,
   defaultScenario = 'brasserie',
 }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const scenarioData = scenarios || VARGEN_SCENARIOS;
   const [activeScenario, setActiveScenario] = useState(defaultScenario);
   const [regenerating, setRegenerating] = useState(false);
@@ -476,7 +479,7 @@ export default function VarGenerator({
             onClick={regenerateSuggestions}
             disabled={regenerating}
           >
-            {regenerating ? '🧠 Analyse en cours...' : '🔄 Régénérer'}
+            {regenerating ? (en ? 'Analyzing...' : '🧠 Analyse en cours...') : (en ? 'Regenerate' : '🔄 Régénérer')}
           </button>
         )}
       </div>

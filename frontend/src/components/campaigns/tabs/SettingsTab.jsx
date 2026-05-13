@@ -1,13 +1,15 @@
 import EditParamsPanel from '../EditParamsPanel';
 import { InfoRow } from '../shared';
+import { useI18n } from '../../../i18n';
 
 export default function SettingsTab({ campaign: c, setCampaigns }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   return (
     <div>
       {/* Info card */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <div className="card-header">
-          <div className="card-title">ℹ️ Informations campagne</div>
+          <div className="card-title">{en ? 'Campaign info' : 'ℹ️ Informations campagne'}</div>
         </div>
         <div className="card-body">
           <div

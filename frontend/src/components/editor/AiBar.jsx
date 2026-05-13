@@ -3,8 +3,10 @@
    ═══════════════════════════════════════════════════ */
 
 import { useState } from 'react';
+import { useI18n } from '../../i18n';
 
 export default function AiBar({ aiBar, onApplyAll, onDismissAll }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [dismissed, setDismissed] = useState(false);
   const [applied, setApplied] = useState(false);
 
@@ -15,11 +17,11 @@ export default function AiBar({ aiBar, onApplyAll, onDismissAll }) {
       <div className="ai-bar-icon">~</div>
       <div className="ai-bar-content">
         <div className="ai-bar-title">
-          {applied ? 'Toutes les suggestions appliquees' : aiBar.title}
+          {applied ? (en ? 'All suggestions applied' : 'Toutes les suggestions appliquees') : aiBar.title}
         </div>
         <div className="ai-bar-text">
           {applied
-            ? 'Verifiez les modifications et sauvegardez quand vous etes satisfait.'
+            ? (en ? 'Check the changes and save when you are satisfied.' : 'Verifiez les modifications et sauvegardez quand vous etes satisfait.')
             : aiBar.text}
         </div>
       </div>
@@ -30,14 +32,14 @@ export default function AiBar({ aiBar, onApplyAll, onDismissAll }) {
             style={{ fontSize: '11px', padding: '6px 12px', whiteSpace: 'nowrap' }}
             onClick={() => { setApplied(true); onApplyAll(); }}
           >
-            Appliquer tout
+            {en ? 'Apply all' : 'Appliquer tout'}
           </button>
           <button
             className="btn btn-ghost"
             style={{ fontSize: '11px', padding: '6px 12px', whiteSpace: 'nowrap' }}
             onClick={() => { setDismissed(true); onDismissAll(); }}
           >
-            Ignorer
+            {en ? 'Dismiss' : 'Ignorer'}
           </button>
         </>
       )}

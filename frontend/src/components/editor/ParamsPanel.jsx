@@ -2,7 +2,10 @@
    Params Panel Component
    ═══════════════════════════════════════════════════ */
 
+import { useI18n } from '../../i18n';
+
 export default function ParamsPanel({ params, onClose }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   return (
     <div id="params-panel" style={{
       background: 'var(--bg-elevated)',
@@ -12,8 +15,8 @@ export default function ParamsPanel({ params, onClose }) {
       marginBottom: '16px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>Paramètres de la campagne</div>
-        <button className="tp-action" style={{ fontSize: '11px' }} onClick={onClose}>Fermer</button>
+        <div style={{ fontSize: '14px', fontWeight: 600 }}>{en ? 'Campaign parameters' : 'Paramètres de la campagne'}</div>
+        <button className="tp-action" style={{ fontSize: '11px' }} onClick={onClose}>{en ? 'Close' : 'Fermer'}</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
         {params.map((p) => (

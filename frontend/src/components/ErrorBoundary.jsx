@@ -27,15 +27,16 @@ export default class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
+      const en = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) === 'en';
       return (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'system-ui, sans-serif',
           padding: 32, textAlign: 'center',
         }}>
-          <h2 style={{ marginBottom: 12 }}>Une erreur est survenue</h2>
+          <h2 style={{ marginBottom: 12 }}>{en ? 'An error occurred' : 'Une erreur est survenue'}</h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: 500, marginBottom: 20 }}>
-            {this.state.error?.message || 'Erreur inconnue'}
+            {this.state.error?.message || (en ? 'Unknown error' : 'Erreur inconnue')}
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -44,7 +45,7 @@ export default class ErrorBoundary extends Component {
               padding: '10px 24px', cursor: 'pointer', fontWeight: 600,
             }}
           >
-            Recharger la page
+            {en ? 'Reload page' : 'Recharger la page'}
           </button>
         </div>
       );

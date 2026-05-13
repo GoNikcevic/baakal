@@ -3,8 +3,10 @@
    ═══════════════════════════════════════════════════ */
 
 import { useState } from 'react';
+import { useI18n } from '../../i18n';
 
 export default function EditParamsPanel({ campaign: c, setCampaigns, onClose }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [sector, setSector] = useState(c.sector || '');
   const [angle, setAngle] = useState(c.angle || '');
   const [tone, setTone] = useState(c.tone || '');
@@ -57,14 +59,14 @@ export default function EditParamsPanel({ campaign: c, setCampaigns, onClose }) 
         }}
       >
         <div style={{ fontSize: '15px', fontWeight: 600 }}>
-          ✏️ Modifier les parametres
+          {en ? 'Edit parameters' : '✏️ Modifier les parametres'}
         </div>
         <button
           className="btn btn-ghost"
           style={{ fontSize: '11px', padding: '6px 12px' }}
           onClick={onClose}
         >
-          ✕ Fermer
+          {en ? 'Close' : '✕ Fermer'}
         </button>
       </div>
 
@@ -139,7 +141,7 @@ export default function EditParamsPanel({ campaign: c, setCampaigns, onClose }) 
         style={{ fontSize: '12px', padding: '8px 14px' }}
         onClick={handleSave}
       >
-        💾 Sauvegarder
+        {en ? 'Save' : '💾 Sauvegarder'}
       </button>
     </div>
   );

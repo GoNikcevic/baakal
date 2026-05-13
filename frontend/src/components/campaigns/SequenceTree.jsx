@@ -6,6 +6,7 @@
 
 import { useMemo } from 'react';
 import SequenceStep from './SequenceStep';
+import { useI18n } from '../../i18n';
 
 /**
  * Build tree from flat list of steps.
@@ -87,6 +88,7 @@ function BranchNode({ node, depth = 0 }) {
 }
 
 export default function SequenceTree({ sequence }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const tree = useMemo(() => buildTree(sequence || []), [sequence]);
 
   if (tree.length === 0) {
@@ -94,7 +96,7 @@ export default function SequenceTree({ sequence }) {
       <div
         style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}
       >
-        Aucun touchpoint
+        {en ? 'No touchpoint' : 'Aucun touchpoint'}
       </div>
     );
   }

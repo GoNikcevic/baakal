@@ -7,18 +7,19 @@
 
 import { useMemo } from 'react';
 import { useApp } from '../context/useApp';
+import { useI18n } from '../i18n';
 
 /* ─── Compute setup progress (Endowed Progress Effect) ─── */
 
-function computeSetupProgress(campaigns, hasProfile) {
+function computeSetupProgress(campaigns, hasProfile, en) {
   const campaignList = Object.values(campaigns);
   const steps = [
-    { id: 'account', label: 'Compte créé', done: true }, // Always done — endowed progress
-    { id: 'profile', label: 'Profil entreprise', done: hasProfile },
-    { id: 'campaign', label: 'Première campagne', done: campaignList.length > 0 },
-    { id: 'sequence', label: 'Séquences générées', done: campaignList.some(c => c.sequence?.length > 0) },
-    { id: 'active', label: 'Campagne active', done: campaignList.some(c => c.status === 'active') },
-    { id: 'optimized', label: 'Premier affinage IA', done: campaignList.some(c => c.iteration > 0) },
+    { id: 'account', label: en ? 'Account created' : 'Compte créé', done: true },
+    { id: 'profile', label: en ? 'Company profile' : 'Profil entreprise', done: hasProfile },
+    { id: 'campaign', label: en ? 'First campaign' : 'Première campagne', done: campaignList.length > 0 },
+    { id: 'sequence', label: en ? 'Sequences generated' : 'Séquences générées', done: campaignList.some(c => c.sequence?.length > 0) },
+    { id: 'active', label: en ? 'Active campaign' : 'Campagne active', done: campaignList.some(c => c.status === 'active') },
+    { id: 'optimized', label: en ? 'First AI refinement' : 'Premier affinage IA', done: campaignList.some(c => c.iteration > 0) },
   ];
 
   const completed = steps.filter(s => s.done).length;
@@ -62,8 +63,9 @@ function computeRetentionMetrics(campaigns) {
 
 export function ProgressCard() {
   const { campaigns, user } = useApp();
+  const { lang } = useI18n(); const en = lang === 'en';
   const hasProfile = !!(user?.company) || !!localStorage.getItem('bakal_profile');
-  const { steps, percent } = useMemo(() => computeSetupProgress(campaigns, hasProfile), [campaigns, hasProfile]);
+  const { steps, percent } = useMemo(() => computeSetupProgress(campaigns, hasProfile, en), [campaigns, hasProfile, en]);
 
   return (
     <div className="card" style={{ marginBottom: 16, padding: '16px 20px' }}>
@@ -129,15 +131,20 @@ export function CumulativeValueBanner() {
 
 export function BenchmarkBadge() {
   const { campaigns } = useApp();
+  const { lang } = useI18n(); const en = lang === 'en';
   const metrics = useMemo(() => computeRetentionMetrics(campaigns), [campaigns]);
 
   if (metrics.bestOpenRate === 0) return null;
 
   let text = '';
   if (metrics.bestOpenRate >= 60) {
-    text = `Votre meilleur taux d'ouverture (${metrics.bestOpenRate}%) est au-dessus de 78% des utilisateurs`;
+    text = en
+      ? `Your best open rate (${metrics.bestOpenRate}%) is above 78% of users`
+      : `Votre meilleur taux d'ouverture (${metrics.bestOpenRate}%) est au-dessus de 78% des utilisateurs`;
   } else if (metrics.bestOpenRate >= 50) {
-    text = `Votre taux d'ouverture est au-dessus de la moyenne (50%)`;
+    text = en
+      ? `Your open rate is above average (50%)`
+      : `Votre taux d'ouverture est au-dessus de la moyenne (50%)`;
   }
 
   if (!text) return null;

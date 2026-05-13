@@ -5,8 +5,10 @@
 import { useState, useMemo } from 'react';
 import api from '../../../services/api-client';
 import { sanitizeHtml } from '../../../services/sanitize';
+import { useI18n } from '../../../i18n';
 
 export default function ABTestTab({ campaign: c, setCampaigns }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   const [promoting, setPromoting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -26,12 +28,12 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ fontSize: 42, marginBottom: 12 }}>🧬</div>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
-          Aucun test A/B actif sur cette campagne
+          {en ? 'No active A/B test on this campaign' : 'Aucun test A/B actif sur cette campagne'}
         </div>
         <div style={{ fontSize: 13, maxWidth: 480, margin: '0 auto' }}>
-          Les tests A/B sont configurés automatiquement à la création de la campagne
-          depuis le chat. Crée une nouvelle campagne en demandant à Baakalai de proposer
-          une configuration A/B.
+          {en
+            ? 'A/B tests are configured automatically when creating a campaign from the chat. Create a new campaign by asking Baakalai to propose an A/B configuration.'
+            : 'Les tests A/B sont configurés automatiquement à la création de la campagne depuis le chat. Crée une nouvelle campagne en demandant à Baakalai de proposer une configuration A/B.'}
         </div>
       </div>
     );
@@ -92,7 +94,7 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
         }));
       }
     } catch (err) {
-      setError(err.message || 'Erreur lors de la promotion');
+      setError(err.message || (en ? 'Error during promotion' : 'Erreur lors de la promotion'));
     }
     setPromoting(false);
   };
@@ -110,10 +112,10 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
         }}
       >
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
-          🧬 Test A/B en cours
+          {en ? 'A/B test in progress' : '🧬 Test A/B en cours'}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
-          <strong>Hypothèse testée :</strong> {abConfig.hypothesis || 'Non renseignée'}
+          <strong>{en ? 'Hypothesis tested:' : 'Hypothèse testée :'}</strong> {abConfig.hypothesis || (en ? 'Not specified' : 'Non renseignée')}
         </div>
         {abConfig.categories_tested && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -189,7 +191,7 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
             marginBottom: 20,
           }}
         >
-          ⏳ Pas encore de données de performance. Les stats arriveront après les premiers envois Lemlist.
+          {en ? 'No performance data yet. Stats will arrive after the first Lemlist sends.' : '⏳ Pas encore de données de performance. Les stats arriveront après les premiers envois Lemlist.'}
         </div>
       )}
 
@@ -268,6 +270,7 @@ export default function ABTestTab({ campaign: c, setCampaigns }) {
 }
 
 function StatsCard({ label, open, reply, isWinner, strategy }) {
+  const { lang } = useI18n(); const en = lang === 'en';
   return (
     <div
       style={{
@@ -292,7 +295,7 @@ function StatsCard({ label, open, reply, isWinner, strategy }) {
             fontWeight: 700,
           }}
         >
-          🏆 EN TÊTE
+          {en ? 'LEADING' : '🏆 EN TÊTE'}
         </span>
       )}
       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
@@ -307,11 +310,11 @@ function StatsCard({ label, open, reply, isWinner, strategy }) {
       )}
       <div style={{ display: 'flex', gap: 20, marginTop: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>OUVERTURE</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{en ? 'OPEN RATE' : 'OUVERTURE'}</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--blue)' }}>{open}%</div>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>RÉPONSE</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{en ? 'REPLY' : 'RÉPONSE'}</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--success)' }}>{reply}%</div>
         </div>
       </div>
