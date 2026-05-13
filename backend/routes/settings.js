@@ -123,6 +123,7 @@ router.post('/keys', async (req, res, next) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    console.error(`[settings/keys] ERROR saving keys:`, err.message, err.stack?.slice(0, 500));
     next(err);
   }
 });
