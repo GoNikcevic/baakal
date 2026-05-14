@@ -276,7 +276,12 @@ async function importSearchResults() {
   const cards = document.querySelectorAll('.reusable-search__result-container, [class*="entity-result"]');
   let imported = 0, skipped = 0;
 
+  // Rate limit: max 25 per batch, 500ms delay between each to mimic human behavior
+  const MAX_PER_BATCH = 25;
+  let count = 0;
+
   for (const card of cards) {
+    if (count >= MAX_PER_BATCH) { skipped += cards.length - count; break; }
     try {
       const linkEl = card.querySelector('a[href*="/in/"]');
       const nameEl = card.querySelector('.entity-result__title-text a span span, [class*="entity-result__title"] span');
@@ -285,9 +290,9 @@ async function importSearchResults() {
 
       const publicId = linkEl?.href?.match(/\/in\/([^/?]+)/)?.[1];
       const name = nameEl?.textContent?.trim();
-      if (!publicId || !name) { skipped++; continue; }
+      if (!publicId || !name) { skipped++; count++; continue; }
 
-      if (_crmContacts?.has(publicId.toLowerCase())) { skipped++; continue; }
+      if (_crmContacts?.has(publicId.toLowerCase())) { skipped++; count++; continue; }
 
       const data = await apiFetch('/ext/contact/enrich', {
         method: 'POST',
@@ -303,7 +308,10 @@ async function importSearchResults() {
         imported++;
         _crmContacts?.set(publicId.toLowerCase(), { id: data.contact.id, status: 'new', name });
       }
+      // Human-like delay between imports
+      await new Promise(r => setTimeout(r, 300 + Math.random() * 400));
     } catch { skipped++; }
+    count++;
   }
 
   btn.textContent = 'Import visible profiles';
