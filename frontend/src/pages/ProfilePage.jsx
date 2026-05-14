@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../context/useApp';
 import { request } from '../services/api-client';
-import { useT, useI18n } from '../i18n';
+import { useI18n } from '../i18n';
 
 /* ─── Default empty profile ─── */
 

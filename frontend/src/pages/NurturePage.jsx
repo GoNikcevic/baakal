@@ -72,6 +72,7 @@ export default function NurturePage() {
     { key: 'triggers', label: t('activation.triggers'), count: triggers.length },
     { key: 'pending', label: t('activation.pending'), count: emails.filter(e => e.status === 'pending').length },
     { key: 'sent', label: t('activation.sent'), count: sentEmails.length },
+    { key: 'ab', label: 'A/B Tests', count: null },
     isAdmin ? { key: 'team', label: lang === 'en' ? 'Team Campaigns' : 'Campagnes \u00E9quipe', count: null } : null,
   ].filter(Boolean);
 
@@ -234,6 +235,7 @@ export default function NurturePage() {
       {!loading && activeTab === 'sent' && (
         <EmailsSection emails={emails.filter(e => e.status === 'sent')} type="sent" onRefresh={loadData} />
       )}
+      {!loading && activeTab === 'ab' && <ABResultsSection lang={lang} />}
       {!loading && activeTab === 'team' && <TeamCampaignsSection lang={lang} />}
     </div>
   );
@@ -1061,6 +1063,119 @@ function TeamCampaignsSection({ lang }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ═══ A/B Results Section ═══ */
+
+function ABResultsSection({ lang }) {
+  const en = lang === 'en';
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    request('/nurture/ab-results')
+      .then(data => setTests(data.tests || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>{en ? 'Loading...' : 'Chargement...'}</div>;
+
+  if (tests.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>
+        {en ? 'No A/B tests yet. Enable A/B on your triggers to start testing.' : 'Aucun test A/B. Active le A/B sur tes triggers pour commencer.'}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {tests.map(test => {
+        const a = test.variants?.A;
+        const b = test.variants?.B;
+        if (!a && !b) return null;
+
+        const totalSent = (a?.sent || 0) + (b?.sent || 0);
+        const winner = a && b ? (a.replyRate > b.replyRate ? 'A' : b.replyRate > a.replyRate ? 'B' : null) : null;
+        const diff = a && b ? Math.abs(a.replyRate - b.replyRate) : 0;
+        const significant = totalSent >= 10 && diff >= 10;
+
+        return (
+          <div key={test.id} style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12,
+            padding: '20px 24px',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {test.startedAt ? new Date(test.startedAt).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                {' · '}{totalSent} {en ? 'emails sent' : 'emails envoyés'}
+              </div>
+              {winner && significant && (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
+                  background: '#DCFCE7', color: '#16A34A',
+                }}>
+                  {en ? `Variant ${winner} wins (+${diff}pts)` : `Variante ${winner} gagne (+${diff}pts)`}
+                </span>
+              )}
+              {!significant && totalSent >= 4 && (
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 10, background: '#FEF3C7', color: '#D97706' }}>
+                  {en ? 'Not enough data yet' : 'Pas assez de données'}
+                </span>
+              )}
+            </div>
+
+            {/* Variants comparison */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {['A', 'B'].map(variant => {
+                const v = test.variants?.[variant];
+                if (!v) return <div key={variant} />;
+                const isWinner = winner === variant && significant;
+                return (
+                  <div key={variant} style={{
+                    padding: 14, borderRadius: 10,
+                    border: `2px solid ${isWinner ? '#16A34A' : 'var(--border)'}`,
+                    background: isWinner ? 'rgba(22,163,74,0.03)' : 'var(--bg-elevated)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>
+                        {en ? 'Variant' : 'Variante'} {variant}
+                        {isWinner ? ' 🏆' : ''}
+                      </span>
+                      <span style={{
+                        fontSize: 20, fontWeight: 800,
+                        color: v.replyRate >= 20 ? '#16A34A' : v.replyRate >= 10 ? '#D97706' : 'var(--text-primary)',
+                      }}>
+                        {v.replyRate}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      {v.sent} {en ? 'sent' : 'envoyés'} · {v.replies} {en ? 'replies' : 'réponses'}
+                    </div>
+                    {/* Reply rate bar */}
+                    <div style={{ height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 3, transition: 'width 0.5s',
+                        width: `${Math.min(v.replyRate, 100)}%`,
+                        background: isWinner ? '#16A34A' : 'var(--accent)',
+                      }} />
+                    </div>
+                    {v.sampleSubject && (
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        "{v.sampleSubject}"
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

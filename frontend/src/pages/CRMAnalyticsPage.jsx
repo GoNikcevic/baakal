@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../context/useApp';
 import api from '../services/api-client';
-import { useT, useI18n } from '../i18n';
+import { useI18n } from '../i18n';
 import EngagementChart from '../components/charts/EngagementChart';
 import FunnelChart from '../components/charts/FunnelChart';
 
