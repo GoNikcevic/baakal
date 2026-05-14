@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { i18nKey: 'nav.signals',      to: '/signals',       icon: 'signals' },
   { i18nKey: 'nav.nurture',      to: '/nurture',       icon: 'nurture' },
   { i18nKey: 'nav.crmAnalytics', to: '/crm-analytics', icon: 'crm', adminOnly: true },
+  { i18nKey: 'nav.membership',   to: '/membership',    icon: 'crm', adminOnly: true },
   { i18nKey: 'nav.profile',      to: '/profil',        icon: 'profil' },
   { i18nKey: 'nav.settings',     to: '/settings',      icon: 'settings', adminOnly: true },
 ];

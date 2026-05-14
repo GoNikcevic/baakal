@@ -76,6 +76,22 @@ function start() {
   });
 
   // ═══════════════════════════════════════════════════
+  // Lifecycle Emails — Daily 10:00 AM
+  // Onboarding sequences + retention re-engagement
+  // ═══════════════════════════════════════════════════
+  cron.schedule('0 10 * * *', async () => {
+    try {
+      const { runLifecycleEmails } = require('../lib/lifecycle-emails');
+      const report = await runLifecycleEmails();
+      if (report.total > 0) {
+        console.log(`[lifecycle] Sent ${report.total} emails (onboarding: ${report.onboarding.sent}, retention: ${report.retention.sent})`);
+      }
+    } catch (err) {
+      logger.error('orchestrator', 'Lifecycle emails failed: ' + err.message);
+    }
+  });
+
+  // ═══════════════════════════════════════════════════
   // Agent 3: Memory Agent — Sunday 10:00 AM
   // Consolidation + pruning + templates (when needed)
   // ═══════════════════════════════════════════════════
@@ -105,9 +121,10 @@ function start() {
     }
   });
 
-  console.log('[orchestrator] 4 agents scheduled:');
+  console.log('[orchestrator] 4 agents + lifecycle scheduled:');
   console.log('  Prospection: daily 8AM + evening batch 8PM');
   console.log('  CRM:         daily 9AM');
+  console.log('  Lifecycle:   daily 10AM');
   console.log('  Memory:      Sunday 10AM');
   console.log('  Reporting:   Monday 9AM');
 }

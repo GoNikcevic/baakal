@@ -436,10 +436,18 @@ async function stepNurture(userId, token, report) {
           });
           break;
         case 'renewal_reminder':
-          // For now, same as stagnant but only for won deals
+          // Match won deals where renewal_date is within X days from now (or past due)
           matched = opps.filter(o => {
             if (o.status !== 'won') return false;
-            const age = (now - new Date(o.updated_at || o.created_at).getTime()) / DAY_MS;
+            if (o.renewal_date) {
+              // Use renewal_date from CRM field mapping
+              const daysUntilRenewal = (new Date(o.renewal_date).getTime() - now) / DAY_MS;
+              return daysUntilRenewal <= days && daysUntilRenewal >= -7; // X days before + 7 days grace
+            }
+            // Fallback: use won_date + trigger days as estimated renewal
+            const wonDate = o.won_date || o.updated_at || o.created_at;
+            if (!wonDate) return false;
+            const age = (now - new Date(wonDate).getTime()) / DAY_MS;
             return age >= days;
           });
           break;
