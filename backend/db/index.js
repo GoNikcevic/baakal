@@ -1348,8 +1348,8 @@ const opportunities = {
 
   async create(data) {
     const result = await query(`
-      INSERT INTO opportunities (user_id, campaign_id, name, title, company, company_size, status, status_color, timing, email, linkedin_url, hubspot_contact_id, hubspot_deal_id, crm_provider, crm_contact_id, crm_deal_id, owner_id, owner_email, crm_owner_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      INSERT INTO opportunities (user_id, campaign_id, name, title, company, company_size, status, status_color, timing, email, linkedin_url, hubspot_contact_id, hubspot_deal_id, crm_provider, crm_contact_id, crm_deal_id, owner_id, owner_email, crm_owner_id, data)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `, [
       data.userId || null,
@@ -1371,6 +1371,7 @@ const opportunities = {
       data.ownerId || data.owner_id || null,
       data.ownerEmail || data.owner_email || null,
       data.crmOwnerId || data.crm_owner_id || null,
+      data.data || null,
     ]);
     return result.rows[0];
   },
@@ -1402,6 +1403,7 @@ const opportunities = {
       lost_date: 'lost_date', lostDate: 'lost_date',
       renewal_date: 'renewal_date', renewalDate: 'renewal_date',
       last_activity_at: 'last_activity_at', lastActivityAt: 'last_activity_at',
+      data: 'data',
     };
     const jsonbCols = new Set(['personalization', 'churn_factors']);
     const seen = new Set();
@@ -1441,6 +1443,18 @@ const opportunities = {
     const result = await query(
       'SELECT * FROM opportunities WHERE user_id = $1 AND LOWER(email) = LOWER($2) LIMIT 1',
       [userId, email]
+    );
+    return result.rows[0] || null;
+  },
+
+  async findByLinkedinUrl(userId, linkedinUrl) {
+    if (!linkedinUrl) return null;
+    // Normalize: extract /in/slug from any LinkedIn URL
+    const match = linkedinUrl.match(/linkedin\.com\/in\/([^/?]+)/);
+    const slug = match ? match[1].toLowerCase() : linkedinUrl.toLowerCase();
+    const result = await query(
+      `SELECT * FROM opportunities WHERE user_id = $1 AND LOWER(linkedin_url) LIKE $2 LIMIT 1`,
+      [userId, `%/in/${slug}%`]
     );
     return result.rows[0] || null;
   },
