@@ -368,7 +368,15 @@
     "patternsPerMonth": "patterns",
     "noPatterns": "Aucun pattern découvert. Lance des campagnes pour que l'IA apprenne.",
     "loading": "Chargement...",
-    "patternDeleted": "Pattern supprimé"
+    "patternDeleted": "Pattern supprimé",
+    "story": "Histoire du pattern",
+    "discoveredDaysAgo": "Découvert il y a {days} jours",
+    "confirmedTimes": "Confirmé {count} fois",
+    "emailsInfluenced": "emails influencés",
+    "positiveReplies": "réponses positives",
+    "negativeReplies": "réponses négatives",
+    "successRate": "taux de succès",
+    "recentEmails": "Derniers emails influencés"
   },
   "legal": {
     "terms": "CGU",

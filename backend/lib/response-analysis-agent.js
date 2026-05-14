@@ -96,11 +96,18 @@ async function analyzeResponses(userId) {
         [JSON.stringify(analysis), email.id]
       );
 
-      // 6. Score trigger effectiveness
-      if (email.trigger_id && analysis.sentiment === 'positive') {
-        await scoreTrigger(email.trigger_id, 'positive');
-      } else if (email.trigger_id && analysis.sentiment === 'negative') {
-        await scoreTrigger(email.trigger_id, 'negative');
+      // 6-7. Score trigger + patterns (skip if already scored by real-time learning-signal)
+      const alreadyScored = !!email.sentiment;
+      if (!alreadyScored) {
+        if (email.trigger_id && analysis.sentiment === 'positive') {
+          await scoreTrigger(email.trigger_id, 'positive');
+        } else if (email.trigger_id && analysis.sentiment === 'negative') {
+          await scoreTrigger(email.trigger_id, 'negative');
+        }
+
+        if (email.pattern_ids && email.pattern_ids.length > 0) {
+          await scorePatterns(email.pattern_ids, analysis.sentiment);
+        }
       }
 
     } catch (err) {
@@ -108,7 +115,7 @@ async function analyzeResponses(userId) {
     }
   }
 
-  // 7. If enough data, create memory pattern
+  // 8. If enough data, create memory pattern
   if (report.analyzed >= 5) {
     await createMemoryPattern(userId, report);
   }
@@ -163,6 +170,57 @@ Analyse et retourne un JSON :
     suggestedStatus: null,
     summary: 'Analyse automatique non disponible',
   };
+}
+
+/**
+ * Score patterns that were used to generate an email, based on response sentiment.
+ * Positive → increment confirmations. Negative after enough data → lower confidence.
+ */
+async function scorePatterns(patternIds, sentiment) {
+  if (!patternIds || patternIds.length === 0) return;
+
+  for (const patternId of patternIds) {
+    try {
+      const row = await db.query('SELECT id, confirmations, confidence, data FROM memory_patterns WHERE id = $1', [patternId]);
+      if (!row.rows[0]) continue;
+      const p = row.rows[0];
+      const stats = (typeof p.data === 'string' ? JSON.parse(p.data) : p.data) || {};
+      const effectiveness = stats._effectiveness || { positive: 0, negative: 0, total: 0 };
+
+      if (sentiment === 'positive') {
+        effectiveness.positive++;
+        effectiveness.total++;
+        // Boost confirmations + update last_confirmed_at
+        await db.query(
+          `UPDATE memory_patterns SET confirmations = COALESCE(confirmations, 0) + 1, last_confirmed_at = now(), data = jsonb_set(COALESCE(data, '{}')::jsonb, '{_effectiveness}', $1::jsonb) WHERE id = $2`,
+          [JSON.stringify(effectiveness), patternId]
+        );
+      } else if (sentiment === 'negative') {
+        effectiveness.negative++;
+        effectiveness.total++;
+        await db.query(
+          `UPDATE memory_patterns SET data = jsonb_set(COALESCE(data, '{}')::jsonb, '{_effectiveness}', $1::jsonb) WHERE id = $2`,
+          [JSON.stringify(effectiveness), patternId]
+        );
+        // After enough negative signal, downgrade confidence
+        if (effectiveness.total >= 10 && effectiveness.negative / effectiveness.total >= 0.7) {
+          const newConfidence = p.confidence === 'Haute' ? 'Moyenne' : 'Faible';
+          if (newConfidence !== p.confidence) {
+            await db.query('UPDATE memory_patterns SET confidence = $1 WHERE id = $2', [newConfidence, patternId]);
+            logger.info('response-agent', `Pattern ${patternId} downgraded to ${newConfidence} (${effectiveness.negative}/${effectiveness.total} negative)`);
+          }
+        }
+      } else {
+        effectiveness.total++;
+        await db.query(
+          `UPDATE memory_patterns SET data = jsonb_set(COALESCE(data, '{}')::jsonb, '{_effectiveness}', $1::jsonb) WHERE id = $2`,
+          [JSON.stringify(effectiveness), patternId]
+        );
+      }
+    } catch (err) {
+      logger.warn('response-agent', `Pattern scoring failed for ${patternId}: ${err.message}`);
+    }
+  }
 }
 
 /**

@@ -66,21 +66,25 @@ async function run() {
 
     console.log(`[consolidate] Done. Created: ${savedIds.length}, Updated: ${updatedCount}, HubSpot: ${hubspotResult.synced} deals`);
 
-    // Optional: store patterns as embeddings for semantic search (pgvector sandbox)
+    // Incremental embedding sync — only embed patterns not yet in memory_embeddings
     if (process.env.PGVECTOR_ENABLED === 'true') {
       try {
-        const { storeEmbedding } = require('../../lib/vector-store');
-        const allPatterns = await db.memoryPatterns.list({ limit: 500 });
+        const { upsertPatternEmbedding } = require('../../lib/vector-store');
+        const unembedded = await db.query(
+          `SELECT mp.id, mp.pattern, mp.category, mp.confidence, mp.sectors
+           FROM memory_patterns mp
+           LEFT JOIN memory_embeddings me ON me.source_id = mp.id AND me.source_type = 'pattern'
+           WHERE mp.dismissed_at IS NULL AND me.id IS NULL
+           LIMIT 100`
+        );
         let embedded = 0;
-        for (const p of allPatterns) {
-          const stored = await storeEmbedding(null, 'pattern', p.pattern, {
-            category: p.category,
-            confidence: p.confidence,
-            sectors: p.sectors,
-          }, p.id);
+        for (const p of unembedded.rows) {
+          const stored = await upsertPatternEmbedding(p.id, p.pattern, {
+            category: p.category, confidence: p.confidence, sectors: p.sectors,
+          });
           if (stored) embedded++;
         }
-        console.log(`[consolidate] pgvector: embedded ${embedded}/${allPatterns.length} patterns`);
+        if (embedded > 0) console.log(`[consolidate] pgvector: embedded ${embedded} new patterns`);
       } catch (pgErr) {
         console.warn('[consolidate] pgvector embedding failed (non-fatal):', pgErr.message);
       }

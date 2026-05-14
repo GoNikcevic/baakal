@@ -10,6 +10,8 @@ const { Router } = require('express');
 const db = require('../db');
 const logger = require('../lib/logger');
 
+const { processSignal } = require('../lib/learning-signal');
+
 const router = Router();
 
 const PIPEDRIVE_WEBHOOK_SECRET = process.env.PIPEDRIVE_WEBHOOK_SECRET || null;
@@ -137,6 +139,16 @@ async function handleDealEvent(userId, action, current, previous) {
 
       // Trigger nurture if deal won/lost
       if (newStatus === 'won' || newStatus === 'lost') {
+        // Real-time learning: score patterns for this contact
+        try {
+          const oppEmail = await db.query('SELECT email FROM opportunities WHERE id = $1', [opp.id]);
+          if (oppEmail.rows[0]?.email) {
+            await processSignal(userId, oppEmail.rows[0].email, newStatus === 'won' ? 'deal_won' : 'deal_lost');
+          }
+        } catch (err) {
+          logger.warn('webhook-pipedrive', `Learning signal failed: ${err.message}`);
+        }
+
         try {
           const { runAgent } = require('../lib/crm-agent');
           // Run agent with event context (lightweight, skips full sync)
@@ -159,6 +171,22 @@ async function handleActivityEvent(userId, action, current) {
     `UPDATE opportunities SET updated_at = now() WHERE user_id = $1 AND crm_contact_id = $2`,
     [userId, String(current.person_id)]
   );
+
+  // Real-time learning: if activity is an email reply, score patterns immediately
+  if (action === 'added' && current.type === 'email') {
+    try {
+      // Find the contact's email
+      const opp = await db.query(
+        `SELECT email FROM opportunities WHERE user_id = $1 AND crm_contact_id = $2 LIMIT 1`,
+        [userId, String(current.person_id)]
+      );
+      if (opp.rows[0]?.email) {
+        await processSignal(userId, opp.rows[0].email, 'positive_reply');
+      }
+    } catch (err) {
+      logger.warn('webhook-pipedrive', `Learning signal failed: ${err.message}`);
+    }
+  }
 }
 
 // ── Helpers ──

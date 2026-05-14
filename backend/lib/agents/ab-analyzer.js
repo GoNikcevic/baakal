@@ -15,6 +15,23 @@ const logger = require('../logger');
 const MIN_EMAILS_PER_VARIANT = 2;
 const MIN_AGE_DAYS = 7;
 
+/**
+ * Two-proportion z-test. Returns p-value (one-tailed).
+ * Used to determine if variant A vs B difference is statistically significant.
+ */
+function zTestPValue(successA, nA, successB, nB) {
+  if (nA === 0 || nB === 0) return 1;
+  const pA = successA / nA;
+  const pB = successB / nB;
+  const pPool = (successA + successB) / (nA + nB);
+  const se = Math.sqrt(pPool * (1 - pPool) * (1 / nA + 1 / nB));
+  if (se === 0) return 1;
+  const z = Math.abs(pA - pB) / se;
+  // Approximation of one-tailed p-value from z-score
+  const p = Math.exp(-0.5 * z * z) / (z * Math.sqrt(2 * Math.PI));
+  return Math.min(p, 1);
+}
+
 async function analyzeAbTests(userId) {
   const report = { analyzed: 0, winners: [], errors: [] };
 
@@ -41,8 +58,12 @@ async function analyzeAbTests(userId) {
         const rateA = g.count_a > 0 ? g.replies_a / g.count_a : 0;
         const rateB = g.count_b > 0 ? g.replies_b / g.count_b : 0;
 
-        // Need meaningful difference (>10% gap) to declare winner
-        if (Math.abs(rateA - rateB) < 0.1 && g.total < 20) continue;
+        // Statistical significance test (p < 0.1 for small samples, p < 0.05 for larger)
+        const pValue = zTestPValue(g.replies_a, g.count_a, g.replies_b, g.count_b);
+        const threshold = g.total >= 20 ? 0.05 : 0.1;
+
+        // Need either statistical significance OR a large gap with enough data
+        if (pValue > threshold && (Math.abs(rateA - rateB) < 0.15 || g.total < 10)) continue;
 
         const winner = rateA >= rateB ? 'A' : 'B';
         const winnerRate = Math.round(Math.max(rateA, rateB) * 100);
@@ -66,10 +87,11 @@ async function analyzeAbTests(userId) {
               winner,
               rateA: Math.round(rateA * 100),
               rateB: Math.round(rateB * 100),
+              pValue: Math.round(pValue * 1000) / 1000,
               winningSubject: winningEmail.subject,
               sampleSize: g.total,
             }),
-            confidence: g.total >= 10 ? 'Haute' : 'Moyenne',
+            confidence: pValue < 0.05 ? 'Haute' : pValue < 0.1 ? 'Moyenne' : 'Faible',
             sectors: [], targets: [],
           });
         }
@@ -83,7 +105,7 @@ async function analyzeAbTests(userId) {
         });
         report.analyzed++;
 
-        logger.info('ab-analyzer', `A/B ${g.ab_group_id}: ${winner} wins (${winnerRate}% vs ${loserRate}%, n=${g.total})`);
+        logger.info('ab-analyzer', `A/B ${g.ab_group_id}: ${winner} wins (${winnerRate}% vs ${loserRate}%, n=${g.total}, p=${pValue.toFixed(3)})`);
       } catch (err) {
         report.errors.push(`${g.ab_group_id}: ${err.message}`);
       }

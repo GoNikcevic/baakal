@@ -78,6 +78,20 @@ async function runMemoryAgent() {
     report.errors.push({ step: 'pruning', error: err.message });
   }
 
+  // ── Step 2b: Decay & Promote ──
+  // Downgrade stale patterns, upgrade well-confirmed ones
+  try {
+    const { decayed, promoted } = await db.memoryPatterns.decayAndPromote();
+    report.decay = { decayed, promoted };
+    if (decayed > 0 || promoted > 0) {
+      logger.info('memory-agent', `Decay: ${decayed} downgraded, ${promoted} promoted`);
+    } else {
+      report.skipped.push('decay: no patterns to decay or promote');
+    }
+  } catch (err) {
+    report.errors.push({ step: 'decay', error: err.message });
+  }
+
   // ── Step 3: Template generation ──
   // Only generate if we have high-performing campaigns not yet templated
   try {

@@ -54,6 +54,13 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
     errors: [],
   };
 
+  // Resolve team for pattern scoping
+  let teamId = null;
+  try {
+    const team = await db.teams.getByUser(userId);
+    if (team) teamId = team.id;
+  } catch { /* solo user, no team */ }
+
   // Detect connected CRM provider and resolve credentials
   let crmProvider = 'pipedrive';
   let token = await getUserKey(userId, 'pipedrive');
@@ -117,6 +124,29 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
       report.abTests = abReport;
     } catch (err) {
       report.errors.push(`A/B: ${err.message}`);
+    }
+
+    // ── Step 4c: Auto-enable A/B on triggers with enough patterns ──
+    try {
+      const patternCount = await db.query(
+        `SELECT COUNT(*) as count FROM memory_patterns
+         WHERE dismissed_at IS NULL AND confidence IN ('Haute', 'Moyenne') AND applied IS NOT TRUE
+         AND category IN ('Corps', 'Séquence', 'Ton', 'Angle')`,
+      );
+      if (parseInt(patternCount.rows[0]?.count || 0) >= 2) {
+        const updated = await db.query(
+          `UPDATE nurture_triggers SET ab_enabled = true
+           WHERE user_id = $1 AND enabled = true AND ab_enabled IS NOT TRUE
+           RETURNING id`,
+          [userId]
+        );
+        if (updated.rows.length > 0) {
+          report.abAutoEnabled = updated.rows.length;
+          logger.info('crm-agent', `Auto-enabled A/B on ${updated.rows.length} triggers (enough patterns available)`);
+        }
+      }
+    } catch (err) {
+      report.errors.push(`A/B auto-enable: ${err.message}`);
     }
 
     // ── Step 5: Churn Scoring ──
@@ -433,21 +463,49 @@ async function stepNurture(userId, token, report) {
       matched = matched.filter(o => o.email && !recentSet.has(o.email.toLowerCase()));
       report.nurture.evaluated += matched.length;
 
-      // A/B testing: split contacts into two groups
+      // A/B testing: split contacts using epsilon-greedy bandit
       const abEnabled = trigger.ab_enabled && matched.length >= 4;
       const abGroupId = abEnabled ? `ab_${trigger.id}_${Date.now()}` : null;
+
+      // Compute bandit weights from past A/B results for this trigger
+      let banditBias = 0.5; // default 50/50
+      if (abEnabled) {
+        try {
+          const past = await db.query(
+            `SELECT variant,
+              COUNT(*) FILTER (WHERE replied_at IS NOT NULL OR sentiment = 'positive') AS wins,
+              COUNT(*) AS total
+             FROM nurture_emails
+             WHERE trigger_id = $1 AND ab_group_id IS NOT NULL AND variant IS NOT NULL
+             GROUP BY variant`,
+            [trigger.id]
+          );
+          const statsA = past.rows.find(r => r.variant === 'A');
+          const statsB = past.rows.find(r => r.variant === 'B');
+          if (statsA && statsB && (parseInt(statsA.total) + parseInt(statsB.total)) >= 6) {
+            const rateA = parseInt(statsA.total) > 0 ? parseInt(statsA.wins) / parseInt(statsA.total) : 0;
+            const rateB = parseInt(statsB.total) > 0 ? parseInt(statsB.wins) / parseInt(statsB.total) : 0;
+            // Epsilon-greedy: 20% exploration, 80% exploitation
+            const epsilon = 0.2;
+            banditBias = rateA >= rateB
+              ? 1 - epsilon / 2   // A wins → 90% chance of A
+              : epsilon / 2;       // B wins → 10% chance of A (= 90% B)
+          }
+        } catch { /* fallback to 50/50 */ }
+      }
 
       for (let idx = 0; idx < Math.min(matched.length, 10); idx++) {
         const opp = matched[idx];
         try {
           // Generate email(s) — A/B or single
-          const emailContent = await generateNurtureEmail(trigger, opp, { abTest: abEnabled && idx < 2 });
+          const emailContent = await generateNurtureEmail(trigger, opp, { abTest: abEnabled && idx < 2, teamId });
 
-          // Determine which variant to use
+          // Determine which variant to use (bandit allocation)
           let variant = null;
           let email;
+          const usedPatternIds = emailContent.patternIds || [];
           if (abEnabled && emailContent.A && emailContent.B) {
-            variant = idx % 2 === 0 ? 'A' : 'B';
+            variant = Math.random() < banditBias ? 'A' : 'B';
             email = emailContent[variant];
           } else {
             email = emailContent.subject ? emailContent : (emailContent.A || emailContent);
@@ -462,6 +520,7 @@ async function stepNurture(userId, token, report) {
               subject: email.subject,
               body: email.body,
               crmProvider,
+              patternIds: usedPatternIds,
             });
             if (result.success) {
               // Tag with variant info
@@ -473,9 +532,9 @@ async function stepNurture(userId, token, report) {
           } else {
             // Queue for approval with variant info
             await db.query(`
-              INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status, variant, ab_group_id)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
-            `, [userId, trigger.id, opp.id, opp.email, opp.name, email.subject, email.body, variant, abGroupId]);
+              INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status, variant, ab_group_id, pattern_ids)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10)
+            `, [userId, trigger.id, opp.id, opp.email, opp.name, email.subject, email.body, variant, abGroupId, usedPatternIds]);
             report.nurture.queued++;
           }
 
@@ -497,14 +556,26 @@ async function stepNurture(userId, token, report) {
  * Generate nurture email(s). If abTest=true, returns { A: {subject,body}, B: {subject,body} }
  * Otherwise returns { subject, body }
  */
-async function generateNurtureEmail(trigger, opp, { abTest = false } = {}) {
+async function generateNurtureEmail(trigger, opp, { abTest = false, teamId = null } = {}) {
   const template = trigger.email_template || {};
 
-  // Load relevant memory patterns (user-applied + high confidence)
+  // Load relevant memory patterns — contextual (pgvector) or fallback (recency-based)
   let patternsContext = '';
+  let patternIds = [];
   try {
-    const allPatterns = await db.memoryPatterns.listForPrompt(10);
+    let allPatterns;
+    // Try contextual search via pgvector first
+    const { findRelevantPatterns, ENABLED: pgvEnabled } = require('./vector-store');
+    if (pgvEnabled) {
+      const context = `${trigger.trigger_type} ${opp.company || ''} ${opp.title || ''} ${(trigger.conditions?.sectors || []).join(' ')}`;
+      allPatterns = await findRelevantPatterns(context, 10);
+    }
+    // Fallback to recency-based
+    if (!allPatterns || allPatterns.length === 0) {
+      allPatterns = await db.memoryPatterns.listForPrompt(10, teamId);
+    }
     if (allPatterns.length > 0) {
+      patternIds = allPatterns.map(p => p.id);
       patternsContext = `\n\nPATTERNS QUI FONCTIONNENT (m\u00E9moire cross-campagne) :\n` +
         allPatterns.map(p => `- ${p.applied ? '[APPROUV\u00c9]' : `[${p.confidence}]`} ${p.pattern}`).join('\n') +
         `\nApplique en priorit\u00e9 les patterns APPROUV\u00c9S.`;
@@ -548,7 +619,7 @@ Retourne un JSON : { "A": { "subject": "...", "body": "..." }, "B": { "subject":
         const match = (result.content || '').match(/\{[\s\S]*"A"[\s\S]*"B"[\s\S]*\}/);
         if (match) parsed = JSON.parse(match[0]);
       }
-      if (parsed?.A?.subject && parsed?.B?.subject) return parsed;
+      if (parsed?.A?.subject && parsed?.B?.subject) return { ...parsed, patternIds };
     } catch { /* fallback to single */ }
   }
 
@@ -563,14 +634,15 @@ Retourne un JSON : { "subject": "...", "body": "..." }`;
 
   try {
     const result = await claude.callClaude('Retourne uniquement du JSON valide.', prompt, 500);
-    if (result.parsed) return result.parsed;
+    if (result.parsed) return { ...result.parsed, patternIds };
     const match = (result.content || '').match(/\{[\s\S]*"subject"[\s\S]*"body"[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
+    if (match) return { ...JSON.parse(match[0]), patternIds };
   } catch { /* fallback below */ }
 
   return {
     subject: `Suivi \u2014 ${opp.company || opp.name}`,
     body: `Bonjour ${(opp.name || '').split(' ')[0]},\n\nJe me permets de revenir vers vous.\n\nBien cordialement`,
+    patternIds,
   };
 }
 
@@ -598,7 +670,7 @@ async function stepAnalysis(userId, report) {
     // Analyze deal data and create patterns when we have enough signal
     if (opps.length >= 10) {
       try {
-        await generateCrmPatterns(userId, opps);
+        await generateCrmPatterns(userId, opps, teamId);
       } catch (err) {
         logger.warn('crm-agent', `CRM pattern generation failed: ${err.message}`);
       }
@@ -612,7 +684,9 @@ async function stepAnalysis(userId, report) {
  * Generate memory patterns from CRM deal data.
  * Only creates patterns when there's statistically meaningful signal.
  */
-async function generateCrmPatterns(userId, opps) {
+async function generateCrmPatterns(userId, opps, teamId = null) {
+  // Wrap create to auto-inject teamId
+  const createPattern = (data) => db.memoryPatterns.create({ ...data, teamId });
   const now = Date.now();
   const won = opps.filter(o => o.status === 'won');
   const lost = opps.filter(o => o.status === 'lost');
@@ -626,7 +700,7 @@ async function generateCrmPatterns(userId, opps) {
     const existing = await db.memoryPatterns.list({ category: 'Cible', limit: 50 });
     const hasWinRate = existing.some(p => p.pattern.includes('taux de conversion CRM'));
     if (!hasWinRate) {
-      await db.memoryPatterns.create({
+      await createPattern({
         pattern: `Taux de conversion CRM : ${winRate}% (${won.length} gagn\u00E9s / ${won.length + lost.length} conclus)`,
         category: 'Cible',
         data: JSON.stringify({ source: 'crm_analysis', won: won.length, lost: lost.length, total }),
@@ -647,7 +721,7 @@ async function generateCrmPatterns(userId, opps) {
       const existing = await db.memoryPatterns.list({ category: 'Timing', limit: 50 });
       const hasVelocity = existing.some(p => p.pattern.includes('cycle de vente moyen'));
       if (!hasVelocity) {
-        await db.memoryPatterns.create({
+        await createPattern({
           pattern: `Cycle de vente moyen : ${avgDays} jours (sur ${velocities.length} deals gagn\u00E9s)`,
           category: 'Timing',
           data: JSON.stringify({ source: 'crm_analysis', avgDays, sampleSize: velocities.length }),
@@ -669,7 +743,7 @@ async function generateCrmPatterns(userId, opps) {
       const existing = await db.memoryPatterns.list({ category: 'Timing', limit: 50 });
       const hasStagnation = existing.some(p => p.pattern.includes('deals perdus stagnent'));
       if (!hasStagnation) {
-        await db.memoryPatterns.create({
+        await createPattern({
           pattern: `Les deals perdus stagnent en moyenne ${avgStagnation} jours avant d'\u00EAtre clos \u2014 relancer avant ce seuil`,
           category: 'Timing',
           data: JSON.stringify({ source: 'crm_analysis', avgStagnation, sampleSize: stagnation.length }),
@@ -694,7 +768,7 @@ async function generateCrmPatterns(userId, opps) {
       const existing = await db.memoryPatterns.list({ category: 'Cible', limit: 50 });
       const hasSizePattern = existing.some(p => p.pattern.includes('taille d\'entreprise qui convertit'));
       if (!hasSizePattern) {
-        await db.memoryPatterns.create({
+        await createPattern({
           pattern: `La taille d'entreprise qui convertit le mieux : ${topSize[0]} (${topSize[1]} deals gagn\u00E9s)`,
           category: 'Cible',
           data: JSON.stringify({ source: 'crm_analysis', sizeGroups }),
@@ -724,7 +798,7 @@ async function generateCrmPatterns(userId, opps) {
       const existing = await db.memoryPatterns.list({ category: 'Cible', limit: 50 });
       const hasTitle = existing.some(p => p.pattern.includes('fonction qui r\u00E9pond le mieux'));
       if (!hasTitle) {
-        await db.memoryPatterns.create({
+        await createPattern({
           pattern: `La fonction qui r\u00E9pond le mieux aux emails d'activation : ${topTitle.title} (${topTitle.count} r\u00E9ponses)`,
           category: 'Cible',
           data: JSON.stringify({ source: 'title_analysis', title: topTitle.title, count: parseInt(topTitle.count, 10) }),
@@ -752,7 +826,7 @@ async function generateCrmPatterns(userId, opps) {
         const existing = await db.memoryPatterns.list({ category: 'Timing', limit: 50 });
         const hasTouch = existing.some(p => p.pattern.includes('touches avant r\u00E9ponse'));
         if (!hasTouch) {
-          await db.memoryPatterns.create({
+          await createPattern({
             pattern: `En moyenne ${avgTouches} touches avant d'obtenir une r\u00E9ponse (sur ${withResponse.length} contacts)`,
             category: 'Timing',
             data: JSON.stringify({ source: 'multitouch_analysis', avgTouches, sampleSize: withResponse.length }),

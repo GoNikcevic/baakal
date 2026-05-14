@@ -6,6 +6,7 @@ const claude = require('../api/claude');
 const { decrypt } = require('../config/crypto');
 
 const { statsLimiter } = require('../middleware/rate-limit');
+const { processSignal } = require('../lib/learning-signal');
 
 const router = Router();
 
@@ -226,6 +227,16 @@ router.post('/sync-activities', async (req, res, next) => {
 
               const inserted = await db.prospectActivities.bulkUpsert(mapped);
               totalInserted += inserted;
+
+              // Real-time learning: score patterns for replies and bounces
+              if (inserted > 0 && (type === 'emailsReplied' || type === 'emailsBounced')) {
+                const signalType = type === 'emailsReplied' ? 'positive_reply' : 'bounce';
+                for (const a of mapped) {
+                  if (a.leadEmail) {
+                    processSignal(req.user.id, a.leadEmail, signalType).catch(() => {});
+                  }
+                }
+              }
             } catch (err) {
               errors.push({ source: 'lemlist', campaign: campaign.name, type, error: err.message });
             }
@@ -272,6 +283,17 @@ router.post('/sync-activities', async (req, res, next) => {
 
               const inserted = await db.prospectActivities.bulkUpsert(mapped);
               totalInserted += inserted;
+
+              // Real-time learning: score patterns for replies and bounces
+              if (inserted > 0) {
+                for (const a of mapped) {
+                  if (a.leadEmail && (a.type === 'emailsReplied' || a.type === 'replied')) {
+                    processSignal(req.user.id, a.leadEmail, 'positive_reply').catch(() => {});
+                  } else if (a.leadEmail && (a.type === 'emailsBounced' || a.type === 'bounced')) {
+                    processSignal(req.user.id, a.leadEmail, 'bounce').catch(() => {});
+                  }
+                }
+              }
             } catch (err) {
               errors.push({ source: 'apollo', campaign: ac.name, error: err.message });
             }

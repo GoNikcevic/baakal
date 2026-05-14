@@ -22,6 +22,7 @@ export default function MemoryExplorerPage() {
   const [confidenceFilter, setConfidenceFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [expandedData, setExpandedData] = useState({});
+  const [storyData, setStoryData] = useState({});
   const [showTimeline, setShowTimeline] = useState(false);
 
   const CATEGORIES = useMemo(() => [
@@ -89,7 +90,16 @@ export default function MemoryExplorerPage() {
 
   const maxMonthCount = Math.max(...timelineData.map(d => d.count), 1);
 
-  function toggleData(id) { setExpandedData(prev => ({ ...prev, [id]: !prev[id] })); }
+  function toggleData(id) {
+    const isOpening = !expandedData[id];
+    setExpandedData(prev => ({ ...prev, [id]: !prev[id] }));
+    // Load story data on first expand
+    if (isOpening && !storyData[id]) {
+      request(`/ai/memory/${id}/story`).then(data => {
+        setStoryData(prev => ({ ...prev, [id]: data }));
+      }).catch(() => {});
+    }
+  }
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -334,21 +344,83 @@ export default function MemoryExplorerPage() {
                 </div>
               </div>
 
-              {/* Expanded data */}
-              {expandedData[p.id] && p.data && (
-                <div style={{
-                  marginTop: 14, padding: 14,
-                  background: 'var(--bg-elevated, rgba(255,255,255,0.03))',
-                  borderRadius: 8,
-                  fontSize: 12, color: 'var(--text-muted)',
-                  borderTop: '1px solid var(--border)',
-                }}>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>{t('memory.rawData')}</div>
-                  {p.data.sample_size && <div>{t('memory.sampleSize')}: <strong>{p.data.sample_size}</strong></div>}
-                  {p.data.avg_improvement && <div>{t('memory.improvement')}: <strong style={{ color: '#16a34a' }}>+{p.data.avg_improvement}%</strong></div>}
-                  <pre style={{ margin: '8px 0 0', fontSize: 10, opacity: 0.6, whiteSpace: 'pre-wrap' }}>{JSON.stringify(p.data, null, 2)}</pre>
-                </div>
-              )}
+              {/* Expanded story + data */}
+              {expandedData[p.id] && (() => {
+                const story = storyData[p.id];
+                return (
+                  <div style={{
+                    marginTop: 14, padding: 14,
+                    background: 'var(--bg-elevated, rgba(255,255,255,0.03))',
+                    borderRadius: 8,
+                    fontSize: 12, color: 'var(--text-muted)',
+                    borderTop: '1px solid var(--border)',
+                  }}>
+                    {story ? (
+                      <>
+                        {/* Story summary */}
+                        <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                          {t('memory.story') || 'Histoire du pattern'}
+                        </div>
+                        <div style={{ marginBottom: 8, lineHeight: 1.6 }}>
+                          {t('memory.discoveredDaysAgo', { days: story.story?.discoveredDaysAgo }) || `Découvert il y a ${story.story?.discoveredDaysAgo || '?'} jours`}
+                          {story.story?.confirmations > 0 && ` · ${t('memory.confirmedTimes', { count: story.story.confirmations }) || `Confirmé ${story.story.confirmations} fois`}`}
+                          {story.story?.source && ` · Source : ${story.story.source}`}
+                        </div>
+
+                        {/* Effectiveness stats */}
+                        {story.usage?.totalEmails > 0 && (
+                          <div style={{ display: 'flex', gap: 16, marginBottom: 10, flexWrap: 'wrap' }}>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{story.usage.totalEmails}</div>
+                              <div style={{ fontSize: 10 }}>{t('memory.emailsInfluenced') || 'emails influencés'}</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a' }}>{story.usage.positive}</div>
+                              <div style={{ fontSize: 10 }}>{t('memory.positiveReplies') || 'réponses positives'}</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444' }}>{story.usage.negative}</div>
+                              <div style={{ fontSize: 10 }}>{t('memory.negativeReplies') || 'réponses négatives'}</div>
+                            </div>
+                            {story.usage.successRate !== null && (
+                              <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: story.usage.successRate >= 50 ? '#16a34a' : story.usage.successRate >= 30 ? '#f59e0b' : '#ef4444' }}>
+                                  {story.usage.successRate}%
+                                </div>
+                                <div style={{ fontSize: 10 }}>{t('memory.successRate') || 'taux de succès'}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Recent emails */}
+                        {story.recentEmails?.length > 0 && (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ fontWeight: 600, marginBottom: 6 }}>{t('memory.recentEmails') || 'Derniers emails influencés'}</div>
+                            {story.recentEmails.slice(0, 5).map((e, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.sentiment === 'positive' ? '#16a34a' : e.sentiment === 'negative' ? '#ef4444' : '#9ca3af', flexShrink: 0 }} />
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.to} — {e.subject}</span>
+                                <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{e.sentAt ? new Date(e.sentAt).toLocaleDateString() : ''}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: 10, opacity: 0.5 }}>{t('common.loading') || 'Chargement...'}</div>
+                    )}
+
+                    {/* Raw data fallback */}
+                    {p.data && (
+                      <details style={{ marginTop: 10 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: 11, opacity: 0.5 }}>{t('memory.rawData') || 'Données brutes'}</summary>
+                        <pre style={{ margin: '8px 0 0', fontSize: 10, opacity: 0.6, whiteSpace: 'pre-wrap' }}>{JSON.stringify(p.data, null, 2)}</pre>
+                      </details>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

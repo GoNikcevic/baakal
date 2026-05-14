@@ -250,9 +250,9 @@ async function runNurtureEngine(userId) {
         } else {
           // Queue for approval
           await db.query(`
-            INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
-          `, [userId, trigger.id, opp?.id || null, contact.email, contact.name, subject, body]);
+            INSERT INTO nurture_emails (user_id, trigger_id, opportunity_id, to_email, to_name, subject, body, status, pattern_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
+          `, [userId, trigger.id, opp?.id || null, contact.email, contact.name, subject, body, []]);
           results.queued++;
         }
       } catch (err) {

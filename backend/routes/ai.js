@@ -386,6 +386,115 @@ router.post('/memory/:id/toggle-apply', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/ai/memory/:id/toggle-share — toggle pattern shared (cross-team) status
+router.post('/memory/:id/toggle-share', async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `UPDATE memory_patterns SET shared = NOT COALESCE(shared, false) WHERE id = $1 RETURNING id, shared`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Pattern not found' });
+    res.json({ id: result.rows[0].id, shared: result.rows[0].shared });
+  } catch (err) { next(err); }
+});
+
+// GET /api/ai/memory/:id/story — pattern story: origin, usage, results
+router.get('/memory/:id/story', async (req, res, next) => {
+  try {
+    const pattern = await db.memoryPatterns.get(req.params.id);
+    if (!pattern) return res.status(404).json({ error: 'Pattern not found' });
+
+    // Emails that used this pattern
+    const emails = await db.query(
+      `SELECT id, to_email, to_name, subject, status, sentiment, sent_at, replied_at
+       FROM nurture_emails
+       WHERE $1 = ANY(pattern_ids) AND status = 'sent'
+       ORDER BY sent_at DESC LIMIT 20`,
+      [req.params.id]
+    );
+
+    // Effectiveness summary
+    const effectiveness = await db.query(
+      `SELECT
+        COUNT(*) AS total_emails,
+        COUNT(*) FILTER (WHERE sentiment = 'positive') AS positive,
+        COUNT(*) FILTER (WHERE sentiment = 'negative') AS negative,
+        COUNT(*) FILTER (WHERE sentiment = 'neutral') AS neutral,
+        COUNT(*) FILTER (WHERE replied_at IS NOT NULL) AS replied
+       FROM nurture_emails
+       WHERE $1 = ANY(pattern_ids) AND status = 'sent'`,
+      [req.params.id]
+    );
+
+    const stats = effectiveness.rows[0] || {};
+    const successRate = parseInt(stats.total_emails) > 0
+      ? Math.round((parseInt(stats.positive) / parseInt(stats.total_emails)) * 100)
+      : null;
+
+    // Build story text
+    const data = typeof pattern.data === 'string' ? JSON.parse(pattern.data) : (pattern.data || {});
+    const age = Math.round((Date.now() - new Date(pattern.date_discovered).getTime()) / 86400000);
+
+    res.json({
+      pattern,
+      story: {
+        discoveredDaysAgo: age,
+        confirmations: pattern.confirmations || 0,
+        lastConfirmed: pattern.last_confirmed_at,
+        source: data.source || data.type || 'agent',
+      },
+      usage: {
+        totalEmails: parseInt(stats.total_emails) || 0,
+        positive: parseInt(stats.positive) || 0,
+        negative: parseInt(stats.negative) || 0,
+        neutral: parseInt(stats.neutral) || 0,
+        replied: parseInt(stats.replied) || 0,
+        successRate,
+      },
+      recentEmails: emails.rows.map(e => ({
+        to: e.to_name || e.to_email,
+        subject: e.subject,
+        sentiment: e.sentiment,
+        sentAt: e.sent_at,
+        repliedAt: e.replied_at,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/ai/memory/recommendations — proactive pattern recommendations for a context
+router.get('/memory/recommendations', async (req, res, next) => {
+  try {
+    const { sector, triggerType } = req.query;
+    if (!sector && !triggerType) return res.json({ patterns: [] });
+
+    // Build context for matching
+    const conditions = ['dismissed_at IS NULL', "(confidence = 'Haute' OR applied = true)"];
+    const params = [];
+    let i = 1;
+
+    if (sector) {
+      conditions.push(`$${i++} = ANY(sectors)`);
+      params.push(sector);
+    }
+
+    const result = await db.query(
+      `SELECT *, COALESCE(confirmations, 0) AS conf
+       FROM memory_patterns
+       WHERE ${conditions.join(' AND ')}
+       ORDER BY applied DESC, conf DESC, date_discovered DESC
+       LIMIT 5`,
+      params
+    );
+
+    res.json({ patterns: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/ai/memory/:id — soft-delete (dismiss) a memory pattern
 // Pattern won't be recreated by agents for 7 days
 router.delete('/memory/:id', async (req, res, next) => {
@@ -405,11 +514,39 @@ router.get('/memory', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     const offset = parseInt(req.query.offset, 10) || 0;
+    // Resolve team for pattern scoping
+    let teamId = null;
+    try {
+      const team = await db.teams.getByUser(req.user.id);
+      if (team) teamId = team.id;
+    } catch { /* solo user */ }
     const [patterns, count] = await Promise.all([
-      db.memoryPatterns.list({ limit, offset }),
+      db.memoryPatterns.list({ limit, offset, teamId }),
       db.memoryPatterns.count(),
     ]);
     res.json({ patterns, count, limit, offset });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/ai/memory/effectiveness — pattern ROI based on nurture email outcomes
+router.get('/memory/effectiveness', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      SELECT mp.id, mp.pattern, mp.category, mp.confidence, mp.confirmations,
+        COUNT(ne.id) AS emails_total,
+        COUNT(ne.id) FILTER (WHERE ne.sentiment = 'positive') AS emails_positive,
+        COUNT(ne.id) FILTER (WHERE ne.sentiment = 'negative') AS emails_negative,
+        COUNT(ne.id) FILTER (WHERE ne.analyzed_at IS NOT NULL) AS emails_analyzed
+      FROM memory_patterns mp
+      LEFT JOIN nurture_emails ne ON mp.id = ANY(ne.pattern_ids)
+      WHERE mp.dismissed_at IS NULL
+      GROUP BY mp.id
+      HAVING COUNT(ne.id) > 0
+      ORDER BY COUNT(ne.id) FILTER (WHERE ne.sentiment = 'positive') DESC, COUNT(ne.id) DESC
+    `);
+    res.json({ patterns: result.rows });
   } catch (err) {
     next(err);
   }

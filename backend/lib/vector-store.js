@@ -71,6 +71,91 @@ async function searchSimilar(userId, query, limit = 5, sourceType = null) {
 }
 
 /**
+ * Find a semantically similar pattern (for deduplication).
+ * Returns the source_id of the most similar existing pattern above threshold.
+ */
+async function findSimilarPattern(text, threshold = 0.85) {
+  if (!ENABLED) return null;
+
+  const embedding = await generateEmbedding(text);
+  if (!embedding) return null;
+
+  try {
+    const result = await db.query(
+      `SELECT source_id, content, 1 - (embedding <=> $1::vector) AS similarity
+       FROM memory_embeddings
+       WHERE source_type = 'pattern'
+       ORDER BY embedding <=> $1::vector
+       LIMIT 1`,
+      [JSON.stringify(embedding)]
+    );
+
+    const match = result.rows[0];
+    if (match && parseFloat(match.similarity) >= threshold) {
+      return { sourceId: match.source_id, similarity: parseFloat(match.similarity), content: match.content };
+    }
+    return null;
+  } catch (err) {
+    logger.warn('vector-store', `findSimilarPattern failed: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Store or update the embedding for a pattern.
+ * Upserts by source_id to avoid duplicates when patterns are updated.
+ */
+async function upsertPatternEmbedding(patternId, text, metadata = {}) {
+  if (!ENABLED) return null;
+
+  const embedding = await generateEmbedding(text);
+  if (!embedding) return null;
+
+  try {
+    // Delete existing embedding for this pattern, then insert fresh
+    await db.query('DELETE FROM memory_embeddings WHERE source_type = $1 AND source_id = $2', ['pattern', patternId]);
+    const result = await db.query(
+      `INSERT INTO memory_embeddings (user_id, source_type, source_id, content, embedding, metadata)
+       VALUES (NULL, 'pattern', $1, $2, $3, $4) RETURNING id`,
+      [patternId, text.slice(0, 5000), JSON.stringify(embedding), JSON.stringify(metadata)]
+    );
+    return result.rows[0]?.id || null;
+  } catch (err) {
+    logger.warn('vector-store', `upsertPatternEmbedding failed: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Find the most relevant patterns for a given context (sector, target, etc.).
+ * Used for contextual pattern injection in email generation.
+ */
+async function findRelevantPatterns(contextText, limit = 10) {
+  if (!ENABLED) return [];
+
+  const embedding = await generateEmbedding(contextText);
+  if (!embedding) return [];
+
+  try {
+    const result = await db.query(
+      `SELECT me.source_id, me.content, me.metadata, 1 - (me.embedding <=> $1::vector) AS similarity,
+              mp.id, mp.pattern, mp.category, mp.confidence, mp.applied, mp.confirmations
+       FROM memory_embeddings me
+       JOIN memory_patterns mp ON mp.id = me.source_id
+       WHERE me.source_type = 'pattern' AND mp.dismissed_at IS NULL
+       ORDER BY mp.applied DESC, me.embedding <=> $1::vector
+       LIMIT $2`,
+      [JSON.stringify(embedding), limit]
+    );
+
+    return result.rows;
+  } catch (err) {
+    logger.warn('vector-store', `findRelevantPatterns failed: ${err.message}`);
+    return [];
+  }
+}
+
+/**
  * Delete embeddings by source.
  */
 async function deleteBySource(sourceType, sourceId) {
@@ -134,4 +219,4 @@ async function generateEmbedding(text) {
   }
 }
 
-module.exports = { storeEmbedding, searchSimilar, deleteBySource, generateEmbedding, ENABLED };
+module.exports = { storeEmbedding, searchSimilar, deleteBySource, generateEmbedding, findSimilarPattern, upsertPatternEmbedding, findRelevantPatterns, ENABLED };

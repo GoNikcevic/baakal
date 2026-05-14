@@ -590,6 +590,11 @@ const memoryPatterns = {
       conditions.push(`confidence = $${i++}`);
       params.push(filter.confidence);
     }
+    // Team filter: show team patterns + global shared patterns
+    if (filter.teamId) {
+      conditions.push(`(team_id = $${i++} OR team_id IS NULL OR shared = true)`);
+      params.push(filter.teamId);
+    }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY date_discovered DESC';
     // Default limit to prevent unbounded loads
@@ -630,8 +635,8 @@ const memoryPatterns = {
   async create(data) {
     const result = await query(`
       INSERT INTO memory_patterns (pattern, category, data, confidence, date_discovered, sectors, targets,
-        ab_category, custom_category, source_test_id, sample_size, improvement_pct, confirmations)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ab_category, custom_category, source_test_id, sample_size, improvement_pct, confirmations, team_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `, [
       data.pattern,
@@ -647,6 +652,7 @@ const memoryPatterns = {
       data.sample_size || data.sampleSize || 0,
       data.improvement_pct || data.improvementPct || null,
       data.confirmations || 1,
+      data.teamId || data.team_id || null,
     ]);
     return result.rows[0];
   },
@@ -666,6 +672,8 @@ const memoryPatterns = {
       sample_size: 'sample_size', sampleSize: 'sample_size',
       improvement_pct: 'improvement_pct', improvementPct: 'improvement_pct',
       confirmations: 'confirmations',
+      team_id: 'team_id', teamId: 'team_id',
+      shared: 'shared',
     };
     const seen = new Set();
     for (const [inputKey, col] of Object.entries(mapping)) {
@@ -686,6 +694,11 @@ const memoryPatterns = {
 
   async delete(id) {
     const result = await query('DELETE FROM memory_patterns WHERE id = $1', [id]);
+    // Clean up associated embedding
+    try {
+      const { deleteBySource, ENABLED } = require('../lib/vector-store');
+      if (ENABLED) await deleteBySource('pattern', id);
+    } catch { /* non-fatal */ }
     return { changes: result.rowCount };
   },
 
@@ -693,13 +706,19 @@ const memoryPatterns = {
    * Get patterns that should be injected into email generation prompts.
    * Priority: user-applied patterns first, then high-confidence patterns.
    */
-  async listForPrompt(limit = 15) {
+  async listForPrompt(limit = 15, teamId = null) {
+    const teamFilter = teamId
+      ? `AND (team_id = $2 OR team_id IS NULL OR shared = true)`
+      : '';
+    const params = [limit];
+    if (teamId) params.push(teamId);
     const result = await query(
       `SELECT * FROM memory_patterns
        WHERE dismissed_at IS NULL AND (applied = true OR confidence = 'Haute')
+       ${teamFilter}
        ORDER BY applied DESC, date_discovered DESC
        LIMIT $1`,
-      [limit]
+      params
     );
     return result.rows;
   },
@@ -727,7 +746,7 @@ const memoryPatterns = {
     if (existing.rows[0]) {
       return this.update(existing.rows[0].id, data);
     }
-    // Also check by partial match
+    // Also check by partial match (text prefix)
     if (prefix.length >= 10) {
       const partial = await query(
         `SELECT id FROM memory_patterns WHERE category = $1 AND pattern LIKE $2 AND dismissed_at IS NULL LIMIT 1`,
@@ -737,7 +756,78 @@ const memoryPatterns = {
         return this.update(partial.rows[0].id, data);
       }
     }
-    return this.create(data);
+
+    // Semantic deduplication via pgvector (if enabled)
+    try {
+      const { findSimilarPattern, upsertPatternEmbedding, ENABLED } = require('../lib/vector-store');
+      if (ENABLED) {
+        const similar = await findSimilarPattern(data.pattern, 0.85);
+        if (similar?.sourceId) {
+          // Check if the similar pattern is active (not dismissed)
+          const active = await query('SELECT id FROM memory_patterns WHERE id = $1 AND dismissed_at IS NULL', [similar.sourceId]);
+          if (active.rows[0]) {
+            const updated = await this.update(active.rows[0].id, data);
+            // Update embedding with new content
+            await upsertPatternEmbedding(active.rows[0].id, data.pattern, { category: data.category, confidence: data.confidence });
+            return updated;
+          }
+        }
+      }
+    } catch { /* pgvector optional, fall through to create */ }
+
+    // Create new pattern + embed it
+    const created = await this.create(data);
+    try {
+      const { upsertPatternEmbedding, ENABLED } = require('../lib/vector-store');
+      if (ENABLED && created) {
+        await upsertPatternEmbedding(created.id, created.pattern, { category: created.category, confidence: created.confidence });
+      }
+    } catch { /* embedding optional */ }
+    return created;
+  },
+
+  /**
+   * Decay: downgrade patterns not confirmed in 60 days.
+   * Promote: upgrade patterns with enough positive confirmations.
+   * Returns { decayed, promoted }.
+   */
+  async decayAndPromote() {
+    // Decay: Haute → Moyenne if not confirmed in 60 days (skip user-approved patterns)
+    const decayHaute = await query(
+      `UPDATE memory_patterns SET confidence = 'Moyenne'
+       WHERE confidence = 'Haute' AND dismissed_at IS NULL AND applied IS NOT TRUE
+         AND COALESCE(last_confirmed_at, date_discovered) < now() - interval '60 days'
+       RETURNING id`
+    );
+    // Decay: Moyenne → Faible if not confirmed in 60 days (skip user-approved patterns)
+    const decayMoyenne = await query(
+      `UPDATE memory_patterns SET confidence = 'Faible'
+       WHERE confidence = 'Moyenne' AND dismissed_at IS NULL AND applied IS NOT TRUE
+         AND COALESCE(last_confirmed_at, date_discovered) < now() - interval '60 days'
+       RETURNING id`
+    );
+
+    // Promote: Faible → Moyenne if confirmations >= 3 and confirmed in last 30 days
+    const promoteToMoyenne = await query(
+      `UPDATE memory_patterns SET confidence = 'Moyenne'
+       WHERE confidence = 'Faible' AND dismissed_at IS NULL
+         AND COALESCE(confirmations, 0) >= 3
+         AND last_confirmed_at > now() - interval '30 days'
+       RETURNING id`
+    );
+    // Promote: Moyenne → Haute if confirmations >= 8 and confirmed in last 30 days
+    const promoteToHaute = await query(
+      `UPDATE memory_patterns SET confidence = 'Haute'
+       WHERE confidence = 'Moyenne' AND dismissed_at IS NULL
+         AND COALESCE(confirmations, 0) >= 8
+         AND last_confirmed_at > now() - interval '30 days'
+       RETURNING id`
+    );
+
+    return {
+      decayed: decayHaute.rows.length + decayMoyenne.rows.length,
+      promoted: promoteToMoyenne.rows.length + promoteToHaute.rows.length,
+    };
   },
 
   async pruneOld(daysOld = 90) {
@@ -747,9 +837,19 @@ const memoryPatterns = {
       [daysOld]
     );
     // Also permanently delete dismissed patterns older than 30 days
-    await query(
-      `DELETE FROM memory_patterns WHERE dismissed_at IS NOT NULL AND dismissed_at < NOW() - INTERVAL '30 days'`
+    const dismissed = await query(
+      `DELETE FROM memory_patterns WHERE dismissed_at IS NOT NULL AND dismissed_at < NOW() - INTERVAL '30 days' RETURNING id`
     );
+    // Clean up associated embeddings
+    try {
+      const { deleteBySource, ENABLED } = require('../lib/vector-store');
+      if (ENABLED) {
+        const pruned = [...result.rows, ...dismissed.rows];
+        for (const p of pruned) {
+          await deleteBySource('pattern', p.id);
+        }
+      }
+    } catch { /* non-fatal */ }
     return result.rows.length;
   },
 };

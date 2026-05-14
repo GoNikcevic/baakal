@@ -11,6 +11,7 @@
  * 5. Win/Loss Analyst — patterns from won vs lost deals
  * 6. Copy Optimizer — email copy analysis + improvement
  * 7. ICP Refiner — ideal customer profile refinement
+ * 8. Sequence Analyzer — drop-off, optimal length, channel mix
  *
  * Can run:
  * - All agents at once (weekly, Sunday after Memory Agent)
@@ -27,6 +28,7 @@ const AGENTS = {
   win_loss: { name: 'Win/Loss Analyst', module: './win-loss-analyst' },
   copy_optimizer: { name: 'Copy Optimizer', module: './copy-optimizer' },
   icp_refiner: { name: 'ICP Refiner', module: './icp-refiner' },
+  sequence_analyzer: { name: 'Sequence Analyzer', module: './sequence-analyzer' },
 };
 
 /**

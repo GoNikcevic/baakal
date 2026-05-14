@@ -368,7 +368,15 @@
     "patternsPerMonth": "patterns",
     "noPatterns": "No patterns discovered yet. Launch campaigns so the AI can learn.",
     "loading": "Loading...",
-    "patternDeleted": "Pattern deleted"
+    "patternDeleted": "Pattern deleted",
+    "story": "Pattern story",
+    "discoveredDaysAgo": "Discovered {days} days ago",
+    "confirmedTimes": "Confirmed {count} times",
+    "emailsInfluenced": "emails influenced",
+    "positiveReplies": "positive replies",
+    "negativeReplies": "negative replies",
+    "successRate": "success rate",
+    "recentEmails": "Recent influenced emails"
   },
   "legal": {
     "terms": "Terms",
