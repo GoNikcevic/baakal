@@ -27,9 +27,11 @@ function zTestPValue(successA, nA, successB, nB) {
   const se = Math.sqrt(pPool * (1 - pPool) * (1 / nA + 1 / nB));
   if (se === 0) return 1;
   const z = Math.abs(pA - pB) / se;
-  // Approximation of one-tailed p-value from z-score
-  const p = Math.exp(-0.5 * z * z) / (z * Math.sqrt(2 * Math.PI));
-  return Math.min(p, 1);
+  // Abramowitz & Stegun approximation of one-tailed p-value
+  const t = 1 / (1 + 0.2316419 * z);
+  const d = 0.3989422804 * Math.exp(-0.5 * z * z);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return Math.max(0, Math.min(p, 1));
 }
 
 async function analyzeAbTests(userId) {

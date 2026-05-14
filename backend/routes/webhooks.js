@@ -172,8 +172,8 @@ async function handleActivityEvent(userId, action, current) {
     [userId, String(current.person_id)]
   );
 
-  // Real-time learning: if activity is an email reply, score patterns immediately
-  if (action === 'added' && current.type === 'email') {
+  // Real-time learning: if activity is an incoming email (reply), score patterns immediately
+  if (action === 'added' && current.type === 'email' && current.direction === 'incoming') {
     try {
       // Find the contact's email
       const opp = await db.query(

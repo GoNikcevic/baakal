@@ -792,17 +792,17 @@ const memoryPatterns = {
    * Returns { decayed, promoted }.
    */
   async decayAndPromote() {
+    // Decay: Moyenne → Faible if not confirmed in 60 days (run BEFORE Haute→Moyenne to avoid double-decay)
+    const decayMoyenne = await query(
+      `UPDATE memory_patterns SET confidence = 'Faible'
+       WHERE confidence = 'Moyenne' AND dismissed_at IS NULL AND applied IS NOT TRUE
+         AND COALESCE(last_confirmed_at, date_discovered) < now() - interval '60 days'
+       RETURNING id`
+    );
     // Decay: Haute → Moyenne if not confirmed in 60 days (skip user-approved patterns)
     const decayHaute = await query(
       `UPDATE memory_patterns SET confidence = 'Moyenne'
        WHERE confidence = 'Haute' AND dismissed_at IS NULL AND applied IS NOT TRUE
-         AND COALESCE(last_confirmed_at, date_discovered) < now() - interval '60 days'
-       RETURNING id`
-    );
-    // Decay: Moyenne → Faible if not confirmed in 60 days (skip user-approved patterns)
-    const decayMoyenne = await query(
-      `UPDATE memory_patterns SET confidence = 'Faible'
-       WHERE confidence = 'Moyenne' AND dismissed_at IS NULL AND applied IS NOT TRUE
          AND COALESCE(last_confirmed_at, date_discovered) < now() - interval '60 days'
        RETURNING id`
     );
