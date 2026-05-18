@@ -5,7 +5,7 @@
    =============================================================================== */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import api, { exportCampaignCsv } from '../services/api-client';
 import VariableManager from '../components/VariableManager';
@@ -679,7 +679,6 @@ function ParamsPanel({ params, onClose }) {
 
 export default function CopyEditorPage() {
   const { campaigns, backendAvailable, setCampaigns } = useApp();
-  const { demoMode } = useOutletContext?.() || {};
   const navigate = useNavigate();
 
   // Derive base editor data from campaigns context
@@ -688,11 +687,8 @@ export default function CopyEditorPage() {
     if (Object.keys(campaigns).length > 0) {
       synced = syncCampaignsFromContext(campaigns);
     }
-    if (Object.keys(synced).length === 0 && demoMode) {
-      synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
-    }
     return synced;
-  }, [campaigns, demoMode]);
+  }, [campaigns]);
 
   // Local overrides state (for edits before save)
   const [localOverrides, setLocalOverrides] = useState({});
@@ -938,9 +934,6 @@ export default function CopyEditorPage() {
     let synced = {};
     if (Object.keys(campaigns).length > 0) {
       synced = syncCampaignsFromContext(campaigns);
-    }
-    if (Object.keys(synced).length === 0 && demoMode) {
-      synced = JSON.parse(JSON.stringify(EDITOR_FALLBACK));
     }
     setEditorCampaigns(synced);
     setIsDirty(false);

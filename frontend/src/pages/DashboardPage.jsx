@@ -9,7 +9,6 @@ import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { useT, useI18n } from '../i18n';
 import { useSocket } from '../context/SocketContext';
-import { DEMO_DATA } from '../data/demo-data';
 import { ProgressCard, CumulativeValueBanner, BenchmarkBadge } from '../components/RetentionBiases';
 import PerformanceChart from '../components/charts/PerformanceChart';
 import { sanitizeHtml } from '../services/sanitize';
@@ -32,7 +31,7 @@ const KPI_LABELS = {
 export default function DashboardPage() {
   const t = useT();
   const { campaigns, globalKpis, opportunities, recommendations, chartData, setOpportunities } = useApp();
-  const { setShowCreatorModal, demoMode } = useOutletContext() || {};
+  const { setShowCreatorModal } = useOutletContext() || {};
   const navigate = useNavigate();
   const openCreator = useCallback(() => navigate('/chat'), [navigate]);
   const { socket } = useSocket();
@@ -47,16 +46,10 @@ export default function DashboardPage() {
     return () => { socket.off('lemlist:sync', onLemlist); socket.off('crm:sync', onCrm); };
   }, [socket]);
 
-  const displayData = demoMode ? {
-    campaigns: DEMO_DATA.campaigns,
-    globalKpis: DEMO_DATA.globalKpis,
-    opportunities: DEMO_DATA.opportunities,
-    recommendations: DEMO_DATA.recommendations,
-    chartData: DEMO_DATA.chartData,
-  } : { campaigns, globalKpis, opportunities, recommendations, chartData };
+  const displayData = { campaigns, globalKpis, opportunities, recommendations, chartData };
 
   const campaignsList = useMemo(() => Object.values(displayData.campaigns), [displayData.campaigns]);
-  const isEmpty = demoMode ? false : campaignsList.length === 0;
+  const isEmpty = campaignsList.length === 0;
   const activeCount = useMemo(
     () => campaignsList.filter((c) => c.status === 'active').length,
     [campaignsList]

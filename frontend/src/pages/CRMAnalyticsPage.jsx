@@ -10,76 +10,6 @@ import { useI18n } from '../i18n';
 import EngagementChart from '../components/charts/EngagementChart';
 import FunnelChart from '../components/charts/FunnelChart';
 
-/* ─── Demo data ─── */
-
-const DEMO_PIPELINE = {
-  stages: [
-    { stage: 'new', label: 'Nouveau', count: 12, percentage: 40 },
-    { stage: 'interested', label: 'Intéressé', count: 8, percentage: 27 },
-    { stage: 'meeting', label: 'RDV', count: 5, percentage: 17 },
-    { stage: 'negotiation', label: 'Négociation', count: 3, percentage: 10 },
-    { stage: 'won', label: 'Gagné', count: 2, percentage: 6 },
-  ],
-  conversions: [
-    { from: 'new', to: 'interested', rate: 66.7 },
-    { from: 'interested', to: 'meeting', rate: 62.5 },
-    { from: 'meeting', to: 'negotiation', rate: 60.0 },
-    { from: 'negotiation', to: 'won', rate: 66.7 },
-  ],
-  total: 30,
-};
-
-const DEMO_ATTRIBUTION = {
-  campaigns: [
-    { id: '1', name: 'DAF Île-de-France', channel: 'email', prospects: 150, meetings: 5, interested: 12, conversionRate: 3.3 },
-    { id: '2', name: 'DRH PME Lyon', channel: 'email', prospects: 120, meetings: 3, interested: 8, conversionRate: 2.5 },
-    { id: '3', name: 'Dirigeants Formation', channel: 'linkedin', prospects: 80, meetings: 4, interested: 10, conversionRate: 5.0 },
-    { id: '4', name: 'CTO Scale-ups', channel: 'multi', prospects: 100, meetings: 2, interested: 6, conversionRate: 2.0 },
-  ],
-  totals: { prospects: 450, meetings: 14, interested: 36, avgConversion: 3.1 },
-};
-
-const DEMO_SCORING = {
-  leads: [
-    { id: '1', name: 'Marie Dupont', company: 'Acme Corp', title: 'DAF', status: 'meeting', score: 85, scoreBreakdown: { engagement: 45, fit: 40 }, campaign: 'DAF IDF' },
-    { id: '2', name: 'Pierre Martin', company: 'TechStart', title: 'CTO', status: 'interested', score: 72, scoreBreakdown: { engagement: 35, fit: 37 }, campaign: 'CTO Scale-ups' },
-    { id: '3', name: 'Sophie Leroy', company: 'FormaPro', title: 'Dirigeant', status: 'negotiation', score: 68, scoreBreakdown: { engagement: 40, fit: 28 }, campaign: 'Dirigeants Formation' },
-    { id: '4', name: 'Jean Petit', company: 'FinanceRH', title: 'DRH', status: 'new', score: 45, scoreBreakdown: { engagement: 15, fit: 30 }, campaign: 'DRH PME Lyon' },
-    { id: '5', name: 'Alice Bernard', company: 'DataFlow', title: 'VP Sales', status: 'interested', score: 38, scoreBreakdown: { engagement: 20, fit: 18 }, campaign: 'CTO Scale-ups' },
-  ],
-  distribution: { high: 2, medium: 1, low: 2 },
-  avgScore: 61.6,
-};
-
-const DEMO_CHANNELS = {
-  channels: [
-    { channel: 'email', campaigns: 5, avgOpenRate: 55, avgReplyRate: 7.1, totalProspects: 400, interested: 20, meetings: 8 },
-    { channel: 'linkedin', campaigns: 3, avgAcceptRate: 35, avgReplyRate: 9.2, totalProspects: 200, interested: 12, meetings: 4 },
-    { channel: 'multi', campaigns: 2, avgOpenRate: 52, avgReplyRate: 6.8, totalProspects: 150, interested: 8, meetings: 3 },
-  ],
-  bestChannel: { channel: 'linkedin', metric: 'replyRate', value: 9.2 },
-};
-
-const DEMO_HEALTH = {
-  score: 72,
-  label: 'Bon',
-  alerts: [
-    { type: 'stale_leads', severity: 'warning', message: '5 leads sans activité depuis 7+ jours', count: 5 },
-    { type: 'stuck_deals', severity: 'danger', message: '2 deals bloqués en négociation depuis 14+ jours', count: 2 },
-    { type: 'no_followup', severity: 'info', message: '3 intéressés sans relance planifiée', count: 3 },
-  ],
-  breakdown: { pipelineVelocity: 65, leadQuality: 78, followupRate: 72, conversionHealth: 70 },
-};
-
-const DEMO_TRENDS = {
-  weeks: [
-    { label: 'S9', open: 48, reply: 5.2, linkedin: 28 },
-    { label: 'S10', open: 52, reply: 6.1, linkedin: 32 },
-    { label: 'S11', open: 55, reply: 6.8, linkedin: 34 },
-    { label: 'S12', open: 58, reply: 7.4, linkedin: 36 },
-  ],
-};
-
 /* ─── Helpers ─── */
 
 const STAGE_COLORS = {
@@ -151,22 +81,7 @@ export default function CRMAnalyticsPage() {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const demoMode = typeof window !== 'undefined' && localStorage.getItem('bakal_demo_mode') === 'true';
-
   const fetchData = useCallback(async (tab) => {
-    // Demo mode: always show demo data regardless of backend
-    if (demoMode) {
-      setData({
-        pipeline: DEMO_PIPELINE,
-        attribution: DEMO_ATTRIBUTION,
-        scoring: DEMO_SCORING,
-        channels: DEMO_CHANNELS,
-        health: DEMO_HEALTH,
-        trends: DEMO_TRENDS,
-      });
-      return;
-    }
-    // No backend + no demo → leave empty
     if (!backendAvailable) {
       setData({});
       return;
@@ -181,7 +96,7 @@ export default function CRMAnalyticsPage() {
       setData(prev => ({ ...prev, [tab]: null }));
     }
     setLoading(false);
-  }, [backendAvailable, data, demoMode]);
+  }, [backendAvailable, data]);
 
   useEffect(() => {
     fetchData(activeTab);

@@ -27,7 +27,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useOutletContext: () => ({ setShowCreatorModal: vi.fn(), demoMode: false }),
+    useOutletContext: () => ({ setShowCreatorModal: vi.fn() }),
   };
 });
 

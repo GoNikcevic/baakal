@@ -127,7 +127,6 @@ export default function Layout() {
   const { user, setUser } = useApp();
   const t = useT();
   const [showCreatorModal, setShowCreatorModal] = useState(false);
-  const [demoMode, setDemoMode] = useState(() => localStorage.getItem('bakal_demo_mode') === 'true');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Wire socket events to app state + notifications
@@ -190,21 +189,6 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-
-        {/* Demo mode toggle */}
-        <button
-          onClick={() => { setDemoMode(p => { const next = !p; localStorage.setItem('bakal_demo_mode', String(next)); return next; }); }}
-          style={{
-            padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-            background: demoMode ? 'var(--blue)' : 'var(--bg-elevated)',
-            color: demoMode ? 'white' : 'var(--text-muted)',
-            border: '1px solid var(--border)', cursor: 'pointer',
-            transition: 'all 0.2s', marginBottom: 12, width: '100%',
-            textAlign: 'center',
-          }}
-        >
-          {demoMode ? t('nav.demoActive') : t('nav.viewDemo')}
-        </button>
 
         {/* Sidebar collapse toggle */}
         <button
@@ -270,7 +254,7 @@ export default function Layout() {
         >
           <NotificationBell />
         </div>
-        <Outlet context={{ showCreatorModal, setShowCreatorModal, demoMode }} />
+        <Outlet context={{ showCreatorModal, setShowCreatorModal }} />
       </main>
 
       {/* ═══ Mobile bottom nav ═══ */}

@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import api, { request } from '../services/api-client';
 import { useT } from '../i18n';
 
-const DEMO_PATTERNS = [
-  { id: '1', pattern: "Les objets avec {{firstName}} g\u00e9n\u00e8rent +15% d'ouverture", category: 'Objets', confidence: 'Haute', sectors: ['Tech', 'Finance'], targets: ['DAF', 'DRH'], date_discovered: '2026-02-15', data: { sample_size: 450, avg_improvement: 15.2 } },
-  { id: '2', pattern: 'Questions ouvertes > CTA directs pour premiers contacts', category: 'Corps', confidence: 'Haute', sectors: ['Formation', 'Conseil'], targets: ['Dirigeant'], date_discovered: '2026-01-20', data: { sample_size: 300, avg_improvement: 8.5 } },
-  { id: '3', pattern: 'LinkedIn connexion notes < 200 chars performent mieux', category: 'LinkedIn', confidence: 'Moyenne', sectors: ['Tech'], targets: ['CTO', 'VP Engineering'], date_discovered: '2026-03-01', data: { sample_size: 120 } },
-  { id: '4', pattern: 'Relance J+3 > J+5 pour secteur finance', category: 'Timing', confidence: 'Faible', sectors: ['Finance'], targets: ['DAF'], date_discovered: '2026-03-10', data: { sample_size: 45 } },
-];
-
 const CATEGORY_COLORS = { Objets: '#3b82f6', Corps: '#16a34a', Timing: '#f59e0b', LinkedIn: '#8b5cf6', Secteur: '#ef4444', Cible: '#eab308' };
 const CONFIDENCE_COLORS = { Haute: '#16a34a', Moyenne: '#f59e0b', Faible: '#9ca3af' };
 
@@ -44,12 +37,7 @@ export default function MemoryExplorerPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const demoMode = localStorage.getItem('bakal_demo_mode') === 'true';
     async function load() {
-      if (demoMode) {
-        if (!cancelled) { setPatterns(DEMO_PATTERNS); setLoading(false); }
-        return;
-      }
       try {
         const res = await api.getMemory();
         if (!cancelled) setPatterns(res.patterns || []);

@@ -234,11 +234,6 @@ export default function AuthGate({ onAuth, error: externalError }) {
     try {
       if (isRegister) {
         const result = await register(name, email, password, company);
-        // Offline/demo mode → register() still auto-logs in, onAuth directly
-        if (result._demo) {
-          if (onAuth) onAuth(result);
-          return;
-        }
         // Normal flow → show "check your email" screen, do NOT auto-login
         setRegisteredEmail(result.email);
       } else {

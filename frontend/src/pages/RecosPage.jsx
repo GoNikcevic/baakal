@@ -9,87 +9,6 @@ import { useApp } from '../context/useApp';
 import api, { sendRecoFeedback } from '../services/api-client';
 import { sanitizeHtml } from '../services/sanitize';
 
-/* ─── Demo recommendation data ─── */
-
-const DEMO_RECOS = [
-  {
-    id: 'reco-1',
-    priority: 'critical',
-    campaign: 'DRH PME Lyon',
-    step: 'E1 — Email initial · Offre directe',
-    title: 'Remplacer le CTA agressif par une question ouverte',
-    desc: 'Le CTA "Seriez-vous disponible 15 minutes cette semaine ?" est trop direct pour un premier contact DRH. Vos données cross-campagne montrent que les <strong>questions ouvertes</strong> sur les pain points génèrent 2x plus de réponses que les propositions de call directes sur ce segment.',
-    impact: '+2-3pts reply estimé',
-    date: 'Il y a 1h',
-    before: 'Nous aidons des DRH de PME comme {{companyName}} à réduire de 40% leur temps de recrutement. <span class="strikethrough">Seriez-vous disponible 15 minutes cette semaine pour en discuter ?</span>',
-    after: 'Nous aidons des DRH de PME comme {{companyName}} à réduire de 40% leur temps de recrutement. <span class="highlight">Quel est votre plus gros défi recrutement en ce moment ?</span>',
-  },
-  {
-    id: 'reco-2',
-    priority: 'important',
-    campaign: 'DAF Île-de-France',
-    step: 'E3 — Email relance · J+7',
-    title: "Remplacer l'angle \"coût de l'erreur\" par \"gain de temps\"",
-    desc: "L'E3 a un taux de réponse de seulement 1.4% (vs 4.2% sur E1). L'angle anxiogène \"coût d'une erreur de saisie\" est mal reçu par les DAF qui y voient une remise en question de leur compétence. Votre mémoire cross-campagne montre que l'angle positif <strong>\"gain de temps\"</strong> performe systématiquement mieux (+2.1pts en moyenne) sur le segment Comptabilité/Finance.",
-    impact: '+2.1pts reply estimé',
-    date: 'Il y a 3h',
-    before: '{{firstName}}, je change d\'approche. Plutôt que de parler d\'automatisation, une question simple : <span class="strikethrough">quel est le coût réel d\'une erreur de saisie dans un bilan chez {{companyName}} ?</span>',
-    after: '{{firstName}}, une question différente : <span class="highlight">si vous pouviez récupérer une journée complète par semaine pour du conseil à valeur ajoutée, qu\'en feriez-vous ?</span> C\'est exactement ce que nos clients dans la finance ont obtenu.',
-  },
-  {
-    id: 'reco-3',
-    priority: 'important',
-    campaign: 'Dirigeants Formation',
-    step: 'L2 — Message post-connexion LinkedIn',
-    title: 'Passer de preuve sociale vers angle douleur client',
-    desc: 'Le taux de réponse LinkedIn (6.8%) est sous l\'objectif de 8%. Le message actuel utilise une preuve sociale vague ("3 organismes de formation") qui manque de spécificité. Les données montrent que les <strong>questions directes sur les pain points</strong> fonctionnent mieux sur LinkedIn car le format conversationnel s\'y prête naturellement.',
-    impact: '+1.5pts reply estimé',
-    date: 'Il y a 5h',
-    before: "Merci d'avoir accepté, {{firstName}} ! <span class=\"strikethrough\">J'ai accompagné 3 organismes de formation comme le vôtre à générer entre 5 et 12 RDV qualifiés par mois.</span> Curieux de savoir comment vous gérez votre développement commercial actuellement ?",
-    after: "Merci d'avoir accepté, {{firstName}} ! <span class=\"highlight\">Quel est votre plus gros frein pour trouver de nouveaux clients en ce moment ?</span> Je pose la question car c'est un sujet qui revient souvent chez les dirigeants d'organismes de formation.",
-  },
-  {
-    id: 'reco-4',
-    priority: 'suggestion',
-    campaign: 'DAF Île-de-France',
-    step: 'E4 — Email break-up · J+12',
-    title: 'Raccourcir le break-up de 4 phrases à 3',
-    desc: "Le break-up actuel fait 4 phrases, l'objectif est 3 max. La phrase \"Juste un dernier mot : si un jour 12h/semaine...\" peut être fusionnée avec la précédente. Impact faible mais aligné avec les bonnes pratiques de break-up email (court = plus de respect perçu = meilleure image de marque).",
-    impact: '',
-    date: 'Il y a 5h',
-    before: "{{firstName}}, je ne veux pas encombrer votre boîte.<br>Si ce n'est pas le bon moment, pas de souci — je ne reviendrai pas.<br><span class=\"strikethrough\">Juste un dernier mot : si un jour 12h/semaine récupérées ça vous intéresse, mon agenda est ouvert.</span><br>Bonne continuation.",
-    after: "{{firstName}}, je ne veux pas encombrer votre boîte.<br><span class=\"highlight\">Si ce n'est pas le bon moment, aucun souci — mon agenda reste ouvert si un jour 12h/semaine récupérées vous intéressent.</span><br>Bonne continuation.",
-  },
-  {
-    id: 'reco-5',
-    priority: 'applied',
-    campaign: 'DAF Île-de-France',
-    step: 'E1 — Objet email initial',
-    title: "Personnaliser l'objet avec {{firstName}} + question sectorielle",
-    desc: "Remplacement de l'objet générique par un objet personnalisé avec le prénom du prospect et une question ciblée sur le secteur. Résultat : <strong>+8 points de taux d'ouverture</strong> (de 60% à 68%).",
-    impact: '▲ +8pts ouverture',
-    date: '3 fév.',
-    before: '',
-    after: '',
-    appliedNote: 'Appliquée le 3 fév. · Résultat confirmé après 150 prospects · Itération v2 → v3',
-  },
-];
-
-const INSIGHTS = [
-  {
-    title: 'Questions ouvertes > CTA directs',
-    text: 'Les CTA sous forme de question ("Quel est votre plus gros frein...?") génèrent 2.1x plus de réponses que les propositions de call directes. Observé sur les 3 campagnes actives.',
-    confidence: 'high',
-    confidenceLabel: 'Confiance haute · 400+ prospects',
-  },
-  {
-    title: 'Angle positif > anxiogène',
-    text: '"Gain de temps" et "récupérer X heures" performent +2.1pts mieux que "coût de l\'erreur" et "risque de..." sur les profils finance et RH.',
-    confidence: 'medium',
-    confidenceLabel: 'Confiance moyenne · 150 prospects',
-  },
-];
-
 /* ─── Filter definitions ─── */
 
 const PRIORITY_FILTERS = ['Toutes', 'Critiques', 'Importantes', 'Suggestions', 'Appliquées'];
@@ -106,10 +25,8 @@ const PRIORITY_MAP = {
 export default function RecosPage() {
   const { campaigns, backendAvailable } = useApp();
 
-  // Local state — start empty unless demo mode is toggled
-  const demoMode = typeof window !== 'undefined' && localStorage.getItem('bakal_demo_mode') === 'true';
-  const [recos, setRecos] = useState(demoMode ? DEMO_RECOS : []);
-  const [insights, setInsights] = useState(demoMode ? INSIGHTS : []);
+  const [recos, setRecos] = useState([]);
+  const [insights, setInsights] = useState([]);
   const [activeFilter, setActiveFilter] = useState('Toutes');
   const [activeCampaign, setActiveCampaign] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -121,7 +38,6 @@ export default function RecosPage() {
   /* ─── Fetch real diagnostics & memory from backend ─── */
 
   const fetchRecos = useCallback(async () => {
-    if (demoMode) return; // demo data already set
     if (!backendAvailable) return;
     try {
       const campaignEntries = Object.values(campaigns);

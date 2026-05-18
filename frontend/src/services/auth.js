@@ -59,12 +59,6 @@ export async function login(email, password) {
     setSession(data.token, data.refreshToken, data.user);
     return data.user;
   } catch (err) {
-    // Backend unreachable (GitHub Pages / offline) — demo mode
-    if (err.message === 'offline' || err.name === 'TypeError') {
-      const demoUser = { name: email.split('@')[0], email, role: 'demo' };
-      setSession('demo-token', null, demoUser);
-      return demoUser;
-    }
     throw err;
   }
 }
@@ -84,12 +78,6 @@ export async function register(name, email, password, company) {
     // d'abord confirmer son email via le lien reçu, puis se connecter.
     return { email: data.user.email, name: data.user.name };
   } catch (err) {
-    if (err.message === 'offline' || err.name === 'TypeError') {
-      // Offline demo mode — garder l'auto-login pour ne pas bloquer la démo locale
-      const demoUser = { name, email, role: 'demo' };
-      setSession('demo-token', null, demoUser);
-      return { email, name, _demo: true };
-    }
     throw err;
   }
 }
