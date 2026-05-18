@@ -234,6 +234,77 @@ async function getContactFields(instanceUrl, accessToken) {
   }));
 }
 
+// ── Campaigns ──
+
+async function listCampaigns(instanceUrl, accessToken, { limit = 100 } = {}) {
+  const data = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent(`SELECT Id, Name, Status, Type, StartDate, EndDate, NumberOfContacts, NumberOfResponses, NumberSent FROM Campaign ORDER BY CreatedDate DESC LIMIT ${limit}`)}`
+  );
+  return (data.records || []).map(c => ({
+    id: c.Id,
+    name: c.Name,
+    status: c.Status,
+    type: c.Type,
+    startDate: c.StartDate,
+    endDate: c.EndDate,
+    contacts: c.NumberOfContacts || 0,
+    responses: c.NumberOfResponses || 0,
+    sent: c.NumberSent || 0,
+  }));
+}
+
+async function getCampaign(instanceUrl, accessToken, campaignId) {
+  const data = await sfFetch(instanceUrl, accessToken, `/sobjects/Campaign/${campaignId}`);
+  return data;
+}
+
+async function getCampaignMembers(instanceUrl, accessToken, campaignId, { limit = 500 } = {}) {
+  const data = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent(`SELECT Id, ContactId, Status, FirstRespondedDate, Contact.Name, Contact.Email, Contact.Title, Contact.Account.Name FROM CampaignMember WHERE CampaignId = '${campaignId}' LIMIT ${limit}`)}`
+  );
+  return (data.records || []).map(m => ({
+    id: m.Id,
+    contactId: m.ContactId,
+    status: m.Status,
+    firstResponded: m.FirstRespondedDate,
+    name: m.Contact?.Name,
+    email: m.Contact?.Email,
+    title: m.Contact?.Title,
+    company: m.Contact?.Account?.Name,
+  }));
+}
+
+async function addToCampaign(instanceUrl, accessToken, campaignId, contactId, status = 'Sent') {
+  return sfFetch(instanceUrl, accessToken, '/sobjects/CampaignMember', {
+    method: 'POST',
+    body: JSON.stringify({
+      CampaignId: campaignId,
+      ContactId: contactId,
+      Status: status,
+    }),
+  });
+}
+
+async function createCampaign(instanceUrl, accessToken, data) {
+  return sfFetch(instanceUrl, accessToken, '/sobjects/Campaign', {
+    method: 'POST',
+    body: JSON.stringify({
+      Name: data.name,
+      Status: data.status || 'Planned',
+      Type: data.type || 'Email',
+      StartDate: data.startDate || new Date().toISOString().split('T')[0],
+      Description: data.description || '',
+    }),
+  });
+}
+
+async function updateCampaignMemberStatus(instanceUrl, accessToken, memberId, status) {
+  return sfFetch(instanceUrl, accessToken, `/sobjects/CampaignMember/${memberId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ Status: status }),
+  });
+}
+
 module.exports = {
   createContact,
   updateContact,
@@ -249,6 +320,12 @@ module.exports = {
   getActivities,
   getContactFields,
   createNote,
+  listCampaigns,
+  getCampaign,
+  getCampaignMembers,
+  addToCampaign,
+  createCampaign,
+  updateCampaignMemberStatus,
   mapStatusToStage,
   mapOpportunityToContact,
 };

@@ -676,6 +676,76 @@ router.get('/pipedrive/stages/:pipelineId', async (req, res, next) => {
   }
 });
 
+// ── Salesforce-specific routes ──
+
+// GET /api/crm/salesforce/campaigns — List Salesforce campaigns
+router.get('/salesforce/campaigns', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'salesforce');
+    if (!token) return res.status(400).json({ error: 'Salesforce not connected' });
+    const integration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]
+    );
+    const instanceUrl = integration.rows[0]?.instance_url;
+    if (!instanceUrl) return res.status(400).json({ error: 'Salesforce instance URL not configured' });
+
+    const sf = require('../api/salesforce');
+    const campaigns = await sf.listCampaigns(instanceUrl, token);
+    res.json({ campaigns });
+  } catch (err) { next(err); }
+});
+
+// GET /api/crm/salesforce/campaigns/:id/members — List campaign members
+router.get('/salesforce/campaigns/:id/members', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'salesforce');
+    if (!token) return res.status(400).json({ error: 'Salesforce not connected' });
+    const integration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]
+    );
+    const instanceUrl = integration.rows[0]?.instance_url;
+    if (!instanceUrl) return res.status(400).json({ error: 'Salesforce instance URL not configured' });
+
+    const sf = require('../api/salesforce');
+    const members = await sf.getCampaignMembers(instanceUrl, token, req.params.id);
+    res.json({ members });
+  } catch (err) { next(err); }
+});
+
+// POST /api/crm/salesforce/campaigns — Create a Salesforce campaign
+router.post('/salesforce/campaigns', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'salesforce');
+    if (!token) return res.status(400).json({ error: 'Salesforce not connected' });
+    const integration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]
+    );
+    const instanceUrl = integration.rows[0]?.instance_url;
+    if (!instanceUrl) return res.status(400).json({ error: 'Salesforce instance URL not configured' });
+
+    const sf = require('../api/salesforce');
+    const result = await sf.createCampaign(instanceUrl, token, req.body);
+    res.status(201).json(result);
+  } catch (err) { next(err); }
+});
+
+// POST /api/crm/salesforce/campaigns/:id/add-member — Add contact to campaign
+router.post('/salesforce/campaigns/:id/add-member', async (req, res, next) => {
+  try {
+    const token = await getUserCrmToken(req.user.id, 'salesforce');
+    if (!token) return res.status(400).json({ error: 'Salesforce not connected' });
+    const integration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`, [req.user.id]
+    );
+    const instanceUrl = integration.rows[0]?.instance_url;
+    if (!instanceUrl) return res.status(400).json({ error: 'Salesforce instance URL not configured' });
+
+    const sf = require('../api/salesforce');
+    const result = await sf.addToCampaign(instanceUrl, token, req.params.id, req.body.contactId, req.body.status);
+    res.status(201).json(result);
+  } catch (err) { next(err); }
+});
+
 // ── Odoo-specific routes ──
 
 // GET /api/crm/odoo/stages — List CRM stages

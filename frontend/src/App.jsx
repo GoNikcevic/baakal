@@ -35,6 +35,7 @@ const ClientsPage = lazyRetry(() => import('./pages/ClientsPage'))
 const NurturePage = lazyRetry(() => import('./pages/NurturePage'))
 const SignalsPage = lazyRetry(() => import('./pages/SignalsPage'))
 const MembershipPage = lazyRetry(() => import('./pages/MembershipPage'))
+const HelpPage = lazyRetry(() => import('./pages/HelpPage'))
 const JoinTeamPage = lazyRetry(() => import('./pages/JoinTeamPage'))
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'))
 
@@ -178,6 +179,7 @@ export default function App() {
             <Route path="/signals" element={<SignalsPage />} />
             <Route path="/nurture" element={<NurturePage />} />
             <Route path="/membership" element={<MembershipPage />} />
+            <Route path="/help" element={<HelpPage />} />
             <Route path="/join/:code" element={<JoinTeamPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
