@@ -208,18 +208,35 @@ async function getActivities(instanceUrl, accessToken, contactId) {
 
 // ── List All Contacts ──
 
-async function listContacts(instanceUrl, accessToken, { limit = 500 } = {}) {
-  const result = await sfFetch(instanceUrl, accessToken,
-    `/query?q=${encodeURIComponent(`SELECT Id, FirstName, LastName, Email, Title, Account.Name, OwnerId FROM Contact WHERE Email != null ORDER BY CreatedDate DESC LIMIT ${limit}`)}`
+async function listContacts(instanceUrl, accessToken, { limit = 10000 } = {}) {
+  const all = [];
+  let result = await sfFetch(instanceUrl, accessToken,
+    `/query?q=${encodeURIComponent('SELECT Id, FirstName, LastName, Email, Title, Account.Name, OwnerId FROM Contact WHERE Email != null ORDER BY CreatedDate DESC')}`
   );
-  return (result.records || []).map(c => ({
-    id: c.Id,
-    name: `${c.FirstName || ''} ${c.LastName || ''}`.trim(),
-    email: c.Email,
-    title: c.Title,
-    company: c.Account?.Name || '',
-    ownerId: c.OwnerId,
-  }));
+  const mapRecords = (records) => {
+    for (const c of (records || [])) {
+      all.push({
+        id: c.Id,
+        name: `${c.FirstName || ''} ${c.LastName || ''}`.trim(),
+        email: c.Email,
+        title: c.Title,
+        company: c.Account?.Name || '',
+        ownerId: c.OwnerId,
+      });
+    }
+  };
+  mapRecords(result.records);
+  // queryMore pagination — nextRecordsUrl is a full path, fetch directly
+  while (!result.done && result.nextRecordsUrl && all.length < limit) {
+    const url = `${instanceUrl}${result.nextRecordsUrl}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) break;
+    result = await res.json();
+    mapRecords(result.records);
+  }
+  return all;
 }
 
 // ── Get Contact Fields (for field mapping) ──

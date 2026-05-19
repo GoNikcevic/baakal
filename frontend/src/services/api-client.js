@@ -542,6 +542,19 @@ export function downloadScoresCSV() {
     });
 }
 
+export function downloadAnalyticsCSV(tab) {
+  const token = getToken();
+  fetch(BASE + '/analytics/' + tab + '/csv', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.blob())
+    .then(blob => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `baakal-${tab}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+}
+
 /** Consolidate cross-campaign memory */
 export async function consolidateMemory(dryRun = false) {
   const qs = dryRun ? '?dry_run=true' : '';
@@ -908,6 +921,7 @@ const BakalAPI = {
   scoreLeads,
   exportScoresToCRM,
   downloadScoresCSV,
+  downloadAnalyticsCSV,
   campaignToBackend,
   sequenceToBackend,
   transformCampaign,

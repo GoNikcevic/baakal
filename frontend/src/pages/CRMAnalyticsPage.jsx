@@ -70,6 +70,7 @@ const TABS = [
   { key: 'scoring', label: 'Lead Scoring' },
   { key: 'trends', label: 'Tendances' },
   { key: 'channels', label: 'Canaux' },
+  { key: 'forecast', label: 'Forecast' },
   { key: 'health', label: 'Santé CRM' },
 ];
 
@@ -130,11 +131,25 @@ export default function CRMAnalyticsPage() {
       {/* Content */}
       {loading && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading...</div>}
 
+      {/* CSV Export button */}
+      {!loading && activeTab !== 'health' && tabData && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 12, padding: '6px 14px', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            onClick={() => api.downloadAnalyticsCSV(activeTab)}
+          >
+            CSV
+          </button>
+        </div>
+      )}
+
       {!loading && activeTab === 'pipeline' && tabData && <PipelineSection data={tabData} />}
       {!loading && activeTab === 'attribution' && tabData && <AttributionSection data={tabData} />}
       {!loading && activeTab === 'scoring' && tabData && <ScoringSection data={tabData} />}
       {!loading && activeTab === 'trends' && tabData && <TrendsSection data={tabData} />}
       {!loading && activeTab === 'channels' && tabData && <ChannelsSection data={tabData} />}
+      {!loading && activeTab === 'forecast' && tabData && <ForecastSection data={tabData} />}
       {!loading && activeTab === 'health' && <CRMHealthSection />}
     </div>
   );
@@ -451,6 +466,156 @@ function ChannelsSection({ data }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ═══ Forecast Section ═══ */
+
+function ForecastSection({ data }) {
+  const pipeline = data.pipeline || {};
+  const retention = data.retention || {};
+  const cycle = data.salesCycle || {};
+
+  return (
+    <div className="crm-section">
+      {/* KPI row */}
+      <div className="crm-kpi-row">
+        <div className="crm-kpi-card">
+          <div className="crm-kpi-value" style={{ color: 'var(--blue)' }}>${(pipeline.totalValue || 0).toLocaleString()}</div>
+          <div className="crm-kpi-label">Total Pipeline</div>
+        </div>
+        <div className="crm-kpi-card">
+          <div className="crm-kpi-value" style={{ color: 'var(--purple)' }}>${(pipeline.weightedForecast || 0).toLocaleString()}</div>
+          <div className="crm-kpi-label">Weighted Forecast</div>
+        </div>
+        <div className="crm-kpi-card">
+          <div className="crm-kpi-value">{cycle.avgDays || '—'}</div>
+          <div className="crm-kpi-label">Avg Sales Cycle (days)</div>
+        </div>
+        <div className="crm-kpi-card">
+          <div className="crm-kpi-value" style={{ color: 'var(--success)' }}>${(retention.totalWonRevenue || 0).toLocaleString()}</div>
+          <div className="crm-kpi-label">Won Revenue</div>
+        </div>
+      </div>
+
+      <div className="crm-grid-2">
+        {/* Pipeline by stage */}
+        <div className="card">
+          <div className="card-title">Pipeline by Stage (Weighted)</div>
+          <div className="card-body">
+            <div className="crm-table">
+              <div className="crm-table-header">
+                <span style={{ flex: 2 }}>Stage</span>
+                <span>Deals</span>
+                <span>Value</span>
+                <span>Win %</span>
+                <span>Weighted</span>
+              </div>
+              {(pipeline.byStage || []).map(s => (
+                <div className="crm-table-row" key={s.stage}>
+                  <span style={{ flex: 2, fontWeight: 600 }}>{s.label}</span>
+                  <span>{s.deals}</span>
+                  <span>${s.totalValue.toLocaleString()}</span>
+                  <span style={{ color: s.probability >= 50 ? 'var(--success)' : 'var(--warning)' }}>{s.probability}%</span>
+                  <span style={{ fontWeight: 700, color: 'var(--purple)' }}>${s.weightedValue.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Retention / churn risk */}
+        <div className="card">
+          <div className="card-title">Revenue Retention</div>
+          <div className="card-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13 }}>Safe Revenue</span>
+                <span style={{ fontWeight: 700, color: 'var(--success)' }}>${(retention.safeRevenue || 0).toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13 }}>At-Risk Revenue (churn 50+)</span>
+                <span style={{ fontWeight: 700, color: 'var(--danger)' }}>${(retention.atRiskRevenue || 0).toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13 }}>At-Risk Clients</span>
+                <span style={{ fontWeight: 700, color: 'var(--warning)' }}>{retention.atRiskCount || 0}</span>
+              </div>
+              {retention.totalWonRevenue > 0 && (
+                <div style={{ height: 8, borderRadius: 4, background: 'var(--danger)', overflow: 'hidden', marginTop: 8 }}>
+                  <div style={{ height: '100%', width: `${Math.round(((retention.safeRevenue || 0) / retention.totalWonRevenue) * 100)}%`, background: 'var(--success)', borderRadius: 4 }} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue History */}
+      {(data.revenueHistory || []).length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-title">Monthly Won Revenue</div>
+          <div className="card-body">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 120 }}>
+              {data.revenueHistory.map((m, i) => {
+                const max = Math.max(...data.revenueHistory.map(r => r.revenue));
+                const pct = max > 0 ? (m.revenue / max) * 100 : 0;
+                return (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--success)' }}>${(m.revenue / 1000).toFixed(0)}k</div>
+                    <div style={{ width: '100%', height: `${Math.max(pct, 4)}%`, background: 'var(--purple)', borderRadius: 4 }} />
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{m.month.slice(5)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Projected deals */}
+      {(data.projectedDeals || []).length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-title">Top Projected Deals</div>
+          <div className="card-body">
+            <div className="crm-table">
+              <div className="crm-table-header">
+                <span style={{ flex: 2 }}>Name</span>
+                <span>Company</span>
+                <span>Stage</span>
+                <span>Value</span>
+                <span>Win %</span>
+                <span>Weighted</span>
+                <span>Est. Close</span>
+              </div>
+              {data.projectedDeals.slice(0, 10).map(d => (
+                <div className="crm-table-row" key={d.id}>
+                  <span style={{ flex: 2, fontWeight: 600 }}>{d.name}</span>
+                  <span>{d.company}</span>
+                  <span>
+                    <span className="crm-status-dot" style={{ background: STAGE_COLORS[d.stage] || 'var(--text-muted)' }} />
+                    {STATUS_LABELS[d.stage] || d.stage}
+                  </span>
+                  <span>${d.dealValue.toLocaleString()}</span>
+                  <span style={{ color: d.probability >= 50 ? 'var(--success)' : 'var(--warning)' }}>{d.probability}%</span>
+                  <span style={{ fontWeight: 700, color: 'var(--purple)' }}>${d.weightedValue.toLocaleString()}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{d.projectedCloseDate}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {(pipeline.byStage || []).every(s => s.deals === 0) && (
+        <div className="card" style={{ marginTop: 16, textAlign: 'center', padding: 40 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+            No deals with values in pipeline. Add deal values to your contacts to see revenue forecasts.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

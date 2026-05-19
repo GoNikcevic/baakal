@@ -200,12 +200,41 @@ function formatPatternsAsNote(patterns) {
   return `<h3>Bakal — Patterns haute confiance</h3><ul>${lines.join('')}</ul>`;
 }
 
+// =============================================
+// List all contacts (paginated)
+// =============================================
+
+async function listAllContacts(accessToken, { limit = 10000 } = {}) {
+  const all = [];
+  let after;
+  while (all.length < limit) {
+    let url = '/crm/v3/objects/contacts?limit=100&properties=email,firstname,lastname,jobtitle,company,hubspot_owner_id';
+    if (after) url += `&after=${after}`;
+    const data = await hubspotFetch(accessToken, url);
+    const results = data.results || [];
+    for (const c of results) {
+      all.push({
+        id: c.id,
+        name: `${c.properties?.firstname || ''} ${c.properties?.lastname || ''}`.trim(),
+        email: c.properties?.email,
+        job_title: c.properties?.jobtitle,
+        org_name: c.properties?.company,
+        owner_id: c.properties?.hubspot_owner_id,
+      });
+    }
+    if (!data.paging?.next?.after || results.length === 0) break;
+    after = data.paging.next.after;
+  }
+  return all;
+}
+
 module.exports = {
   // Contacts
   createContact,
   updateContact,
   getContact,
   searchContacts,
+  listAllContacts,
   // Deals
   createDeal,
   updateDeal,

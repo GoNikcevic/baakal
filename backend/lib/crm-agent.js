@@ -166,6 +166,25 @@ async function runAgent(userId, { trigger = 'scheduled', event = null } = {}) {
           message: `${churnReport.atRisk} contact(s) à risque de churn (score >= 50)`,
         });
       }
+      // Real-time notification for critical churn contacts (76+)
+      try {
+        const criticalResult = await db.query(
+          `SELECT id, name, company, email, churn_score FROM opportunities
+           WHERE user_id = $1 AND churn_score >= 76 ORDER BY churn_score DESC LIMIT 10`,
+          [userId]
+        );
+        if (criticalResult.rows.length > 0) {
+          const { createNotification } = require('./notify');
+          const names = criticalResult.rows.slice(0, 3).map(c => c.name || c.company || c.email).join(', ');
+          const extra = criticalResult.rows.length > 3 ? ` +${criticalResult.rows.length - 3} others` : '';
+          await createNotification(userId, {
+            type: 'warning',
+            title: `${criticalResult.rows.length} contact(s) at critical churn risk`,
+            body: `${names}${extra} — churn score 76+. Review in Clients page.`,
+            metadata: { contactIds: criticalResult.rows.map(c => c.id), count: criticalResult.rows.length },
+          });
+        }
+      } catch { /* notification is non-blocking */ }
     } catch (err) {
       report.errors.push(`Churn: ${err.message}`);
     }
@@ -215,11 +234,8 @@ async function stepSync(userId, token, report, event, crmProvider = 'pipedrive')
       const salesforce = require('../api/salesforce');
       persons = await salesforce.listContacts(token.instanceUrl, token.accessToken);
     } else if (crmProvider === 'hubspot') {
-      // HubSpot returns contacts via search
-      const res = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=500&properties=email,firstname,lastname,jobtitle,company,hubspot_owner_id', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) { const d = await res.json(); persons = (d.results || []).map(c => ({ id: c.id, name: `${c.properties?.firstname || ''} ${c.properties?.lastname || ''}`.trim(), email: c.properties?.email, job_title: c.properties?.jobtitle, org_name: c.properties?.company, owner_id: c.properties?.hubspot_owner_id })); }
+      const hubspot = require('../api/hubspot');
+      persons = await hubspot.listAllContacts(token);
     } else if (crmProvider === 'odoo') {
       const odoo = require('../api/odoo');
       persons = await odoo.listAllContacts(token);

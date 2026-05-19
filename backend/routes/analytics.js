@@ -507,4 +507,269 @@ router.get('/health', async (req, res, next) => {
   }
 });
 
+// =============================================
+// GET /api/analytics/forecast
+// =============================================
+
+router.get('/forecast', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const opportunities = await db.opportunities.listByUser(userId, 10000, 0);
+    const now = Date.now();
+    const DAY_MS = 1000 * 60 * 60 * 24;
+
+    // ── Historical closed revenue (by month) ──
+    const wonDeals = opportunities.filter(o => canonicalStage(o.status) === 'won' && o.deal_value);
+    const monthlyRevenue = {};
+    for (const deal of wonDeals) {
+      const date = deal.won_date || deal.updated_at || deal.created_at;
+      const month = new Date(date).toISOString().slice(0, 7);
+      monthlyRevenue[month] = (monthlyRevenue[month] || 0) + Number(deal.deal_value);
+    }
+    const revenueHistory = Object.entries(monthlyRevenue)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, revenue]) => ({ month, revenue: Math.round(revenue) }));
+
+    // ── Win probability per stage (from historical funnel) ──
+    const counts = {};
+    for (const def of STAGE_DEFS) counts[def.stage] = 0;
+    for (const opp of opportunities) counts[canonicalStage(opp.status)] = (counts[canonicalStage(opp.status)] || 0) + 1;
+
+    const funnelStages = ['new', 'interested', 'meeting', 'negotiation', 'won'];
+    const wonCount = counts['won'] || 0;
+    const stageProbability = {};
+    for (const stage of funnelStages) {
+      const stageAndBeyond = funnelStages.slice(funnelStages.indexOf(stage)).reduce((sum, s) => sum + (counts[s] || 0), 0);
+      stageProbability[stage] = stageAndBeyond > 0 && wonCount > 0 ? Math.round((wonCount / stageAndBeyond) * 100) / 100 : 0;
+    }
+    stageProbability['won'] = 1;
+    stageProbability['lost'] = 0;
+
+    // ── Pipeline deals — weighted forecast ──
+    const pipelineDeals = opportunities.filter(o => {
+      const s = canonicalStage(o.status);
+      return s !== 'won' && s !== 'lost' && o.deal_value;
+    });
+
+    const pipelineByStage = [];
+    for (const stage of ['new', 'interested', 'meeting', 'negotiation']) {
+      const stageDeals = pipelineDeals.filter(o => canonicalStage(o.status) === stage);
+      const totalValue = stageDeals.reduce((sum, o) => sum + Number(o.deal_value || 0), 0);
+      const probability = stageProbability[stage] || 0;
+      pipelineByStage.push({
+        stage,
+        label: STAGE_DEFS.find(d => d.stage === stage)?.label || stage,
+        deals: stageDeals.length,
+        totalValue: Math.round(totalValue),
+        probability: Math.round(probability * 100),
+        weightedValue: Math.round(totalValue * probability),
+      });
+    }
+
+    const totalPipeline = pipelineByStage.reduce((sum, s) => sum + s.totalValue, 0);
+    const totalWeighted = pipelineByStage.reduce((sum, s) => sum + s.weightedValue, 0);
+
+    // ── Sales cycle analysis ──
+    const closedDeals = opportunities.filter(o => canonicalStage(o.status) === 'won' && o.created_at);
+    let avgSalesCycle = 0;
+    if (closedDeals.length > 0) {
+      const totalDays = closedDeals.reduce((sum, o) => {
+        const close = new Date(o.won_date || o.updated_at).getTime();
+        const create = new Date(o.created_at).getTime();
+        return sum + (close - create) / DAY_MS;
+      }, 0);
+      avgSalesCycle = Math.round(totalDays / closedDeals.length);
+    }
+
+    // ── Projected close dates for active pipeline ──
+    const projectedDeals = pipelineDeals.slice(0, 20).map(o => {
+      const stage = canonicalStage(o.status);
+      const stageIdx = funnelStages.indexOf(stage);
+      const remainingStages = funnelStages.length - 1 - stageIdx;
+      const daysPerStage = avgSalesCycle > 0 ? avgSalesCycle / (funnelStages.length - 1) : 14;
+      const estDaysToClose = Math.round(remainingStages * daysPerStage);
+      const projectedDate = new Date(now + estDaysToClose * DAY_MS).toISOString().split('T')[0];
+      return {
+        id: o.id, name: o.name, company: o.company, stage,
+        dealValue: Number(o.deal_value || 0),
+        probability: Math.round((stageProbability[stage] || 0) * 100),
+        weightedValue: Math.round(Number(o.deal_value || 0) * (stageProbability[stage] || 0)),
+        estDaysToClose, projectedCloseDate: projectedDate,
+      };
+    }).sort((a, b) => b.weightedValue - a.weightedValue);
+
+    // ── Churn-adjusted retention ──
+    const atRiskRevenue = wonDeals.filter(o => (o.churn_score || 0) >= 50).reduce((sum, o) => sum + Number(o.deal_value || 0), 0);
+    const totalWonRevenue = wonDeals.reduce((sum, o) => sum + Number(o.deal_value || 0), 0);
+
+    res.json({
+      revenueHistory,
+      pipeline: { byStage: pipelineByStage, totalValue: totalPipeline, weightedForecast: totalWeighted },
+      salesCycle: { avgDays: avgSalesCycle, closedDeals: closedDeals.length },
+      projectedDeals,
+      retention: {
+        totalWonRevenue: Math.round(totalWonRevenue),
+        atRiskRevenue: Math.round(atRiskRevenue),
+        safeRevenue: Math.round(totalWonRevenue - atRiskRevenue),
+        atRiskCount: wonDeals.filter(o => (o.churn_score || 0) >= 50).length,
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+// ── CSV Export helpers ──
+
+function escapeCsv(val) {
+  if (val == null) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function sendCsv(res, filename, headers, rows) {
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers.map(escapeCsv).join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csv);
+}
+
+// GET /api/analytics/pipeline/csv
+router.get('/pipeline/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const opportunities = await db.opportunities.listByUser(userId, 10000, 0);
+    const total = opportunities.length;
+    const counts = {}; const stageTimes = {}; const stageCounts2 = {};
+    for (const def of STAGE_DEFS) counts[def.stage] = 0;
+    const now = Date.now();
+    for (const opp of opportunities) {
+      const stage = canonicalStage(opp.status);
+      counts[stage] = (counts[stage] || 0) + 1;
+      const updatedAt = opp.updated_at ? new Date(opp.updated_at).getTime() : now;
+      stageTimes[stage] = (stageTimes[stage] || 0) + (now - updatedAt) / 86400000;
+      stageCounts2[stage] = (stageCounts2[stage] || 0) + 1;
+    }
+    const headers = ['Stage', 'Label', 'Count', 'Percentage', 'Avg Days in Stage'];
+    const rows = STAGE_DEFS.map(def => [
+      def.stage, def.label, counts[def.stage] || 0,
+      total > 0 ? (((counts[def.stage] || 0) / total) * 100).toFixed(1) + '%' : '0%',
+      stageCounts2[def.stage] ? (stageTimes[def.stage] / stageCounts2[def.stage]).toFixed(1) : '0',
+    ]);
+    sendCsv(res, 'baakal-pipeline.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/attribution/csv
+router.get('/attribution/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [allCampaigns, allOpps] = await Promise.all([db.campaigns.list({ userId }), db.opportunities.listByUser(userId, 10000, 0)]);
+    const oppByCampaign = {};
+    for (const opp of allOpps) { const cid = opp.campaign_id || '__none__'; if (!oppByCampaign[cid]) oppByCampaign[cid] = []; oppByCampaign[cid].push(opp); }
+    const headers = ['Campaign', 'Channel', 'Prospects', 'Interested', 'Meetings', 'Conversion %'];
+    const rows = allCampaigns.map(c => {
+      const opps = oppByCampaign[c.id] || [];
+      const interested = opps.filter(o => { const s = canonicalStage(o.status); return s === 'interested' || s === 'meeting' || s === 'negotiation' || s === 'won'; }).length;
+      const meetings = c.meetings || opps.filter(o => { const s = canonicalStage(o.status); return s === 'meeting' || s === 'negotiation' || s === 'won'; }).length;
+      const prospects = c.nb_prospects || c.sent || 0;
+      return [c.name, c.channel || 'email', prospects, interested, meetings, prospects > 0 ? ((meetings / prospects) * 100).toFixed(1) + '%' : '0%'];
+    });
+    sendCsv(res, 'baakal-attribution.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/scoring/csv
+router.get('/scoring/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [opportunities, allCampaigns, profile] = await Promise.all([db.opportunities.listByUser(userId, 10000, 0), db.campaigns.list({ userId }), db.profiles.get(userId)]);
+    const campaignMap = {}; for (const c of allCampaigns) campaignMap[c.id] = c;
+    const scored = scoreOpportunities(opportunities, profile, campaignMap);
+    scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+    const headers = ['Score', 'Name', 'Company', 'Title', 'Status', 'Campaign', 'Engagement', 'Fit'];
+    const rows = scored.map(o => [o.score || 0, o.name, o.company, o.title, o.status, campaignMap[o.campaign_id]?.name || '', o.scoreBreakdown?.engagement || 0, o.scoreBreakdown?.fit || 0]);
+    sendCsv(res, 'baakal-scoring.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/trends/csv
+router.get('/trends/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [chartRows, reports] = await Promise.all([db.chartData.listByUser(userId), db.reports.listByUser(userId, 52, 0)]);
+    let weeks;
+    if (chartRows.length > 0) {
+      const reportByWeek = {}; for (const r of reports) reportByWeek[r.week] = r;
+      weeks = chartRows.map(row => { const r = reportByWeek[row.label] || {}; return { label: row.label, weekStart: row.week_start || '', emailCount: row.email_count || 0, linkedinCount: row.linkedin_count || 0, openRate: r.open_rate ?? '', replyRate: r.reply_rate ?? '', interested: r.interested || 0, meetings: r.meetings || 0 }; });
+    } else {
+      weeks = reports.map(r => ({ label: r.week, weekStart: r.date_range ? r.date_range.split(' - ')[0] : '', emailCount: r.contacts || 0, linkedinCount: 0, openRate: r.open_rate ?? '', replyRate: r.reply_rate ?? '', interested: r.interested || 0, meetings: r.meetings || 0 })).reverse();
+    }
+    const headers = ['Week', 'Start Date', 'Emails', 'LinkedIn', 'Open Rate %', 'Reply Rate %', 'Interested', 'Meetings'];
+    const rows = weeks.map(w => [w.label, w.weekStart, w.emailCount, w.linkedinCount, w.openRate, w.replyRate, w.interested, w.meetings]);
+    sendCsv(res, 'baakal-trends.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/channels/csv
+router.get('/channels/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const allCampaigns = await db.campaigns.list({ userId });
+    const groups = {}; for (const c of allCampaigns) { const ch = c.channel || 'email'; if (!groups[ch]) groups[ch] = []; groups[ch].push(c); }
+    const headers = ['Channel', 'Campaigns', 'Prospects', 'Interested', 'Meetings', 'Open Rate %', 'Reply Rate %'];
+    const rows = Object.entries(groups).map(([ch, cList]) => {
+      const totalP = cList.reduce((s, c) => s + (c.nb_prospects || c.sent || 0), 0);
+      const interested = cList.reduce((s, c) => s + (c.interested || 0), 0);
+      const meetings = cList.reduce((s, c) => s + (c.meetings || 0), 0);
+      const wO = cList.filter(c => c.open_rate > 0); const avgO = wO.length > 0 ? (wO.reduce((s, c) => s + c.open_rate, 0) / wO.length).toFixed(1) : '';
+      const wR = cList.filter(c => c.reply_rate > 0); const avgR = wR.length > 0 ? (wR.reduce((s, c) => s + c.reply_rate, 0) / wR.length).toFixed(1) : '';
+      return [ch, cList.length, totalP, interested, meetings, avgO, avgR];
+    });
+    sendCsv(res, 'baakal-channels.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/health/csv
+router.get('/health/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const opportunities = await db.opportunities.listByUser(userId, 10000, 0);
+    const now = Date.now(); const DAY_MS = 86400000;
+    const activeOpps = opportunities.filter(o => { const s = canonicalStage(o.status); return s !== 'won' && s !== 'lost'; });
+    const stale = activeOpps.filter(o => { const u = o.updated_at ? new Date(o.updated_at).getTime() : 0; return (now - u) > 7 * DAY_MS; });
+    const stuck = opportunities.filter(o => { if (canonicalStage(o.status) !== 'negotiation') return false; const u = o.updated_at ? new Date(o.updated_at).getTime() : 0; return (now - u) > 14 * DAY_MS; });
+    const headers = ['Metric', 'Value'];
+    const rows = [
+      ['Total Opportunities', opportunities.length], ['Active (in pipeline)', activeOpps.length],
+      ['Stale Leads (7+ days)', stale.length], ['Stuck Deals (14+ days)', stuck.length],
+      ['Won', opportunities.filter(o => canonicalStage(o.status) === 'won').length],
+      ['Lost', opportunities.filter(o => canonicalStage(o.status) === 'lost').length],
+    ];
+    sendCsv(res, 'baakal-health.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
+// GET /api/analytics/forecast/csv
+router.get('/forecast/csv', async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const opportunities = await db.opportunities.listByUser(userId, 10000, 0);
+    const counts = {}; for (const opp of opportunities) counts[canonicalStage(opp.status)] = (counts[canonicalStage(opp.status)] || 0) + 1;
+    const wonCount = counts['won'] || 0;
+    const funnelStages = ['new', 'interested', 'meeting', 'negotiation', 'won'];
+    const pipelineDeals = opportunities.filter(o => { const s = canonicalStage(o.status); return s !== 'won' && s !== 'lost' && o.deal_value; });
+    const headers = ['Name', 'Company', 'Stage', 'Deal Value', 'Probability %', 'Weighted Value'];
+    const rows = pipelineDeals.map(o => {
+      const stage = canonicalStage(o.status);
+      const stageAndBeyond = funnelStages.slice(funnelStages.indexOf(stage)).reduce((sum, s) => sum + (counts[s] || 0), 0);
+      const prob = stageAndBeyond > 0 && wonCount > 0 ? Math.round((wonCount / stageAndBeyond) * 100) : 0;
+      return [o.name, o.company, stage, o.deal_value || 0, prob, Math.round(Number(o.deal_value || 0) * prob / 100)];
+    });
+    sendCsv(res, 'baakal-forecast.csv', headers, rows);
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

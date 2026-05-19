@@ -794,6 +794,99 @@ router.post('/:id/launch-lemlist', async (req, res, next) => {
   }
 });
 
+// POST /api/campaigns/:id/launch-salesforce
+// Creates a Salesforce Campaign, upserts contacts, adds them as CampaignMembers
+router.post('/:id/launch-salesforce', async (req, res, next) => {
+  try {
+    const campaign = await db.campaigns.get(req.params.id);
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    if (campaign.user_id && campaign.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const accessToken = await getUserKey(req.user.id, 'salesforce');
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Salesforce not connected. Add your credentials in Settings.' });
+    }
+    const sfIntegration = await db.query(
+      `SELECT instance_url FROM user_integrations WHERE user_id = $1 AND provider = 'salesforce'`,
+      [req.user.id]
+    );
+    const instanceUrl = sfIntegration.rows[0]?.instance_url;
+    if (!instanceUrl) {
+      return res.status(400).json({ error: 'Salesforce instance URL not configured. Reconnect Salesforce in Settings.' });
+    }
+    const salesforce = require('../api/salesforce');
+
+    const prospects = await db.opportunities.listByCampaign(campaign.id);
+    const eligible = prospects.filter(p => p.email);
+    if (eligible.length === 0) {
+      return res.status(400).json({ error: 'No prospects with email. Add prospects before launching.' });
+    }
+
+    // 1) Create Salesforce Campaign
+    let sfCampaignId;
+    try {
+      const created = await salesforce.createCampaign(instanceUrl, accessToken, {
+        name: campaign.name || 'Baakalai Campaign',
+        type: 'Email',
+        status: 'In Progress',
+        description: `Deployed from Baakalai — ${eligible.length} contacts`,
+      });
+      sfCampaignId = created.id || created.Id;
+      if (!sfCampaignId) throw new Error('No campaign ID returned');
+    } catch (err) {
+      return res.status(502).json({ error: `Failed to create Salesforce campaign: ${err.message}` });
+    }
+
+    // 2) Upsert contacts + add to campaign
+    const results = { pushed: 0, skipped: 0, errors: [] };
+    for (const p of eligible) {
+      try {
+        const contactResult = await salesforce.upsertContact(instanceUrl, accessToken, {
+          email: p.email,
+          firstName: (p.name || '').split(' ')[0] || '',
+          lastName: (p.name || '').split(' ').slice(1).join(' ') || p.email.split('@')[0],
+          title: p.title || '',
+          company: p.company || '',
+        });
+        const contactId = contactResult.contactId || contactResult.id;
+        if (!contactId) { results.skipped++; continue; }
+
+        await salesforce.addToCampaign(instanceUrl, accessToken, sfCampaignId, contactId, 'Sent');
+        if (!p.crm_contact_id) {
+          await db.opportunities.update(p.id, { crm_contact_id: contactId, crm_provider: 'salesforce' });
+        }
+        results.pushed++;
+      } catch (err) {
+        results.skipped++;
+        results.errors.push({ email: p.email, error: err.message });
+      }
+    }
+
+    // 3) Update Baakalai campaign
+    await db.campaigns.update(campaign.id, {
+      status: 'active',
+      start_date: new Date().toISOString().split('T')[0],
+      nb_prospects: results.pushed,
+    });
+
+    const updated = await db.campaigns.get(campaign.id);
+    notifyCampaignUpdate(req.user.id, updated);
+    logger.info('launch-salesforce', `Campaign ${campaign.id} launched — SF Campaign ${sfCampaignId}, ${results.pushed} contacts pushed`);
+
+    res.json({
+      success: true,
+      salesforceCampaignId: sfCampaignId,
+      leads: results,
+      campaign: updated,
+    });
+  } catch (err) {
+    logger.error('launch-salesforce', `Fatal: ${err.message}`);
+    next(err);
+  }
+});
+
 // DELETE /api/campaigns/:id — batch delete related data (no N+1)
 router.delete('/:id', async (req, res, next) => {
   try {
